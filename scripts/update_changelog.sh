@@ -48,6 +48,6 @@ TAG=$(echo "$TAG" | sed 's/-\([A-Za-z]*\)[^A-Za-z]*/-\1/')
 echo "Consolidated tag: $TAG"
 sed -i -n "/^## \\[${TAG}[^]]*\\]/,\$p" CHANGELOG.md
 
-github_changelog_generator -u confio -p tgrade-contracts --base CHANGELOG.md $ORIGINAL_OPTS || cp /tmp/CHANGELOG.md.$$ CHANGELOG.md
+github_changelog_generator -u confio -p poe-contracts --base CHANGELOG.md $ORIGINAL_OPTS || cp /tmp/CHANGELOG.md.$$ CHANGELOG.md
 
 rm -f /tmp/CHANGELOG.md.$$

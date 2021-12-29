@@ -1,4 +1,4 @@
-# Tgrade Contracts
+# PoE Contracts
 
 This repo maintains contracts and support libraries for building the Tgrade PoE contracts.
 These are **not** available under an open source license, you need permission from Confio to use them.
