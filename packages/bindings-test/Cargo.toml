@@ -1,0 +1,18 @@
+[package]
+name = "tg-bindings-test"
+version = "0.5.2"
+authors = ["Ethan Frey <ethanfrey@users.noreply.github.com>"]
+edition = "2018"
+description = "Multitest (and other test helpers) support for Tgrade-specific contracts"
+repository = "https://github.com/confio/tgrade-contracts"
+homepage = "https://tgrade.finance"
+
+[dependencies]
+tg-bindings = { version = "0.5.2", path = "../bindings" }
+cosmwasm-std = { version = "1.0.0-beta" }
+schemars = "0.8"
+serde = { version = "1.0.103", default-features = false, features = ["derive"] }
+cw-multi-test = { version = "0.11.0" }
+cw-storage-plus = { version = "0.11.0" }
+anyhow = { version = "1" }
+thiserror = { version = "1.0.21" }

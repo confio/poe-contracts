@@ -1,0 +1,52 @@
+[package]
+name = "tg4-mixer"
+version = "0.5.2"
+authors = ["Ethan Frey <ethanfrey@users.noreply.github.com>"]
+edition = "2018"
+description = "TG4 implementation that combines two different groups with a merge function"
+repository = "https://github.com/confio/tgrade-contracts"
+homepage = "https://tgrade.finance"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+# See https://bheisler.github.io/criterion.rs/book/faq.html#cargo-bench-gives-unrecognized-option-errors-for-valid-command-line-options
+bench = false
+
+[features]
+# for more explicit tests, cargo test --features=backtraces
+backtraces = ["cosmwasm-std/backtraces"]
+# use library feature to disable all instantiate/execute/query exports
+library = []
+benches = [ "cosmwasm-vm" ]
+
+[dependencies]
+cw-utils = "0.11.0"
+cw2 = "0.11.0"
+cw20 = "0.11.0"
+cw-storage-plus = "0.11.0"
+tg4 = { path = "../../packages/tg4", version = "0.5.2" }
+tg-utils = { path = "../../packages/utils", version = "0.5.2" }
+tg-bindings = { path = "../../packages/bindings", version = "0.5.2" }
+cosmwasm-std = "1.0.0-beta"
+integer-sqrt = "0.1.5"
+schemars = "0.8"
+serde = { version = "1.0.103", default-features = false, features = ["derive"] }
+thiserror = { version = "1.0.21" }
+rust_decimal = { version = "1.16", default-features = false, features = ["maths"] }
+rust_decimal_macros = { version = "1.16", default-features = false }
+
+# bench dependencies
+cosmwasm-vm = { version = "1.0.0-beta", optional = true }
+
+[dev-dependencies]
+cw-multi-test = { version = "0.11.0" }
+cosmwasm-schema = { version = "1.0.0-beta" }
+tg4-engagement = { path = "../tg4-engagement", version = "0.5.2", features = ["library"] }
+tg4-stake = { path = "../tg4-stake", version = "0.5.2", features = ["library"] }
+
+[[bench]]
+name = "main"
+harness = false
+required-features = [ "benches" ]

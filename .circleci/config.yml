@@ -1,6 +1,16 @@
 version: 2
 workflows:
   version: 2
+  test:
+    jobs:
+      - contract_tg4_engagement
+      - contract_tg4_mixer
+      - contract_tg4_stake
+      - contract_tgrade_valset
+      - package_bindings
+      - package_bindings_test
+      - package_utils
+      - package_tg4
   build:
     jobs:
       - lint
@@ -21,6 +31,221 @@ workflows:
              ignore: /.*/
 
 jobs:
+  contract_tg4_engagement:
+    docker:
+      - image: rust:1.53.0
+    working_directory: ~/project/contracts/tg4-engagement
+    steps:
+      - checkout:
+          path: ~/project
+      - run:
+          name: Version information
+          command: rustc --version; cargo --version; rustup --version
+      - restore_cache:
+          keys:
+            - cargocache-tg4-engagement-rust:1.53.0-{{ checksum "~/project/Cargo.lock" }}
+      - run:
+          name: Unit Tests
+          environment:
+            RUST_BACKTRACE: 1
+          command: cargo unit-test --locked
+      - run:
+          name: Build and run schema generator
+          command: cargo schema --locked
+      - save_cache:
+          paths:
+            - /usr/local/cargo/registry
+            - target
+          key: cargocache-tg4-engagement-rust:1.53.0-{{ checksum "~/project/Cargo.lock" }}
+
+  contract_tg4_mixer:
+    docker:
+      - image: rust:1.53.0
+    working_directory: ~/project/contracts/tg4-mixer
+    steps:
+      - checkout:
+          path: ~/project
+      - run:
+          name: Version information
+          command: rustc --version; cargo --version; rustup --version
+      - restore_cache:
+          keys:
+            - cargocache-tg4-mixer-rust:1.53.0-{{ checksum "~/project/Cargo.lock" }}
+      - run:
+          name: Unit Tests
+          environment:
+            RUST_BACKTRACE: 1
+          command: cargo unit-test --locked
+      - run:
+          name: Build and run schema generator
+          command: cargo schema --locked
+      - save_cache:
+          paths:
+            - /usr/local/cargo/registry
+            - target
+          key: cargocache-tg4-mixer-rust:1.53.0-{{ checksum "~/project/Cargo.lock" }}
+
+  contract_tg4_stake:
+    docker:
+      - image: rust:1.53.0
+    working_directory: ~/project/contracts/tg4-stake
+    steps:
+      - checkout:
+          path: ~/project
+      - run:
+          name: Version information
+          command: rustc --version; cargo --version; rustup --version
+      - restore_cache:
+          keys:
+            - cargocache-tg4-stake-rust:1.53.0-{{ checksum "~/project/Cargo.lock" }}
+      - run:
+          name: Unit Tests
+          environment:
+            RUST_BACKTRACE: 1
+          command: cargo unit-test --locked
+      - run:
+          name: Build and run schema generator
+          command: cargo schema --locked
+      - save_cache:
+          paths:
+            - /usr/local/cargo/registry
+            - target
+          key: cargocache-tg4-stake-rust:1.53.0-{{ checksum "~/project/Cargo.lock" }}
+
+  contract_tgrade_valset:
+    docker:
+      - image: rust:1.53.0
+    working_directory: ~/project/contracts/tgrade-valset
+    steps:
+      - checkout:
+          path: ~/project
+      - run:
+          name: Version information
+          command: rustc --version; cargo --version; rustup --version
+      - restore_cache:
+          keys:
+            - cargocache-tgrade-valset-rust:1.53.0-{{ checksum "~/project/Cargo.lock" }}
+      - run:
+          name: Unit Tests
+          environment:
+            RUST_BACKTRACE: 1
+          command: cargo unit-test --locked
+      - run:
+          name: Build and run schema generator
+          command: cargo schema --locked
+      - save_cache:
+          paths:
+            - /usr/local/cargo/registry
+            - target
+          key: cargocache-tgrade-valset-rust:1.53.0-{{ checksum "~/project/Cargo.lock" }}
+
+  package_bindings:
+    docker:
+      - image: rust:1.53.0
+    working_directory: ~/project/packages/bindings
+    steps:
+      - checkout:
+          path: ~/project
+      - run:
+          name: Version information
+          command: rustc --version; cargo --version; rustup --version; rustup target list --installed
+      - restore_cache:
+          keys:
+            - cargocache-v2-bindings:1.53.0-{{ checksum "~/project/Cargo.lock" }}
+      - run:
+          name: Build library for native target
+          command: cargo build --locked
+      - run:
+          name: Run unit tests
+          command: cargo test --locked
+      - run:
+          name: Build and run schema generator
+          command: cargo schema --locked
+      - save_cache:
+          paths:
+            - /usr/local/cargo/registry
+            - target
+          key: cargocache-v2-bindings:1.53.0-{{ checksum "~/project/Cargo.lock" }}
+
+  package_bindings_test:
+    docker:
+      - image: rust:1.53.0
+    working_directory: ~/project/packages/bindings-test
+    steps:
+      - checkout:
+          path: ~/project
+      - run:
+          name: Version information
+          command: rustc --version; cargo --version; rustup --version; rustup target list --installed
+      - restore_cache:
+          keys:
+            - cargocache-v2-bindings-test:1.53.0-{{ checksum "~/project/Cargo.lock" }}
+      - run:
+          name: Build library for native target
+          command: cargo build --locked
+      - run:
+          name: Run unit tests
+          command: cargo test --locked
+      - save_cache:
+          paths:
+            - /usr/local/cargo/registry
+            - target
+          key: cargocache-v2-bindings-test:1.53.0-{{ checksum "~/project/Cargo.lock" }}
+
+  package_utils:
+    docker:
+      - image: rust:1.53.0
+    working_directory: ~/project/packages/utils
+    steps:
+      - checkout:
+          path: ~/project
+      - run:
+          name: Version information
+          command: rustc --version; cargo --version; rustup --version; rustup target list --installed
+      - restore_cache:
+          keys:
+            - cargocache-v2-utils:1.53.0-{{ checksum "~/project/Cargo.lock" }}
+      - run:
+          name: Build library for native target
+          command: cargo build --locked
+      - run:
+          name: Run unit tests
+          command: cargo test --locked
+      - save_cache:
+          paths:
+            - /usr/local/cargo/registry
+            - target
+          key: cargocache-v2-utils:1.53.0-{{ checksum "~/project/Cargo.lock" }}
+
+
+  package_tg4:
+    docker:
+      - image: rust:1.53.0
+    working_directory: ~/project/packages/tg4
+    steps:
+      - checkout:
+          path: ~/project
+      - run:
+          name: Version information
+          command: rustc --version; cargo --version; rustup --version; rustup target list --installed
+      - restore_cache:
+          keys:
+            - cargocache-v2-tg4:1.53.0-{{ checksum "~/project/Cargo.lock" }}
+      - run:
+          name: Build library for native target
+          command: cargo build --locked
+      - run:
+          name: Run unit tests
+          command: cargo test --locked
+      - run:
+          name: Build and run schema generator
+          command: cargo schema --locked
+      - save_cache:
+          paths:
+            - /usr/local/cargo/registry
+            - target
+          key: cargocache-v2-tg4:1.53.0-{{ checksum "~/project/Cargo.lock" }}
+
   lint:
     docker:
       - image: rust:1.53.0
