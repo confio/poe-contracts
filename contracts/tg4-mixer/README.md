@@ -1,6 +1,6 @@
 # TG4 Mixer
 
-This mixes two tg4 contracts as [defined here](https://github.com/confio/tgrade-contracts/issues/8).
+This mixes two tg4 contracts.
 On init, you pass addresses to two tg4 contracts, and this one will
 register a listening hook on both. Following that, it will query both
 for their current state and use a mixing function to calculate the combined value.
@@ -10,8 +10,7 @@ either upstream group means a `None` weight in this group)
 Every time one of the upstream contracts changes, it will use the mixing
 function again to recalculate the combined weight of the affected addresses.
 
-Apart from tg4, both upstream contracts need to implement the slashing API as
-defined [here](https://github.com/confio/tgrade-contracts/blob/ad07cbe848a7d9a439b9fad9c92881753238498f/packages/utils/src/slashers.rs#L55-L84).
+Apart from tg4, both upstream contracts need to implement the slashing API.
 
 ## Init
 
