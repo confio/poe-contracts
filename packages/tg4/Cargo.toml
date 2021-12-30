@@ -1,0 +1,17 @@
+[package]
+name = "tg4"
+version = "0.5.2"
+authors = ["Ethan Frey <ethanfrey@users.noreply.github.com>"]
+edition = "2018"
+description = "Tgrade-4 Interface: Groups Members"
+repository = "https://github.com/confio/tgrade-contracts"
+homepage = "https://tgrade.finance"
+
+[dependencies]
+cosmwasm-std = { version = "1.0.0-beta" }
+schemars = "0.8.1"
+serde = { version = "1.0.103", default-features = false, features = ["derive"] }
+tg-bindings = { path = "../bindings", version = "0.5.2" }
+
+[dev-dependencies]
+cosmwasm-schema = { version = "1.0.0-beta" }

@@ -1,0 +1,36 @@
+[package]
+name = "tg4-stake"
+version = "0.5.2"
+authors = ["Ethan Frey <ethanfrey@users.noreply.github.com>"]
+edition = "2018"
+description = "TG4 implementation of group based on staked tokens"
+repository = "https://github.com/confio/tgrade-contracts"
+homepage = "https://tgrade.finance"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+# for more explicit tests, cargo test --features=backtraces
+backtraces = ["cosmwasm-std/backtraces"]
+# use library feature to disable all instantiate/execute/query exports
+library = []
+
+[dependencies]
+cw-utils = "0.11.0"
+cw2 = "0.11.0"
+cw-controllers = "0.11.0"
+cw-storage-plus = "0.11.0"
+tg4 = { path = "../../packages/tg4", version = "0.5.2" }
+tg-utils = { path = "../../packages/utils", version = "0.5.2" }
+tg-bindings = { path = "../../packages/bindings", version = "0.5.2" }
+cosmwasm-std = "1.0.0-beta"
+schemars = "0.8.1"
+serde = { version = "1.0.103", default-features = false, features = ["derive"] }
+thiserror = { version = "1.0.21" }
+itertools = "0.10"
+
+[dev-dependencies]
+cosmwasm-schema = { version = "1.0.0-beta" }

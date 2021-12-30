@@ -1,0 +1,19 @@
+[package]
+name = "tg-bindings"
+version = "0.5.2"
+authors = ["Ethan Frey <ethanfrey@users.noreply.github.com>"]
+edition = "2018"
+description = "Bindings for CustomMsg and CustomQuery for the Tgrade blockchain"
+repository = "https://github.com/confio/tgrade-contracts"
+homepage = "https://tgrade.finance"
+
+[dependencies]
+base64 = "0.13"
+cosmwasm-std = { version = "1.0.0-beta" }
+schemars = "0.8"
+sha2 = "0.9"
+serde = { version = "1.0.103", default-features = false, features = ["derive"] }
+
+[dev-dependencies]
+cosmwasm-schema = { version = "1.0.0-beta" }
+hex-literal = "0.3.1"
