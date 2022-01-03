@@ -474,6 +474,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "cw3"
+version = "0.11.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6c82e63276f517fe9bafc1ddca19d091367d715d54199708c4ea3c8c58c51936"
+dependencies = [
+ "cosmwasm-std",
+ "cw-utils",
+ "schemars",
+ "serde",
+]
+
+[[package]]
 name = "darling"
 version = "0.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1495,6 +1507,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "tg-test-utils"
+version = "0.5.2"
+dependencies = [
+ "cosmwasm-std",
+ "tg-voting-contract",
+]
+
+[[package]]
 name = "tg-utils"
 version = "0.5.2"
 dependencies = [
@@ -1505,6 +1525,23 @@ dependencies = [
  "schemars",
  "serde",
  "tg-bindings",
+ "tg4",
+ "thiserror",
+]
+
+[[package]]
+name = "tg-voting-contract"
+version = "0.5.2"
+dependencies = [
+ "cosmwasm-schema",
+ "cosmwasm-std",
+ "cw-storage-plus",
+ "cw-utils",
+ "cw3",
+ "schemars",
+ "serde",
+ "tg-bindings",
+ "tg-utils",
  "tg4",
  "thiserror",
 ]
@@ -1584,6 +1621,50 @@ dependencies = [
  "tg-bindings",
  "tg-utils",
  "tg4",
+ "thiserror",
+]
+
+[[package]]
+name = "tgrade-community-pool"
+version = "0.5.2"
+dependencies = [
+ "anyhow",
+ "cosmwasm-schema",
+ "cosmwasm-std",
+ "cw-multi-test",
+ "cw2",
+ "cw3",
+ "schemars",
+ "serde",
+ "tg-bindings",
+ "tg-bindings-test",
+ "tg-test-utils",
+ "tg-voting-contract",
+ "tg4",
+ "tg4-engagement",
+ "thiserror",
+]
+
+[[package]]
+name = "tgrade-validator-voting"
+version = "0.5.2"
+dependencies = [
+ "anyhow",
+ "cosmwasm-schema",
+ "cosmwasm-std",
+ "cw-multi-test",
+ "cw-storage-plus",
+ "cw2",
+ "cw3",
+ "schemars",
+ "serde",
+ "tg-bindings",
+ "tg-bindings-test",
+ "tg-test-utils",
+ "tg-utils",
+ "tg-voting-contract",
+ "tg4",
+ "tg4-engagement",
  "thiserror",
 ]
 

@@ -7,10 +7,14 @@ workflows:
       - contract_tg4_mixer
       - contract_tg4_stake
       - contract_tgrade_valset
+      - contract_tgrade_validator_voting
+      - contract_tgrade_community_pool
       - package_bindings
       - package_bindings_test
       - package_utils
       - package_tg4
+      - package_voting_contract
+      - package_test_utils
   build:
     jobs:
       - lint
@@ -139,6 +143,61 @@ jobs:
             - target
           key: cargocache-tgrade-valset-rust:1.53.0-{{ checksum "~/project/Cargo.lock" }}
 
+  contract_tgrade_validator_voting:
+    docker:
+      - image: rust:1.53.0
+    working_directory: ~/project/contracts/tgrade-validator-voting
+    steps:
+      - checkout:
+          path: ~/project
+      - run:
+          name: Version information
+          command: rustc --version; cargo --version; rustup --version
+      - restore_cache:
+          keys:
+            - cargocache-tgrade-validator-voting-rust:1.53.0-{{ checksum "~/project/Cargo.lock" }}
+      - run:
+          name: Unit Tests
+          environment:
+            RUST_BACKTRACE: 1
+          command: cargo unit-test --locked
+      - run:
+          name: Build and run schema generator
+          command: cargo schema --locked
+      - save_cache:
+          paths:
+            - /usr/local/cargo/registry
+            - target
+          key: cargocache-tgrade-validator-voting-rust:1.53.0-{{ checksum "~/project/Cargo.lock" }}
+
+  contract_tgrade_community_pool:
+    docker:
+      - image: rust:1.53.0
+    working_directory: ~/project/contracts/tgrade-community-pool
+    steps:
+      - checkout:
+          path: ~/project
+      - run:
+          name: Version information
+          command: rustc --version; cargo --version; rustup --version
+      - restore_cache:
+          keys:
+            - cargocache-tgrade-validator-voting-rust:1.53.0-{{ checksum "~/project/Cargo.lock" }}
+      - run:
+          name: Unit Tests
+          environment:
+            RUST_BACKTRACE: 1
+          command: cargo unit-test --locked
+      - run:
+          name: Build and run schema generator
+          command: cargo schema --locked
+      - save_cache:
+          paths:
+            - /usr/local/cargo/registry
+            - target
+          key: cargocache-tgrade-validator-voting-rust:1.53.0-{{ checksum "~/project/Cargo.lock" }}
+
+
   package_bindings:
     docker:
       - image: rust:1.53.0
@@ -222,6 +281,62 @@ jobs:
     docker:
       - image: rust:1.53.0
     working_directory: ~/project/packages/tg4
+    steps:
+      - checkout:
+          path: ~/project
+      - run:
+          name: Version information
+          command: rustc --version; cargo --version; rustup --version; rustup target list --installed
+      - restore_cache:
+          keys:
+            - cargocache-v2-tg4:1.53.0-{{ checksum "~/project/Cargo.lock" }}
+      - run:
+          name: Build library for native target
+          command: cargo build --locked
+      - run:
+          name: Run unit tests
+          command: cargo test --locked
+      - run:
+          name: Build and run schema generator
+          command: cargo schema --locked
+      - save_cache:
+          paths:
+            - /usr/local/cargo/registry
+            - target
+          key: cargocache-v2-tg4:1.53.0-{{ checksum "~/project/Cargo.lock" }}
+
+  package_voting_contract:
+    docker:
+      - image: rust:1.53.0
+    working_directory: ~/project/packages/voting-contract
+    steps:
+      - checkout:
+          path: ~/project
+      - run:
+          name: Version information
+          command: rustc --version; cargo --version; rustup --version; rustup target list --installed
+      - restore_cache:
+          keys:
+            - cargocache-v2-tg4:1.53.0-{{ checksum "~/project/Cargo.lock" }}
+      - run:
+          name: Build library for native target
+          command: cargo build --locked
+      - run:
+          name: Run unit tests
+          command: cargo test --locked
+      - run:
+          name: Build and run schema generator
+          command: cargo schema --locked
+      - save_cache:
+          paths:
+            - /usr/local/cargo/registry
+            - target
+          key: cargocache-v2-tg4:1.53.0-{{ checksum "~/project/Cargo.lock" }}
+
+  package_test_utils:
+    docker:
+      - image: rust:1.53.0
+    working_directory: ~/project/packages/voting-contract
     steps:
       - checkout:
           path: ~/project
