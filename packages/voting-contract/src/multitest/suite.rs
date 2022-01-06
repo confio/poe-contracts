@@ -144,7 +144,7 @@ impl Suite {
 
     pub fn assert_voters(&mut self, expected: &[(&str, u64)]) {
         let expected: Vec<_> = expected
-            .into_iter()
+            .iter()
             .map(|(addr, weight)| VoterDetail {
                 addr: addr.to_string(),
                 weight: *weight,
