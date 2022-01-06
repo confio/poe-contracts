@@ -1,6 +1,7 @@
-use super::contracts::{self, engagement_contract, voting_contract};
+use super::contracts::{self, engagement_contract, voting, voting_contract};
 use anyhow::Result as AnyResult;
-use cosmwasm_std::Addr;
+use cosmwasm_std::{Addr, StdResult};
+use cw3::{VoterDetail, VoterListResponse};
 use cw_multi_test::{AppResponse, Executor};
 use derivative::Derivative;
 
@@ -22,7 +23,7 @@ impl SuiteBuilder {
         }
     }
 
-    pub fn with_member(&mut self, addr: &str, weight: u64) -> &mut Self {
+    pub fn with_member(mut self, addr: &str, weight: u64) -> Self {
         self.members.push(Member {
             addr: addr.to_owned(),
             weight,
@@ -30,7 +31,7 @@ impl SuiteBuilder {
         self
     }
 
-    pub fn with_rules(&mut self, rules: VotingRules) -> &mut Self {
+    pub fn with_rules(mut self, rules: VotingRules) -> Self {
         self.rules = rules;
         self
     }
@@ -120,5 +121,36 @@ impl Suite {
             &tg4_engagement::ExecuteMsg::UpdateMembers { add, remove },
             &[],
         )
+    }
+
+    pub fn query_rules(&mut self) -> StdResult<VotingRules> {
+        let rules: VotingRules = self
+            .app
+            .wrap()
+            .query_wasm_smart(self.voting.clone(), &voting::QueryMsg::Rules {})?;
+        Ok(rules)
+    }
+
+    pub fn list_voters(&mut self) -> StdResult<VoterListResponse> {
+        let voters: VoterListResponse = self.app.wrap().query_wasm_smart(
+            self.voting.clone(),
+            &voting::QueryMsg::ListVoters {
+                start_after: None,
+                limit: None,
+            },
+        )?;
+        Ok(voters)
+    }
+
+    pub fn assert_voters(&mut self, expected: &[(&str, u64)]) {
+        let expected: Vec<_> = expected
+            .into_iter()
+            .map(|(addr, weight)| VoterDetail {
+                addr: addr.to_string(),
+                weight: *weight,
+            })
+            .collect();
+
+        assert_eq!(expected, self.list_voters().unwrap().voters);
     }
 }

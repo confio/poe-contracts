@@ -20,7 +20,10 @@ pub fn voting_contract() -> Box<dyn Contract<TgradeMsg>> {
 }
 
 pub mod voting {
-    use crate::{state::VotingRules, ContractError};
+    use cosmwasm_std::to_binary;
+    use cw3::Vote;
+
+    use crate::{list_voters, query_rules, state::VotingRules, ContractError};
 
     use super::*;
 
@@ -33,11 +36,68 @@ pub mod voting {
         pub group_addr: String,
     }
 
-    #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
-    pub struct ExecuteMsg {}
+    #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+    #[serde(rename_all = "snake_case")]
+    pub enum ExecuteMsg {
+        Propose {
+            title: String,
+            description: String,
+            proposal: String,
+        },
+        Vote {
+            proposal_id: u64,
+            vote: Vote,
+        },
+        Execute {
+            proposal_id: u64,
+        },
+        Close {
+            proposal_id: u64,
+        },
+        /// The Community Pool may be a participant in engagement and end up
+        /// receiving engagement rewards. This endpoint can be used to withdraw
+        /// those. Anyone can call it.
+        WithdrawEngagementRewards {},
+        /// Message comming from valset on funds distribution, just takes funds
+        /// send with message and does nothing
+        DistributeFunds {},
+    }
 
     #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
-    pub struct QueryMsg {}
+    #[serde(rename_all = "snake_case")]
+    pub enum QueryMsg {
+        /// Return VotingRules
+        Rules {},
+        /// Returns ProposalResponse
+        Proposal { proposal_id: u64 },
+        /// Returns ProposalListResponse
+        ListProposals {
+            start_after: Option<u64>,
+            limit: Option<u32>,
+        },
+        /// Returns ProposalListResponse
+        ReverseProposals {
+            start_before: Option<u64>,
+            limit: Option<u32>,
+        },
+        /// Returns VoteResponse
+        Vote { proposal_id: u64, voter: String },
+        /// Returns VoteListResponse
+        ListVotes {
+            proposal_id: u64,
+            start_after: Option<String>,
+            limit: Option<u32>,
+        },
+        /// Returns VoterResponse
+        Voter { address: String },
+        /// Returns VoterListResponse
+        ListVoters {
+            start_after: Option<String>,
+            limit: Option<u32>,
+        },
+        /// Returns address of current's group contract
+        GroupContract {},
+    }
 
     pub fn instantiate(
         deps: DepsMut,
@@ -57,7 +117,13 @@ pub mod voting {
         todo!()
     }
 
-    pub fn query(_deps: Deps, _env: Env, _msg: QueryMsg) -> Result<Binary, StdError> {
-        todo!()
+    pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> Result<Binary, StdError> {
+        use QueryMsg::*;
+
+        match msg {
+            Rules {} => to_binary(&query_rules(deps)?),
+            ListVoters { start_after, limit } => to_binary(&list_voters(deps, start_after, limit)?),
+            _ => todo!(),
+        }
     }
 }
