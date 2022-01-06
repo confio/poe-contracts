@@ -23,7 +23,7 @@ pub mod voting {
     use cosmwasm_std::to_binary;
     use cw3::Vote;
 
-    use crate::{list_voters, query_rules, state::VotingRules, ContractError};
+    use crate::{list_voters, propose, query_rules, state::VotingRules, ContractError};
 
     use super::*;
 
@@ -109,12 +109,21 @@ pub mod voting {
     }
 
     pub fn execute(
-        _deps: DepsMut,
-        _env: Env,
-        _info: MessageInfo,
-        _msg: ExecuteMsg,
-    ) -> Result<Response, StdError> {
-        todo!()
+        deps: DepsMut,
+        env: Env,
+        info: MessageInfo,
+        msg: ExecuteMsg,
+    ) -> Result<Response, ContractError> {
+        use ExecuteMsg::*;
+
+        match msg {
+            Propose {
+                title,
+                description,
+                proposal,
+            } => propose(deps, env, info, title, description, proposal),
+            _ => todo!(),
+        }
     }
 
     pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> Result<Binary, StdError> {

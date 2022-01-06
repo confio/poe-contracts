@@ -3,6 +3,7 @@ use suite::SuiteBuilder;
 use crate::state::RulesBuilder;
 
 mod contracts;
+mod proposing;
 mod suite;
 
 #[test]

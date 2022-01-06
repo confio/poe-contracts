@@ -123,6 +123,25 @@ impl Suite {
         )
     }
 
+    pub fn propose(
+        &mut self,
+        executor: &str,
+        title: &str,
+        description: &str,
+        proposal: &str,
+    ) -> AnyResult<AppResponse> {
+        self.app.execute_contract(
+            Addr::unchecked(executor),
+            self.voting.clone(),
+            &voting::ExecuteMsg::Propose {
+                title: title.to_owned(),
+                description: description.to_owned(),
+                proposal: proposal.to_string(),
+            },
+            &[],
+        )
+    }
+
     pub fn query_rules(&mut self) -> StdResult<VotingRules> {
         let rules: VotingRules = self
             .app
