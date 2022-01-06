@@ -22,4 +22,9 @@ tg-utils = { version = "0.5.2", path = "../utils" }
 thiserror = { version = "1" }
 
 [dev-dependencies]
-cosmwasm-schema = { version = "1.0.0-beta" }
+anyhow = "1"
+cosmwasm-schema = "1.0.0-beta"
+cw-multi-test = "0.11.0"
+derivative = "2"
+tg-bindings-test = { path = "../../packages/bindings-test", version = "0.5.2" }
+tg4-engagement = { path = "../../contracts/tg4-engagement", version = "0.5.2", features = ["library"] }

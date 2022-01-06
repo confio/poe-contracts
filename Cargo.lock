@@ -1525,16 +1525,21 @@ dependencies = [
 name = "tg-voting-contract"
 version = "0.5.2"
 dependencies = [
+ "anyhow",
  "cosmwasm-schema",
  "cosmwasm-std",
+ "cw-multi-test",
  "cw-storage-plus",
  "cw-utils",
  "cw3",
+ "derivative",
  "schemars",
  "serde",
  "tg-bindings",
+ "tg-bindings-test",
  "tg-utils",
  "tg4",
+ "tg4-engagement",
  "thiserror",
 ]
 
