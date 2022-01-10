@@ -1637,6 +1637,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "tgrade-gov-reflect"
+version = "0.5.2"
+dependencies = [
+ "cosmwasm-schema",
+ "cosmwasm-std",
+ "cw-storage-plus",
+ "schemars",
+ "serde",
+ "tg-bindings",
+ "thiserror",
+]
+
+[[package]]
 name = "tgrade-validator-voting"
 version = "0.5.2"
 dependencies = [
@@ -1680,6 +1693,27 @@ dependencies = [
  "tg4",
  "tg4-engagement",
  "tg4-stake",
+ "thiserror",
+]
+
+[[package]]
+name = "tgrade-vesting-account"
+version = "0.5.2"
+dependencies = [
+ "anyhow",
+ "assert_matches",
+ "cosmwasm-schema",
+ "cosmwasm-std",
+ "cw-multi-test",
+ "cw-storage-plus",
+ "cw-utils",
+ "cw2",
+ "derivative",
+ "schemars",
+ "serde",
+ "tg-bindings",
+ "tg-bindings-test",
+ "tg-utils",
  "thiserror",
 ]
 
