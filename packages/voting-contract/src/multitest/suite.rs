@@ -10,6 +10,10 @@ use tg_bindings_test::TgradeApp;
 
 use crate::state::{RulesBuilder, VotingRules};
 
+pub fn get_proposal_id(response: &AppResponse) -> Result<u64, std::num::ParseIntError> {
+    response.custom_attrs(1)[2].value.parse()
+}
+
 pub struct SuiteBuilder {
     members: Vec<Member>,
     rules: VotingRules,
@@ -138,6 +142,15 @@ impl Suite {
                 description: description.to_owned(),
                 proposal: proposal.to_string(),
             },
+            &[],
+        )
+    }
+
+    pub fn close(&mut self, executor: &str, proposal_id: u64) -> AnyResult<AppResponse> {
+        self.app.execute_contract(
+            Addr::unchecked(executor),
+            self.voting.clone(),
+            &voting::ExecuteMsg::Close { proposal_id },
             &[],
         )
     }

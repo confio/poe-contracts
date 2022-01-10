@@ -1,7 +1,7 @@
 use cosmwasm_std::{from_slice, to_binary};
 use cw3::Vote;
 
-use crate::{list_voters, propose, query_rules, state::VotingRules};
+use crate::{close, list_voters, propose, query_rules, state::VotingRules};
 
 use super::*;
 
@@ -106,6 +106,7 @@ impl Contract<TgradeMsg> for VotingContract {
                 description,
                 proposal,
             } => propose(deps, env, info, title, description, proposal),
+            Close { proposal_id } => close::<String>(deps, env, info, proposal_id),
             _ => todo!(),
         }
         .map_err(anyhow::Error::from)

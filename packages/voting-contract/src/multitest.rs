@@ -2,6 +2,7 @@ use suite::SuiteBuilder;
 
 use crate::state::RulesBuilder;
 
+mod closing;
 mod contracts;
 mod proposing;
 mod suite;
