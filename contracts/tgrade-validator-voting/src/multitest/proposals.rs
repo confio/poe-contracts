@@ -1,12 +1,12 @@
 use cosmwasm_std::Decimal;
 use tg_bindings_test::UpgradePlan;
-use tg_test_utils::RulesBuilder;
+use tg_voting_contract::state::VotingRules;
 
 use super::suite::{get_proposal_id, SuiteBuilder};
 
 #[test]
 fn pin_contract() {
-    let rules = RulesBuilder::new()
+    let rules = VotingRules::builder()
         .with_threshold(Decimal::percent(50))
         .build();
 
@@ -26,7 +26,7 @@ fn pin_contract() {
 
 #[test]
 fn unpin_contract() {
-    let rules = RulesBuilder::new()
+    let rules = VotingRules::builder()
         .with_threshold(Decimal::percent(50))
         .build();
 
@@ -50,7 +50,7 @@ fn unpin_contract() {
 
 #[test]
 fn upgrade() {
-    let rules = RulesBuilder::new()
+    let rules = VotingRules::builder()
         .with_threshold(Decimal::percent(50))
         .build();
 
@@ -77,7 +77,7 @@ fn upgrade() {
 
 #[test]
 fn cancel_upgrade() {
-    let rules = RulesBuilder::new()
+    let rules = VotingRules::builder()
         .with_threshold(Decimal::percent(50))
         .build();
 

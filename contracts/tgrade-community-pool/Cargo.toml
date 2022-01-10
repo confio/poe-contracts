@@ -29,5 +29,4 @@ anyhow = "1"
 cosmwasm-schema = "1.0.0-beta"
 cw-multi-test = "0.11.0"
 tg-bindings-test = { path = "../../packages/bindings-test", version = "0.5.2" }
-tg-test-utils = { version = "0.5.2", path = "../../packages/test-utils" }
 tg4 = { path = "../../packages/tg4", version = "0.5.2" }

@@ -71,6 +71,10 @@ pub struct VotingRules {
 }
 
 impl VotingRules {
+    pub fn builder() -> RulesBuilder {
+        RulesBuilder::new()
+    }
+
     pub fn validate(&self) -> Result<(), ContractError> {
         let zero = Decimal::percent(0);
         let hundred = Decimal::percent(100);
@@ -91,6 +95,49 @@ impl VotingRules {
 
     pub fn voting_period_secs(&self) -> u64 {
         self.voting_period as u64 * 86_400
+    }
+}
+
+pub struct RulesBuilder {
+    pub voting_period: u32,
+    pub quorum: Decimal,
+    pub threshold: Decimal,
+    pub allow_end_early: bool,
+}
+
+impl RulesBuilder {
+    pub fn new() -> Self {
+        Self {
+            voting_period: 14,
+            quorum: Decimal::percent(1),
+            threshold: Decimal::percent(50),
+            allow_end_early: true,
+        }
+    }
+
+    pub fn with_threshold(mut self, threshold: impl Into<Decimal>) -> Self {
+        self.threshold = threshold.into();
+        self
+    }
+
+    pub fn with_quorum(mut self, quorum: impl Into<Decimal>) -> Self {
+        self.quorum = quorum.into();
+        self
+    }
+
+    pub fn build(&self) -> VotingRules {
+        VotingRules {
+            voting_period: self.voting_period,
+            quorum: self.quorum,
+            threshold: self.threshold,
+            allow_end_early: self.allow_end_early,
+        }
+    }
+}
+
+impl Default for RulesBuilder {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

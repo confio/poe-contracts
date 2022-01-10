@@ -30,7 +30,6 @@ cw-multi-test = "0.11.0"
 cw-storage-plus = "0.11.0"
 tg-bindings-test = { version = "0.5.2", path = "../../packages/bindings-test" }
 tg-utils = { version = "0.5.2", path = "../../packages/utils" }
-tg-test-utils = { version = "0.5.2", path = "../../packages/test-utils" }
 tg-voting-contract = { version = "0.5.2", path = "../../packages/voting-contract" }
 tg4 = { path = "../../packages/tg4", version = "0.5.2" }
 tg4-engagement = { path = "../tg4-engagement", version = "0.5.2", features = ["library"] }
