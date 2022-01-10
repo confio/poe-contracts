@@ -6,7 +6,7 @@ use tg4::{Member, Tg4ExecuteMsg};
 use tg_bindings::TgradeMsg;
 use tg_bindings_test::TgradeApp;
 
-use tg_voting_contract::state::VotingRules;
+use tg_voting_contract::state::{RulesBuilder, VotingRules};
 
 use crate::msg::{ExecuteMsg, Proposal};
 
@@ -43,7 +43,7 @@ impl SuiteBuilder {
         SuiteBuilder {
             engagement_members: vec![],
             group_members: vec![],
-            rules: VotingRules::builder().build(),
+            rules: RulesBuilder::new().build(),
             contract_weight: 0,
             group_token: "GROUP".to_owned(),
         }

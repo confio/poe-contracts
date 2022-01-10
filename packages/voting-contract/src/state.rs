@@ -71,10 +71,6 @@ pub struct VotingRules {
 }
 
 impl VotingRules {
-    pub fn builder() -> RulesBuilder {
-        RulesBuilder::new()
-    }
-
     pub fn validate(&self) -> Result<(), ContractError> {
         let zero = Decimal::percent(0);
         let hundred = Decimal::percent(100);
