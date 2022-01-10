@@ -1,14 +1,17 @@
 use super::contracts::{self, engagement_contract, voting, VotingContract};
 use anyhow::Result as AnyResult;
 use cosmwasm_std::{Addr, StdResult};
-use cw3::{Vote, VoterDetail, VoterListResponse};
+use cw3::{Vote, VoteInfo, VoteResponse, VoterDetail, VoterListResponse};
 use cw_multi_test::{AppResponse, Executor};
 use derivative::Derivative;
 
 use tg4::Member;
 use tg_bindings_test::TgradeApp;
 
-use crate::state::{ProposalResponse, RulesBuilder, VotingRules};
+use crate::{
+    state::{ProposalResponse, RulesBuilder, VotingRules},
+    ContractError,
+};
 
 pub fn get_proposal_id(response: &AppResponse) -> Result<u64, std::num::ParseIntError> {
     response.custom_attrs(1)[2].value.parse()
@@ -79,6 +82,8 @@ impl SuiteBuilder {
                 Some(owner.to_string()),
             )
             .unwrap();
+
+        app.advance_blocks(1);
 
         Suite {
             app,
@@ -182,6 +187,21 @@ impl Suite {
             .wrap()
             .query_wasm_smart(self.voting.clone(), &voting::QueryMsg::Rules {})?;
         Ok(rules)
+    }
+
+    pub fn query_vote_info(
+        &mut self,
+        proposal_id: u64,
+        voter: &str,
+    ) -> Result<Option<VoteInfo>, ContractError> {
+        let vote: VoteResponse = self.app.wrap().query_wasm_smart(
+            self.voting.clone(),
+            &voting::QueryMsg::Vote {
+                proposal_id,
+                voter: voter.to_owned(),
+            },
+        )?;
+        Ok(vote.vote)
     }
 
     pub fn list_voters(&mut self) -> StdResult<VoterListResponse> {

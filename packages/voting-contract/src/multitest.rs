@@ -7,6 +7,7 @@ mod contracts;
 mod group_change;
 mod proposing;
 mod suite;
+mod voting;
 
 #[test]
 fn simple_instantiate() {

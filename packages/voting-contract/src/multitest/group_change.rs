@@ -17,8 +17,6 @@ fn group_change_does_not_affect_old_proposals() {
         .with_rules(rules)
         .build();
 
-    suite.app.advance_blocks(1);
-
     let proposal_creation_height = suite.app.block_info().height;
 
     let owner = suite.owner.clone();
