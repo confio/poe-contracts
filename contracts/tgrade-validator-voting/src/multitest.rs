@@ -7,13 +7,13 @@ use suite::{get_proposal_id, SuiteBuilder};
 
 use cosmwasm_std::Decimal;
 use cw3::Status;
-use tg_voting_contract::state::VotingRules;
+use tg_voting_contract::state::RulesBuilder;
 
 #[test]
 fn migrate_contract() {
     let members = vec!["owner", "voter1"];
 
-    let rules = VotingRules::builder()
+    let rules = RulesBuilder::new()
         .with_threshold(Decimal::percent(50))
         .build();
 
@@ -74,7 +74,7 @@ fn migrate_contract() {
 fn propose_migration_to_not_properly_owned_contract() {
     let members = vec!["owner", "voter1"];
 
-    let rules = VotingRules::builder()
+    let rules = RulesBuilder::new()
         .with_threshold(Decimal::percent(50))
         .build();
 
