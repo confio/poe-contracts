@@ -99,10 +99,10 @@ impl VotingRules {
 }
 
 pub struct RulesBuilder {
-    pub voting_period: u32,
-    pub quorum: Decimal,
-    pub threshold: Decimal,
-    pub allow_end_early: bool,
+    voting_period: u32,
+    quorum: Decimal,
+    threshold: Decimal,
+    allow_end_early: bool,
 }
 
 impl RulesBuilder {
