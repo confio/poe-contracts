@@ -65,7 +65,7 @@ fn passed_proposals_cannot_be_closed() {
     let mut suite = SuiteBuilder::new()
         .with_member("alice", 1)
         .with_member("bob", 2)
-        .with_rules(rules.clone())
+        .with_rules(rules)
         .build();
 
     // Create proposal with 2 voting power - should pass immediately
