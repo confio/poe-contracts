@@ -1,7 +1,7 @@
 use cosmwasm_std::{from_slice, to_binary};
 use cw3::Vote;
 
-use crate::{close, list_voters, propose, query_rules, state::VotingRules};
+use crate::{close, list_voters, propose, query_proposal, query_rules, state::VotingRules};
 
 use super::*;
 
@@ -112,13 +112,16 @@ impl Contract<TgradeMsg> for VotingContract {
         .map_err(anyhow::Error::from)
     }
 
-    fn query(&self, deps: Deps, _env: Env, msg: Vec<u8>) -> anyhow::Result<Binary> {
+    fn query(&self, deps: Deps, env: Env, msg: Vec<u8>) -> anyhow::Result<Binary> {
         let msg: QueryMsg = from_slice(&msg)?;
 
         use QueryMsg::*;
         match msg {
             Rules {} => to_binary(&query_rules(deps)?),
             ListVoters { start_after, limit } => to_binary(&list_voters(deps, start_after, limit)?),
+            Proposal { proposal_id } => {
+                to_binary(&query_proposal::<String>(deps, env, proposal_id)?)
+            }
             _ => todo!(),
         }
         .map_err(anyhow::Error::from)

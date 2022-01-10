@@ -8,7 +8,7 @@ use derivative::Derivative;
 use tg4::Member;
 use tg_bindings_test::TgradeApp;
 
-use crate::state::{RulesBuilder, VotingRules};
+use crate::state::{ProposalResponse, RulesBuilder, VotingRules};
 
 pub fn get_proposal_id(response: &AppResponse) -> Result<u64, std::num::ParseIntError> {
     response.custom_attrs(1)[2].value.parse()
@@ -127,7 +127,7 @@ impl Suite {
         )
     }
 
-    pub fn propose(
+    pub fn propose_detailed(
         &mut self,
         executor: &str,
         title: &str,
@@ -146,6 +146,10 @@ impl Suite {
         )
     }
 
+    pub fn propose(&mut self, executor: &str, title: &str) -> AnyResult<AppResponse> {
+        self.propose_detailed(executor, title, title, title)
+    }
+
     pub fn close(&mut self, executor: &str, proposal_id: u64) -> AnyResult<AppResponse> {
         self.app.execute_contract(
             Addr::unchecked(executor),
@@ -153,6 +157,14 @@ impl Suite {
             &voting::ExecuteMsg::Close { proposal_id },
             &[],
         )
+    }
+
+    pub fn query_proposal(&mut self, proposal_id: u64) -> StdResult<ProposalResponse<String>> {
+        let prop: ProposalResponse<String> = self.app.wrap().query_wasm_smart(
+            self.voting.clone(),
+            &voting::QueryMsg::Proposal { proposal_id },
+        )?;
+        Ok(prop)
     }
 
     pub fn query_rules(&mut self) -> StdResult<VotingRules> {
