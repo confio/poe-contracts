@@ -1,7 +1,7 @@
 use super::contracts::{self, engagement_contract, voting, VotingContract};
 use anyhow::Result as AnyResult;
 use cosmwasm_std::{Addr, StdResult};
-use cw3::{VoterDetail, VoterListResponse};
+use cw3::{Vote, VoterDetail, VoterListResponse};
 use cw_multi_test::{AppResponse, Executor};
 use derivative::Derivative;
 
@@ -148,6 +148,15 @@ impl Suite {
 
     pub fn propose(&mut self, executor: &str, title: &str) -> AnyResult<AppResponse> {
         self.propose_detailed(executor, title, title, title)
+    }
+
+    pub fn vote(&mut self, executor: &str, proposal_id: u64, vote: Vote) -> AnyResult<AppResponse> {
+        self.app.execute_contract(
+            Addr::unchecked(executor),
+            self.voting.clone(),
+            &voting::ExecuteMsg::Vote { proposal_id, vote },
+            &[],
+        )
     }
 
     pub fn close(&mut self, executor: &str, proposal_id: u64) -> AnyResult<AppResponse> {
