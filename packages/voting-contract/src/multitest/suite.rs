@@ -1,4 +1,4 @@
-use super::contracts::{self, engagement_contract, voting, voting_contract};
+use super::contracts::{self, engagement_contract, voting, VotingContract};
 use anyhow::Result as AnyResult;
 use cosmwasm_std::{Addr, StdResult};
 use cw3::{VoterDetail, VoterListResponse};
@@ -61,7 +61,7 @@ impl SuiteBuilder {
             )
             .unwrap();
 
-        let voting_id = app.store_code(voting_contract());
+        let voting_id = app.store_code(Box::new(VotingContract));
         let voting = app
             .instantiate_contract(
                 voting_id,
