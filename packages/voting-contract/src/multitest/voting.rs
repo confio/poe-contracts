@@ -209,42 +209,6 @@ fn expired_proposals_cannot_be_voted_on() {
 }
 
 #[test]
-#[ignore]
-fn veto_doesnt_affect_tally() {
-    let rules = RulesBuilder::new()
-        .with_threshold(Decimal::percent(51))
-        .build();
-
-    let mut suite = SuiteBuilder::new()
-        .with_member("alice", 1)
-        .with_member("bob", 2)
-        .with_member("carol", 3)
-        .with_member("dave", 4)
-        .with_rules(rules)
-        .build();
-
-    // Create proposal with 1 voting power
-    let response = suite.propose("alice", "proposal").unwrap();
-    let proposal_id: u64 = get_proposal_id(&response).unwrap();
-
-    suite.vote("bob", proposal_id, Vote::Yes).unwrap();
-
-    let tally = suite.query_proposal(proposal_id).unwrap().votes.total();
-    // Weight of owner (1) + weight of voter1 (2)
-    assert_eq!(tally, 3);
-
-    // Veto doesn't affect the tally
-    suite.vote("carol", proposal_id, Vote::Veto).unwrap();
-    let tally = suite.query_proposal(proposal_id).unwrap().votes.total();
-    assert_eq!(tally, 3);
-
-    suite.vote("dave", proposal_id, Vote::Yes).unwrap();
-    let tally = suite.query_proposal(proposal_id).unwrap().votes.total();
-    // Previous result + weight of voter3 (4)
-    assert_eq!(tally, 7);
-}
-
-#[test]
 fn query_individual_votes() {
     let rules = RulesBuilder::new()
         .with_threshold(Decimal::percent(51))
