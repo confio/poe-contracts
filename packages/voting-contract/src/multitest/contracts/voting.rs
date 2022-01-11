@@ -24,19 +24,9 @@ pub enum ExecuteMsg {
         proposal_id: u64,
         vote: Vote,
     },
-    Execute {
-        proposal_id: u64,
-    },
     Close {
         proposal_id: u64,
     },
-    /// The Community Pool may be a participant in engagement and end up
-    /// receiving engagement rewards. This endpoint can be used to withdraw
-    /// those. Anyone can call it.
-    WithdrawEngagementRewards {},
-    /// Message comming from valset on funds distribution, just takes funds
-    /// send with message and does nothing
-    DistributeFunds {},
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
@@ -108,7 +98,6 @@ impl Contract<TgradeMsg> for VotingContract {
             } => propose(deps, env, info, title, description, proposal),
             Close { proposal_id } => crate::close::<String>(deps, env, info, proposal_id),
             Vote { proposal_id, vote } => crate::vote::<String>(deps, env, info, proposal_id, vote),
-            _ => todo!(),
         }
         .map_err(anyhow::Error::from)
     }
