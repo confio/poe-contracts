@@ -18,9 +18,6 @@ pub enum ContractError {
     #[error("Received system callback we didn't expect")]
     UnsupportedSudoType {},
 
-    #[error("Proposal must have passed and not yet been executed")]
-    WrongExecuteStatus {},
-
     #[error("Unauthorized: {0}")]
     Unauthorized(String),
 }

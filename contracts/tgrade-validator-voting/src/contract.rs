@@ -6,7 +6,6 @@ use cosmwasm_std::{
 };
 
 use cw2::set_contract_version;
-use cw3::Status;
 use tg_bindings::{
     request_privileges, BlockParams, ConsensusParams, EvidenceParams, GovProposal, Privilege,
     PrivilegeChangeMsg, TgradeMsg, TgradeSudoMsg,
@@ -15,11 +14,10 @@ use tg_bindings::{
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg, ValidatorProposal};
 use crate::ContractError;
 
-use tg_voting_contract::state::proposals;
 use tg_voting_contract::{
-    close as execute_close, list_proposals, list_voters, list_votes, propose as execute_propose,
-    query_group_contract, query_proposal, query_rules, query_vote, query_voter, reverse_proposals,
-    vote as execute_vote,
+    can_execute, close as execute_close, list_proposals, list_voters, list_votes,
+    propose as execute_propose, query_group_contract, query_proposal, query_rules, query_vote,
+    query_voter, reverse_proposals, vote as execute_vote,
 };
 
 pub type Response = cosmwasm_std::Response<TgradeMsg>;
@@ -67,7 +65,7 @@ pub fn execute(
             execute_vote::<ValidatorProposal>(deps, env, info, proposal_id, vote)
                 .map_err(ContractError::from)
         }
-        Execute { proposal_id } => execute_execute(deps, info, proposal_id),
+        Execute { proposal_id } => execute_execute(deps, env, info, proposal_id),
         Close { proposal_id } => execute_close::<ValidatorProposal>(deps, env, info, proposal_id)
             .map_err(ContractError::from),
     }
@@ -107,41 +105,34 @@ fn confirm_admin_in_contract(
 }
 
 pub fn execute_execute(
-    deps: DepsMut,
+    mut deps: DepsMut,
+    env: Env,
     info: MessageInfo,
     proposal_id: u64,
 ) -> Result<Response, ContractError> {
     use ValidatorProposal::*;
     // anyone can trigger this if the vote passed
+    let proposal = can_execute::<ValidatorProposal>(deps.branch(), env, proposal_id)?;
 
-    let mut proposal = proposals::<ValidatorProposal>().load(deps.storage, proposal_id)?;
-
-    // we allow execution even after the proposal "expiration" as long as all vote come in before
-    // that point. If it was approved on time, it can be executed any time.
-    if proposal.status != Status::Passed {
-        return Err(ContractError::WrongExecuteStatus {});
-    }
-
-    let prop = proposal.clone();
-    let msg = match prop.proposal {
+    let msg = match proposal.proposal {
         RegisterUpgrade { name, height, info } => SubMsg::new(TgradeMsg::ExecuteGovProposal {
-            title: prop.title,
-            description: prop.description,
+            title: proposal.title,
+            description: proposal.description,
             proposal: GovProposal::RegisterUpgrade { name, height, info },
         }),
         CancelUpgrade {} => SubMsg::new(TgradeMsg::ExecuteGovProposal {
-            title: prop.title,
-            description: prop.description,
+            title: proposal.title,
+            description: proposal.description,
             proposal: GovProposal::CancelUpgrade {},
         }),
         PinCodes(code_ids) => SubMsg::new(TgradeMsg::ExecuteGovProposal {
-            title: prop.title,
-            description: prop.description,
+            title: proposal.title,
+            description: proposal.description,
             proposal: GovProposal::PinCodes { code_ids },
         }),
         UnpinCodes(code_ids) => SubMsg::new(TgradeMsg::ExecuteGovProposal {
-            title: prop.title,
-            description: prop.description,
+            title: proposal.title,
+            description: proposal.description,
             proposal: GovProposal::UnpinCodes { code_ids },
         }),
         UpdateConsensusBlockParams { max_bytes, max_gas } => {
@@ -172,10 +163,6 @@ pub fn execute_execute(
             msg: migrate_msg,
         }),
     };
-
-    // set it to executed
-    proposal.status = Status::Executed;
-    proposals::<ValidatorProposal>().save(deps.storage, proposal_id, &proposal)?;
 
     Ok(Response::new()
         .add_attribute("action", "execute")
@@ -262,12 +249,23 @@ mod tests {
         Addr, CosmosMsg, Decimal, SubMsg,
     };
     use tg_utils::Expiration;
-    use tg_voting_contract::state::{Proposal, Votes, VotingRules};
+    use tg_voting_contract::state::{proposals, Proposal, Votes, VotingRules};
 
     use super::*;
+    use cw3::Status;
 
     #[derive(serde::Serialize)]
     struct DummyMigrateMsg {}
+
+    #[test]
+    #[ignore]
+    fn passed_on_expiration_can_be_executed() {
+        let mut deps = mock_dependencies();
+        let env = mock_env();
+
+        let res = execute_execute(deps.as_mut(), env, mock_info("sender", &[]), 1).unwrap();
+        assert_eq!(res.messages, vec![]);
+    }
 
     #[test]
     fn register_migrate() {
@@ -306,7 +304,7 @@ mod tests {
             )
             .unwrap();
 
-        let res = execute_execute(deps.as_mut(), mock_info("sender", &[]), 1).unwrap();
+        let res = execute_execute(deps.as_mut(), env, mock_info("sender", &[]), 1).unwrap();
         assert_eq!(
             res.messages,
             vec![SubMsg::new(WasmMsg::Migrate {
@@ -349,7 +347,7 @@ mod tests {
             )
             .unwrap();
 
-        let res = execute_execute(deps.as_mut(), mock_info("sender", &[]), 1).unwrap();
+        let res = execute_execute(deps.as_mut(), env, mock_info("sender", &[]), 1).unwrap();
         assert_eq!(
             res.messages,
             vec![SubMsg::new(CosmosMsg::Custom(
@@ -394,7 +392,7 @@ mod tests {
             )
             .unwrap();
 
-        let res = execute_execute(deps.as_mut(), mock_info("sender", &[]), 1).unwrap();
+        let res = execute_execute(deps.as_mut(), env, mock_info("sender", &[]), 1).unwrap();
         assert_eq!(
             res.messages,
             vec![SubMsg::new(CosmosMsg::Custom(
@@ -439,7 +437,7 @@ mod tests {
             )
             .unwrap();
 
-        let res = execute_execute(deps.as_mut(), mock_info("sender", &[]), 1).unwrap();
+        let res = execute_execute(deps.as_mut(), env, mock_info("sender", &[]), 1).unwrap();
         assert_eq!(
             res.messages,
             vec![SubMsg::new(CosmosMsg::Custom(
@@ -487,7 +485,7 @@ mod tests {
             )
             .unwrap();
 
-        let res = execute_execute(deps.as_mut(), mock_info("sender", &[]), 1).unwrap();
+        let res = execute_execute(deps.as_mut(), env, mock_info("sender", &[]), 1).unwrap();
         assert_eq!(
             res.messages,
             vec![SubMsg::new(CosmosMsg::Custom(TgradeMsg::ConsensusParams(
@@ -538,7 +536,7 @@ mod tests {
             )
             .unwrap();
 
-        let res = execute_execute(deps.as_mut(), mock_info("sender", &[]), 1).unwrap();
+        let res = execute_execute(deps.as_mut(), env, mock_info("sender", &[]), 1).unwrap();
         assert_eq!(
             res.messages,
             vec![SubMsg::new(CosmosMsg::Custom(TgradeMsg::ConsensusParams(
