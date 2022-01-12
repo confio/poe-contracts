@@ -50,7 +50,7 @@ pub fn execute(
             execute_vote::<Proposal>(deps, env, info, proposal_id, vote)
                 .map_err(ContractError::from)
         }
-        ExecuteMsg::Execute { proposal_id } => execute_execute(deps, info, proposal_id),
+        ExecuteMsg::Execute { proposal_id } => execute_execute(deps, env, info, proposal_id),
         ExecuteMsg::Close { proposal_id } => {
             execute_close::<Proposal>(deps, env, info, proposal_id).map_err(ContractError::from)
         }
@@ -97,19 +97,23 @@ pub fn execute_send_proposal(to_address: String, amount: Coin) -> Result<Respons
 
 pub fn execute_execute(
     deps: DepsMut,
+    env: Env,
     info: MessageInfo,
     proposal_id: u64,
 ) -> Result<Response, ContractError> {
     use Proposal::*;
 
     // anyone can trigger this if the vote passed
-    let prop = proposals::<Proposal>().load(deps.storage, proposal_id)?;
-
-    // we allow execution even after the proposal "expiration" as long as all vote come in before
-    // that point. If it was approved on time, it can be executed any time.
-    if prop.status != Status::Passed {
-        return Err(ContractError::WrongExecuteStatus {});
-    }
+    let prop = proposals::<Proposal>().update(deps.storage, proposal_id, |prop| {
+        let mut prop = prop.ok_or(ContractError::NoSuchProposal {
+            proposal: proposal_id,
+        })?;
+        if prop.current_status(&env.block) != Status::Passed {
+            return Err(ContractError::WrongExecuteStatus {});
+        }
+        prop.status = Status::Executed;
+        Ok(prop)
+    })?;
 
     // dispatch all proposed messages
     let resp = match prop.proposal {

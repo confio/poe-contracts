@@ -11,6 +11,9 @@ pub enum ContractError {
 
     #[error("Proposal must have passed and not yet been executed")]
     WrongExecuteStatus {},
+
+    #[error("Proposal `{proposal}` doesn't exist")]
+    NoSuchProposal { proposal: u64 },
 }
 
 impl From<tg_voting_contract::ContractError> for ContractError {
