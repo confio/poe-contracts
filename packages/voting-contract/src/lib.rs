@@ -154,7 +154,11 @@ where
 /// Notice that this call is mutable, so, better execute the returned proposal after this succeeds,
 /// as you you wouldn't be able to execute it in the future (If the contract call errors, this status
 /// change will be reverted / ignored).
-pub fn can_execute<P>(deps: DepsMut, proposal_id: u64) -> Result<Proposal<P>, ContractError>
+pub fn can_execute<P>(
+    deps: DepsMut,
+    env: Env,
+    proposal_id: u64,
+) -> Result<Proposal<P>, ContractError>
 where
     P: Serialize + DeserializeOwned,
 {
@@ -162,7 +166,7 @@ where
 
     // We allow execution even after the proposal "expiration" as long as all votes come in before
     // that point. If it was approved on time, it can be executed any time.
-    if proposal.status != Status::Passed {
+    if proposal.current_status(&env.block) != Status::Passed {
         return Err(ContractError::WrongExecuteStatus {});
     }
 
@@ -174,7 +178,7 @@ where
 
 pub fn execute<P>(
     deps: DepsMut,
-    _env: Env,
+    env: Env,
     info: MessageInfo,
     proposal_id: u64,
 ) -> Result<Response, ContractError>
@@ -182,7 +186,7 @@ where
     P: Serialize + DeserializeOwned,
 {
     // anyone can trigger this if the vote passed
-    let _prop = can_execute::<P>(deps, proposal_id)?;
+    let _prop = can_execute::<P>(deps, env, proposal_id)?;
 
     Ok(Response::new()
         .add_attribute("action", "execute")
