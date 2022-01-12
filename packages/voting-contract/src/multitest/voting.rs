@@ -14,7 +14,7 @@ fn proposal_creator_votes_automatically() {
     let mut suite = SuiteBuilder::new()
         .with_member("alice", 1)
         .with_member("bob", 2)
-        .with_member("charlie", 3)
+        .with_member("carol", 3)
         .with_rules(rules)
         .build();
 
@@ -35,7 +35,7 @@ fn simple_vote() {
     let mut suite = SuiteBuilder::new()
         .with_member("alice", 1)
         .with_member("bob", 2)
-        .with_member("charlie", 3)
+        .with_member("carol", 3)
         .with_rules(rules)
         .build();
 
@@ -80,7 +80,7 @@ fn cannot_double_vote() {
     let mut suite = SuiteBuilder::new()
         .with_member("alice", 1)
         .with_member("bob", 2)
-        .with_member("charlie", 3)
+        .with_member("carol", 3)
         .with_rules(rules)
         .build();
 
@@ -136,7 +136,7 @@ fn members_with_no_voting_power_cannot_vote() {
     let mut suite = SuiteBuilder::new()
         .with_member("alice", 1)
         .with_member("bob", 2)
-        .with_member("charlie", 0)
+        .with_member("carol", 0)
         .with_rules(rules)
         .build();
 
@@ -147,7 +147,7 @@ fn members_with_no_voting_power_cannot_vote() {
     let proposal_id: u64 = get_proposal_id(&response).unwrap();
 
     // A random tries to vote
-    let err = suite.vote("charlie", proposal_id, Vote::Yes).unwrap_err();
+    let err = suite.vote("carol", proposal_id, Vote::Yes).unwrap_err();
     assert_eq!(
         ContractError::Std(StdError::GenericErr {
             msg: format!(
@@ -160,25 +160,154 @@ fn members_with_no_voting_power_cannot_vote() {
 }
 
 #[test]
-fn yes_vote_can_pass_proposal() {
+fn veto_counts_as_no() {
     let rules = RulesBuilder::new()
-        .with_threshold(Decimal::percent(51))
+        .with_threshold(Decimal::percent(50))
+        .with_quorum(Decimal::percent(10))
         .build();
 
     let mut suite = SuiteBuilder::new()
         .with_member("alice", 1)
         .with_member("bob", 2)
-        .with_member("charlie", 3)
-        .with_rules(rules)
+        .with_member("carol", 3)
+        .with_rules(rules.clone())
         .build();
 
     // Create proposal with 1 voting power
     let response = suite.propose("alice", "proposal").unwrap();
     let proposal_id: u64 = get_proposal_id(&response).unwrap();
 
-    // Charlie votes and passes proposal
-    suite.vote("charlie", proposal_id, Vote::Yes).unwrap();
+    // Bob votes VETO - it's 33% yes votes
+    suite.vote("bob", proposal_id, Vote::Veto).unwrap();
 
+    let prop = suite.query_proposal(proposal_id).unwrap();
+    assert_eq!(prop.votes.total(), 3);
+    assert_eq!(prop.status, Status::Open);
+
+    // Proposal is rejected once expired
+    suite.app.advance_seconds(rules.voting_period_secs());
+    let prop = suite.query_proposal(proposal_id).unwrap();
+    assert_eq!(prop.votes.total(), 3);
+    assert_eq!(prop.status, Status::Rejected);
+}
+
+#[test]
+fn proposal_rejected_when_quorum_not_reached() {
+    let rules = RulesBuilder::new()
+        .with_threshold(Decimal::percent(51))
+        .with_quorum(Decimal::percent(40))
+        .with_allow_early(false)
+        .build();
+
+    let mut suite = SuiteBuilder::new()
+        .with_member("alice", 1)
+        .with_member("bob", 2)
+        .with_member("carol", 3)
+        .with_member("dave", 4)
+        .with_rules(rules.clone())
+        .build();
+
+    // Create proposal with 2 voting power
+    let response = suite.propose("bob", "proposal").unwrap();
+    let proposal_id: u64 = get_proposal_id(&response).unwrap();
+
+    // Alice votes no. Quorum isn't reached because 3/10 voting power has been used.
+    suite.vote("alice", proposal_id, Vote::No).unwrap();
+
+    suite.app.advance_seconds(rules.voting_period_secs());
+    let prop = suite.query_proposal(proposal_id).unwrap();
+    assert_eq!(prop.votes.total(), 3);
+    assert_eq!(prop.status, Status::Rejected);
+}
+
+#[test]
+fn abstaining_can_help_reach_quorum() {
+    let rules = RulesBuilder::new()
+        .with_threshold(Decimal::percent(51))
+        .with_quorum(Decimal::percent(40))
+        .with_allow_early(false)
+        .build();
+
+    let mut suite = SuiteBuilder::new()
+        .with_member("alice", 1)
+        .with_member("bob", 2)
+        .with_member("carol", 3)
+        .with_member("dave", 4)
+        .with_rules(rules.clone())
+        .build();
+
+    // Create proposal with 2 voting power
+    let response = suite.propose("bob", "proposal").unwrap();
+    let proposal_id: u64 = get_proposal_id(&response).unwrap();
+
+    // Alice votes no. Quorum isn't reached because 3/10 voting power has been used.
+    suite.vote("alice", proposal_id, Vote::No).unwrap();
+
+    // Carol abstains. Quorum is reached because 6/10 voting power has been used.
+    suite.vote("carol", proposal_id, Vote::Abstain).unwrap();
+
+    suite.app.advance_seconds(rules.voting_period_secs());
+    let prop = suite.query_proposal(proposal_id).unwrap();
+    assert_eq!(prop.votes.total(), 6);
+    assert_eq!(prop.status, Status::Passed);
+}
+
+#[test]
+fn proposal_can_be_rejected_after_voting_period() {
+    let rules = RulesBuilder::new()
+        .with_threshold(Decimal::percent(50))
+        .with_quorum(Decimal::percent(10))
+        .build();
+
+    let mut suite = SuiteBuilder::new()
+        .with_member("alice", 1)
+        .with_member("bob", 2)
+        .with_member("carol", 3)
+        .with_rules(rules.clone())
+        .build();
+
+    // Create proposal with 1 voting power
+    let response = suite.propose("alice", "proposal").unwrap();
+    let proposal_id: u64 = get_proposal_id(&response).unwrap();
+
+    // Bob votes NO - it's 33% yes votes
+    suite.vote("bob", proposal_id, Vote::No).unwrap();
+
+    let prop = suite.query_proposal(proposal_id).unwrap();
+    assert_eq!(prop.votes.total(), 3);
+    assert_eq!(prop.status, Status::Open);
+
+    // Proposal is rejected once expired
+    suite.app.advance_seconds(rules.voting_period_secs());
+    let prop = suite.query_proposal(proposal_id).unwrap();
+    assert_eq!(prop.votes.total(), 3);
+    assert_eq!(prop.status, Status::Rejected);
+}
+
+#[test]
+fn passing_a_proposal_after_voting_period_works() {
+    let rules = RulesBuilder::new()
+        .with_threshold(Decimal::percent(50))
+        .with_quorum(Decimal::percent(20))
+        .build();
+
+    let mut suite = SuiteBuilder::new()
+        .with_member("alice", 4)
+        .with_member("bob", 6)
+        .with_rules(rules.clone())
+        .build();
+
+    // Create proposal with 4 voting power
+    let response = suite.propose("alice", "proposal").unwrap();
+    let proposal_id: u64 = get_proposal_id(&response).unwrap();
+
+    // Proposal doesn't pass early because Bob could still reject it
+    let prop = suite.query_proposal(proposal_id).unwrap();
+    assert_eq!(prop.votes.total(), 4);
+    assert_eq!(prop.status, Status::Open);
+
+    // Proposal is passed once voting period is over
+    suite.app.advance_seconds(rules.voting_period_secs());
     let prop = suite.query_proposal(proposal_id).unwrap();
     assert_eq!(prop.votes.total(), 4);
     assert_eq!(prop.status, Status::Passed);

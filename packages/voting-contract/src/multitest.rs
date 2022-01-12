@@ -4,6 +4,7 @@ use crate::state::RulesBuilder;
 
 mod closing;
 mod contracts;
+mod early_end;
 mod group_change;
 mod proposing;
 mod suite;
