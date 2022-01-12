@@ -3,6 +3,7 @@ use cw3::{Status, Vote};
 
 use crate::multitest::suite::{get_proposal_id, SuiteBuilder};
 use crate::state::RulesBuilder;
+use crate::ContractError;
 
 #[test]
 fn yes_vote_can_pass_proposal_early() {
@@ -28,6 +29,45 @@ fn yes_vote_can_pass_proposal_early() {
     let prop = suite.query_proposal(proposal_id).unwrap();
     assert_eq!(prop.votes.total(), 4);
     assert_eq!(prop.status, Status::Passed);
+}
+
+#[test]
+fn passed_on_expiration_can_be_executed() {
+    let rules = RulesBuilder::new()
+        .with_threshold(Decimal::percent(50))
+        .with_quorum(Decimal::percent(20))
+        .with_allow_early(true)
+        .build();
+
+    let mut suite = SuiteBuilder::new()
+        .with_member("alice", 4)
+        .with_member("bob", 6)
+        .with_rules(rules.clone())
+        .build();
+
+    // Create proposal with 4 voting power
+    let response = suite.propose("alice", "proposal").unwrap();
+    let proposal_id: u64 = get_proposal_id(&response).unwrap();
+    let prop = suite.query_proposal(proposal_id).unwrap();
+    assert_eq!(prop.status, Status::Open);
+
+    // Proposal cannot be executed yet
+    let err = suite.execute_proposal("anybody", proposal_id).unwrap_err();
+    assert_eq!(
+        ContractError::WrongExecuteStatus {},
+        err.downcast().unwrap()
+    );
+
+    // Proposal can be executed once expired
+    suite.app.advance_seconds(rules.voting_period_secs());
+    suite.execute_proposal("anybody", proposal_id).unwrap();
+
+    // Proposal cannot be executed again
+    let err = suite.execute_proposal("anybody", proposal_id).unwrap_err();
+    assert_eq!(
+        ContractError::WrongExecuteStatus {},
+        err.downcast().unwrap()
+    );
 }
 
 #[test]
