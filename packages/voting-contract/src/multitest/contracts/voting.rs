@@ -1,7 +1,10 @@
 use cosmwasm_std::{from_slice, to_binary};
 use cw3::Vote;
 
-use crate::{list_voters, propose, query_proposal, query_rules, query_vote, state::VotingRules};
+use crate::{
+    list_proposals, list_voters, list_votes, propose, query_group_contract, query_proposal,
+    query_rules, query_vote, query_voter, reverse_proposals, state::VotingRules,
+};
 
 use super::*;
 
@@ -39,12 +42,12 @@ pub enum QueryMsg {
     /// Returns ProposalListResponse
     ListProposals {
         start_after: Option<u64>,
-        limit: Option<u32>,
+        limit: usize,
     },
     /// Returns ProposalListResponse
     ReverseProposals {
         start_before: Option<u64>,
-        limit: Option<u32>,
+        limit: usize,
     },
     /// Returns VoteResponse
     Vote { proposal_id: u64, voter: String },
@@ -52,7 +55,7 @@ pub enum QueryMsg {
     ListVotes {
         proposal_id: u64,
         start_after: Option<String>,
-        limit: Option<u32>,
+        limit: usize,
     },
     /// Returns VoterResponse
     Voter { address: String },
@@ -113,7 +116,25 @@ impl Contract<TgradeMsg> for VotingContract {
                 to_binary(&query_proposal::<String>(deps, env, proposal_id)?)
             }
             Vote { proposal_id, voter } => to_binary(&query_vote(deps, proposal_id, voter)?),
-            _ => todo!(),
+            ListProposals { start_after, limit } => {
+                to_binary(&list_proposals::<String>(deps, env, start_after, limit)?)
+            }
+            ReverseProposals {
+                start_before,
+                limit,
+            } => to_binary(&reverse_proposals::<String>(
+                deps,
+                env,
+                start_before,
+                limit,
+            )?),
+            ListVotes {
+                proposal_id,
+                start_after,
+                limit,
+            } => to_binary(&list_votes(deps, proposal_id, start_after, limit)?),
+            Voter { address } => to_binary(&query_voter(deps, address)?),
+            GroupContract {} => to_binary(&query_group_contract(deps)?),
         }
         .map_err(anyhow::Error::from)
     }

@@ -1,7 +1,9 @@
 use super::contracts::{self, engagement_contract, voting, VotingContract};
 use anyhow::Result as AnyResult;
 use cosmwasm_std::{Addr, StdResult};
-use cw3::{Vote, VoteInfo, VoteResponse, VoterDetail, VoterListResponse};
+use cw3::{
+    Vote, VoteInfo, VoteListResponse, VoteResponse, VoterDetail, VoterListResponse, VoterResponse,
+};
 use cw_multi_test::{AppResponse, Executor};
 use derivative::Derivative;
 
@@ -9,7 +11,7 @@ use tg4::Member;
 use tg_bindings_test::TgradeApp;
 
 use crate::{
-    state::{ProposalResponse, RulesBuilder, VotingRules},
+    state::{ProposalListResponse, ProposalResponse, RulesBuilder, VotingRules},
     ContractError,
 };
 
@@ -49,10 +51,10 @@ impl SuiteBuilder {
 
         let mut app = TgradeApp::new(owner.as_str());
 
-        let engagement_id = app.store_code(engagement_contract());
-        let engagement = app
+        let group_id = app.store_code(engagement_contract());
+        let group = app
             .instantiate_contract(
-                engagement_id,
+                group_id,
                 owner.clone(),
                 &tg4_engagement::msg::InstantiateMsg {
                     admin: Some(owner.to_string()),
@@ -75,7 +77,7 @@ impl SuiteBuilder {
                 owner.clone(),
                 &contracts::voting::InstantiateMsg {
                     rules: self.rules,
-                    group_addr: engagement.to_string(),
+                    group_addr: group.to_string(),
                 },
                 &[],
                 "voting",
@@ -88,7 +90,7 @@ impl SuiteBuilder {
         Suite {
             app,
             voting,
-            engagement,
+            group,
             owner,
         }
     }
@@ -102,7 +104,7 @@ pub struct Suite {
     /// Voting contract address
     pub voting: Addr,
     /// Engagement contract address
-    pub engagement: Addr,
+    pub group: Addr,
     /// Mixer contract address
     pub owner: Addr,
 }
@@ -126,7 +128,7 @@ impl Suite {
 
         self.app.execute_contract(
             Addr::unchecked(executor),
-            self.engagement.clone(),
+            self.group.clone(),
             &tg4_engagement::ExecuteMsg::UpdateMembers { add, remove },
             &[],
         )
@@ -173,7 +175,7 @@ impl Suite {
         )
     }
 
-    pub fn query_proposal(&mut self, proposal_id: u64) -> StdResult<ProposalResponse<String>> {
+    pub fn query_proposal(&self, proposal_id: u64) -> StdResult<ProposalResponse<String>> {
         let prop: ProposalResponse<String> = self.app.wrap().query_wasm_smart(
             self.voting.clone(),
             &voting::QueryMsg::Proposal { proposal_id },
@@ -181,7 +183,7 @@ impl Suite {
         Ok(prop)
     }
 
-    pub fn query_rules(&mut self) -> StdResult<VotingRules> {
+    pub fn query_rules(&self) -> StdResult<VotingRules> {
         let rules: VotingRules = self
             .app
             .wrap()
@@ -190,7 +192,7 @@ impl Suite {
     }
 
     pub fn query_vote_info(
-        &mut self,
+        &self,
         proposal_id: u64,
         voter: &str,
     ) -> Result<Option<VoteInfo>, ContractError> {
@@ -204,15 +206,84 @@ impl Suite {
         Ok(vote.vote)
     }
 
-    pub fn list_voters(&mut self) -> StdResult<VoterListResponse> {
+    pub fn list_voters(
+        &self,
+        start_after: impl Into<Option<String>>,
+        limit: impl Into<Option<u32>>,
+    ) -> StdResult<VoterListResponse> {
         let voters: VoterListResponse = self.app.wrap().query_wasm_smart(
             self.voting.clone(),
             &voting::QueryMsg::ListVoters {
-                start_after: None,
-                limit: None,
+                start_after: start_after.into(),
+                limit: limit.into(),
             },
         )?;
         Ok(voters)
+    }
+
+    pub fn list_proposals(
+        &self,
+        start_after: impl Into<Option<u64>>,
+        limit: impl Into<Option<usize>>,
+    ) -> StdResult<Vec<ProposalResponse<String>>> {
+        let proposals: ProposalListResponse<String> = self.app.wrap().query_wasm_smart(
+            self.voting.clone(),
+            &voting::QueryMsg::ListProposals {
+                start_after: start_after.into(),
+                limit: limit.into().unwrap_or(10),
+            },
+        )?;
+        Ok(proposals.proposals)
+    }
+
+    pub fn reverse_proposals(
+        &self,
+        start_before: impl Into<Option<u64>>,
+        limit: impl Into<Option<usize>>,
+    ) -> StdResult<Vec<ProposalResponse<String>>> {
+        let proposals: ProposalListResponse<String> = self.app.wrap().query_wasm_smart(
+            self.voting.clone(),
+            &voting::QueryMsg::ReverseProposals {
+                start_before: start_before.into(),
+                limit: limit.into().unwrap_or(10),
+            },
+        )?;
+        Ok(proposals.proposals)
+    }
+
+    pub fn list_votes(
+        &self,
+        proposal_id: u64,
+        start_after: impl Into<Option<String>>,
+        limit: impl Into<Option<usize>>,
+    ) -> StdResult<Vec<VoteInfo>> {
+        let votes: VoteListResponse = self.app.wrap().query_wasm_smart(
+            self.voting.clone(),
+            &voting::QueryMsg::ListVotes {
+                proposal_id,
+                start_after: start_after.into(),
+                limit: limit.into().unwrap_or(10),
+            },
+        )?;
+        Ok(votes.votes)
+    }
+
+    pub fn query_voter(&self, addr: &str) -> Result<VoterResponse, ContractError> {
+        let voter: VoterResponse = self.app.wrap().query_wasm_smart(
+            self.voting.clone(),
+            &voting::QueryMsg::Voter {
+                address: addr.to_string(),
+            },
+        )?;
+        Ok(voter)
+    }
+
+    pub fn query_group_contract(&self) -> Result<String, ContractError> {
+        let contract: String = self
+            .app
+            .wrap()
+            .query_wasm_smart(self.voting.clone(), &voting::QueryMsg::GroupContract {})?;
+        Ok(contract)
     }
 
     pub fn assert_voters(&mut self, expected: &[(&str, u64)]) {
@@ -224,6 +295,6 @@ impl Suite {
             })
             .collect();
 
-        assert_eq!(expected, self.list_voters().unwrap().voters);
+        assert_eq!(expected, self.list_voters(None, None).unwrap().voters);
     }
 }

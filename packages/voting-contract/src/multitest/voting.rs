@@ -1,5 +1,5 @@
 use cosmwasm_std::{Decimal, StdError};
-use cw3::{Status, Vote, VoteInfo};
+use cw3::{Status, Vote};
 
 use crate::multitest::suite::{get_proposal_id, SuiteBuilder};
 use crate::state::{RulesBuilder, Votes};
@@ -367,50 +367,4 @@ fn expired_proposals_cannot_be_voted_on() {
     // Bob can't vote on the expired proposal
     let err = suite.vote("bob", proposal_id, Vote::Yes).unwrap_err();
     assert_eq!(ContractError::Expired {}, err.downcast().unwrap());
-}
-
-#[test]
-fn query_individual_votes() {
-    let rules = RulesBuilder::new()
-        .with_threshold(Decimal::percent(51))
-        .build();
-
-    let mut suite = SuiteBuilder::new()
-        .with_member("alice", 1)
-        .with_member("bob", 2)
-        .with_member("carol", 3)
-        .with_rules(rules)
-        .build();
-
-    // Create proposal with 1 voting power
-    let response = suite.propose("alice", "proposal").unwrap();
-    let proposal_id: u64 = get_proposal_id(&response).unwrap();
-
-    suite.vote("bob", proposal_id, Vote::No).unwrap();
-
-    // Creator of proposal
-    let vote = suite.query_vote_info(proposal_id, "alice").unwrap();
-    assert_eq!(
-        vote,
-        Some(VoteInfo {
-            voter: "alice".to_string(),
-            vote: Vote::Yes,
-            weight: 1
-        })
-    );
-
-    // First no vote
-    let vote = suite.query_vote_info(proposal_id, "bob").unwrap();
-    assert_eq!(
-        vote,
-        Some(VoteInfo {
-            voter: "bob".to_owned(),
-            vote: Vote::No,
-            weight: 2
-        })
-    );
-
-    // Non-voter
-    let vote = suite.query_vote_info(proposal_id, "carol").unwrap();
-    assert!(vote.is_none());
 }
