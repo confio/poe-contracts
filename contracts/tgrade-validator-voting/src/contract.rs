@@ -105,14 +105,14 @@ fn confirm_admin_in_contract(
 }
 
 pub fn execute_execute(
-    mut deps: DepsMut,
+    deps: DepsMut,
     env: Env,
     info: MessageInfo,
     proposal_id: u64,
 ) -> Result<Response, ContractError> {
     use ValidatorProposal::*;
     // anyone can trigger this if the vote passed
-    let proposal = can_execute::<ValidatorProposal>(deps.branch(), env, proposal_id)?;
+    let proposal = can_execute::<ValidatorProposal>(deps, env, proposal_id)?;
 
     let msg = match proposal.proposal {
         RegisterUpgrade { name, height, info } => SubMsg::new(TgradeMsg::ExecuteGovProposal {
