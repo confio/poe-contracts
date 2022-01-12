@@ -166,6 +166,15 @@ impl Suite {
         )
     }
 
+    pub fn execute_proposal(&mut self, executor: &str, proposal_id: u64) -> AnyResult<AppResponse> {
+        self.app.execute_contract(
+            Addr::unchecked(executor),
+            self.voting.clone(),
+            &voting::ExecuteMsg::Execute { proposal_id },
+            &[],
+        )
+    }
+
     pub fn close(&mut self, executor: &str, proposal_id: u64) -> AnyResult<AppResponse> {
         self.app.execute_contract(
             Addr::unchecked(executor),

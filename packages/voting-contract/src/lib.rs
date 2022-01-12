@@ -172,6 +172,24 @@ where
     Ok(proposal)
 }
 
+pub fn execute<P>(
+    deps: DepsMut,
+    _env: Env,
+    info: MessageInfo,
+    proposal_id: u64,
+) -> Result<Response, ContractError>
+where
+    P: Serialize + DeserializeOwned,
+{
+    // anyone can trigger this if the vote passed
+    let _prop = can_execute::<P>(deps, proposal_id)?;
+
+    Ok(Response::new()
+        .add_attribute("action", "execute")
+        .add_attribute("sender", info.sender)
+        .add_attribute("proposal_id", proposal_id.to_string()))
+}
+
 pub fn close<P>(
     deps: DepsMut,
     env: Env,

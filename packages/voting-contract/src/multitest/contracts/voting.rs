@@ -27,6 +27,9 @@ pub enum ExecuteMsg {
         proposal_id: u64,
         vote: Vote,
     },
+    Execute {
+        proposal_id: u64,
+    },
     Close {
         proposal_id: u64,
     },
@@ -99,8 +102,9 @@ impl Contract<TgradeMsg> for VotingContract {
                 description,
                 proposal,
             } => propose(deps, env, info, title, description, proposal),
-            Close { proposal_id } => crate::close::<String>(deps, env, info, proposal_id),
             Vote { proposal_id, vote } => crate::vote::<String>(deps, env, info, proposal_id, vote),
+            Execute { proposal_id } => crate::execute::<String>(deps, env, info, proposal_id),
+            Close { proposal_id } => crate::close::<String>(deps, env, info, proposal_id),
         }
         .map_err(anyhow::Error::from)
     }
