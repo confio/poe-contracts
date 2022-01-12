@@ -72,3 +72,44 @@ fn send_proposal() {
     assert_eq!(suite.token_balance(Addr::unchecked(receiver)).unwrap(), 40);
     assert_eq!(suite.token_balance(suite.contract.clone()).unwrap(), 60);
 }
+
+#[test]
+fn cannot_send_twice() {
+    let token = "usdc";
+    let voter = "voter";
+    let receiver = "receiver";
+
+    let mut suite = SuiteBuilder::new()
+        .with_group_token(token)
+        .with_group_member(voter, 1)
+        .build();
+
+    suite.distribute_funds(100).unwrap();
+
+    let resp = suite
+        .propose(
+            voter,
+            "Send",
+            "Send proposal",
+            Proposal::SendProposal {
+                to_addr: receiver.to_owned(),
+                amount: coin(40, token),
+            },
+        )
+        .unwrap();
+
+    let proposal_id = created_proposal_id(&resp).unwrap();
+
+    //    suite.vote(voter, proposal_id, Vote::Yes).unwrap();
+    suite.execute(voter, proposal_id).unwrap();
+
+    assert_eq!(suite.token_balance(Addr::unchecked(receiver)).unwrap(), 40);
+    assert_eq!(suite.token_balance(suite.contract.clone()).unwrap(), 60);
+
+    // Trying to exec the same proposal a second time should fail miserably.
+    suite.execute(voter, proposal_id).unwrap_err();
+
+    // No changes after (failed) second exec.
+    assert_eq!(suite.token_balance(Addr::unchecked(receiver)).unwrap(), 40);
+    assert_eq!(suite.token_balance(suite.contract.clone()).unwrap(), 60);
+}
