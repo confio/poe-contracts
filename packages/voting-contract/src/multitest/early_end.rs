@@ -71,11 +71,10 @@ fn passed_on_expiration_can_be_executed() {
 }
 
 #[test]
-#[ignore]
 fn abstaining_can_cause_early_pass() {
     let rules = RulesBuilder::new()
         .with_threshold(Decimal::percent(51))
-        .with_quorum(Decimal::percent(20))
+        .with_quorum(Decimal::percent(50))
         .with_allow_early(true)
         .build();
 
@@ -95,7 +94,8 @@ fn abstaining_can_cause_early_pass() {
     // Carol abstains. It's no longer possible to reject the proposal, so it passes immediately
     suite.vote("carol", proposal_id, Vote::Abstain).unwrap();
 
-    assert_eq!(prop.votes.total(), 2);
+    let prop = suite.query_proposal(proposal_id).unwrap();
+    assert_eq!(prop.votes.total(), 5);
     assert_eq!(prop.status, Status::Passed);
 }
 
