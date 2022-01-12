@@ -253,6 +253,38 @@ fn abstaining_can_help_reach_quorum() {
 }
 
 #[test]
+fn abstaining_does_not_count_as_yes() {
+    let rules = RulesBuilder::new()
+        .with_threshold(Decimal::percent(51))
+        .with_quorum(Decimal::percent(40))
+        .with_allow_early(false)
+        .build();
+
+    let mut suite = SuiteBuilder::new()
+        .with_member("alice", 1)
+        .with_member("bob", 2)
+        .with_member("carol", 3)
+        .with_member("dave", 4)
+        .with_rules(rules.clone())
+        .build();
+
+    // Create proposal with 2 voting power
+    let response = suite.propose("bob", "proposal").unwrap();
+    let proposal_id: u64 = get_proposal_id(&response).unwrap();
+
+    // Carol votes no.
+    suite.vote("carol", proposal_id, Vote::No).unwrap();
+
+    // Dave abstains. We have 2 yes, 3 no, 4 abstained. Proposal should be rejected.
+    suite.vote("dave", proposal_id, Vote::Abstain).unwrap();
+
+    suite.app.advance_seconds(rules.voting_period_secs());
+    let prop = suite.query_proposal(proposal_id).unwrap();
+    assert_eq!(prop.votes.total(), 9);
+    assert_eq!(prop.status, Status::Rejected);
+}
+
+#[test]
 fn proposal_can_be_rejected_after_voting_period() {
     let rules = RulesBuilder::new()
         .with_threshold(Decimal::percent(50))
