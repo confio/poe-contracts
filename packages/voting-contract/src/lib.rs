@@ -154,7 +154,7 @@ where
 /// Notice that this call is mutable, so, better execute the returned proposal after this succeeds,
 /// as you you wouldn't be able to execute it in the future (If the contract call errors, this status
 /// change will be reverted / ignored).
-pub fn can_execute<P>(
+pub fn mark_executed<P>(
     deps: DepsMut,
     env: Env,
     proposal_id: u64,
@@ -174,24 +174,6 @@ where
     proposal.status = Status::Executed;
     proposals::<P>().save(deps.storage, proposal_id, &proposal)?;
     Ok(proposal)
-}
-
-pub fn execute<P>(
-    deps: DepsMut,
-    env: Env,
-    info: MessageInfo,
-    proposal_id: u64,
-) -> Result<Response, ContractError>
-where
-    P: Serialize + DeserializeOwned,
-{
-    // anyone can trigger this if the vote passed
-    let _prop = can_execute::<P>(deps, env, proposal_id)?;
-
-    Ok(Response::new()
-        .add_attribute("action", "execute")
-        .add_attribute("sender", info.sender)
-        .add_attribute("proposal_id", proposal_id.to_string()))
 }
 
 pub fn close<P>(
