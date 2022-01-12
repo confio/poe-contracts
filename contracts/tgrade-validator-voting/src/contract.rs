@@ -258,16 +258,6 @@ mod tests {
     struct DummyMigrateMsg {}
 
     #[test]
-    #[ignore]
-    fn passed_on_expiration_can_be_executed() {
-        let mut deps = mock_dependencies();
-        let env = mock_env();
-
-        let res = execute_execute(deps.as_mut(), env, mock_info("sender", &[]), 1).unwrap();
-        assert_eq!(res.messages, vec![]);
-    }
-
-    #[test]
     fn register_migrate() {
         let mut deps = mock_dependencies();
         let env = mock_env();
