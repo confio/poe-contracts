@@ -8,9 +8,6 @@ pub enum ContractError {
 
     #[error("{0}")]
     Voting(tg_voting_contract::ContractError),
-
-    #[error("Proposal must have passed and not yet been executed")]
-    WrongExecuteStatus {},
 }
 
 impl From<tg_voting_contract::ContractError> for ContractError {
