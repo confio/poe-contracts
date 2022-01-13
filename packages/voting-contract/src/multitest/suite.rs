@@ -45,7 +45,6 @@ impl SuiteBuilder {
         self
     }
 
-    #[track_caller]
     pub fn build(self) -> Suite {
         let owner = Addr::unchecked("owner");
 
