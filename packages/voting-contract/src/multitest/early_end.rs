@@ -100,6 +100,40 @@ fn abstaining_can_cause_early_pass() {
 }
 
 #[test]
+fn no_can_cause_early_pass() {
+    // The way a NO vote can cause an early pass is if there's still a majority of YES votes,
+    // but the NO vote caused the quorum to be met.
+    //
+    // This kind of early pass is only possible if the quorum requirement is higher than
+    // the threshold.
+
+    let rules = RulesBuilder::new()
+        .with_threshold(Decimal::percent(51))
+        .with_quorum(Decimal::percent(70))
+        .with_allow_early(true)
+        .build();
+
+    let mut suite = SuiteBuilder::new()
+        .with_member("alice", 2)
+        .with_member("bob", 2)
+        .with_member("carol", 6)
+        .with_rules(rules)
+        .build();
+
+    // Create proposal with 3 voting power
+    let response = suite.propose("carol", "proposal").unwrap();
+    let proposal_id: u64 = get_proposal_id(&response).unwrap();
+    let prop = suite.query_proposal(proposal_id).unwrap();
+    assert_eq!(prop.status, Status::Open);
+
+    // Alice votes no. Quorum has been met and this proposal passes.
+    suite.vote("alice", proposal_id, Vote::No).unwrap();
+
+    let prop = suite.query_proposal(proposal_id).unwrap();
+    assert_eq!(prop.status, Status::Passed);
+}
+
+#[test]
 fn early_end_can_be_disabled() {
     let rules = RulesBuilder::new()
         .with_threshold(Decimal::percent(51))
