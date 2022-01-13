@@ -121,6 +121,11 @@ impl RulesBuilder {
         self
     }
 
+    pub fn with_allow_early(mut self, allow_end_early: bool) -> Self {
+        self.allow_end_early = allow_end_early;
+        self
+    }
+
     pub fn build(&self) -> VotingRules {
         VotingRules {
             voting_period: self.voting_period,

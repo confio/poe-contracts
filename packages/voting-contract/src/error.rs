@@ -32,4 +32,7 @@ pub enum ContractError {
 
     #[error("Cannot close completed or passed proposals")]
     WrongCloseStatus {},
+
+    #[error("Proposal must have passed and not yet been executed")]
+    WrongExecuteStatus {},
 }

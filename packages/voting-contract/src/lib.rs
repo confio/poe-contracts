@@ -1,5 +1,7 @@
 mod error;
 pub mod msg;
+#[cfg(test)]
+mod multitest;
 pub mod state;
 
 pub use error::ContractError;
@@ -146,6 +148,32 @@ where
         .add_attribute("sender", info.sender)
         .add_attribute("proposal_id", proposal_id.to_string())
         .add_attribute("status", format!("{:?}", prop.status)))
+}
+
+/// Checks if a given proposal is passed and can then be executed, and returns it.
+/// Notice that this call is mutable, so, better execute the returned proposal after this succeeds,
+/// as you you wouldn't be able to execute it in the future (If the contract call errors, this status
+/// change will be reverted / ignored).
+pub fn mark_executed<P>(
+    deps: DepsMut,
+    env: Env,
+    proposal_id: u64,
+) -> Result<Proposal<P>, ContractError>
+where
+    P: Serialize + DeserializeOwned,
+{
+    let mut proposal = proposals::<P>().load(deps.storage, proposal_id)?;
+
+    // We allow execution even after the proposal "expiration" as long as all votes come in before
+    // that point. If it was approved on time, it can be executed any time.
+    if proposal.current_status(&env.block) != Status::Passed {
+        return Err(ContractError::WrongExecuteStatus {});
+    }
+
+    // Set it to executed
+    proposal.status = Status::Executed;
+    proposals::<P>().save(deps.storage, proposal_id, &proposal)?;
+    Ok(proposal)
 }
 
 pub fn close<P>(
