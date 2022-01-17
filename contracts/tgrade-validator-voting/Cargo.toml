@@ -4,6 +4,9 @@ version = "0.5.3"
 authors = ["Ethan Frey <ethanfrey@users.noreply.github.com>"]
 edition = "2018"
 description = "Implementing tgrade-validator-voting"
+repository = "https://github.com/confio/poe-contracts"
+homepage = "https://tgrade.finance"
+license = "Apache-2.0"
 
 [lib]
 crate-type = ["cdylib", "rlib"]

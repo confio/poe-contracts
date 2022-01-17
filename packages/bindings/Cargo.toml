@@ -4,8 +4,9 @@ version = "0.5.3"
 authors = ["Ethan Frey <ethanfrey@users.noreply.github.com>"]
 edition = "2018"
 description = "Bindings for CustomMsg and CustomQuery for the Tgrade blockchain"
-repository = "https://github.com/confio/tgrade-contracts"
+repository = "https://github.com/confio/poe-contracts"
 homepage = "https://tgrade.finance"
+license = "Apache-2.0"
 
 [dependencies]
 base64 = "0.13"

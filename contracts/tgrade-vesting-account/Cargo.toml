@@ -4,8 +4,9 @@ version = "0.5.3"
 authors = ["Jakub Bogucki <jakub@confio.gmbh>"]
 edition = "2018"
 description = "Vesting Account as a contract"
-repository = "https://github.com/confio/tgrade-contracts"
+repository = "https://github.com/confio/poe-contracts"
 homepage = "https://tgrade.finance"
+license = "Apache-2.0"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
