@@ -4,6 +4,9 @@ version = "0.5.3"
 authors = ["Bartłomiej Kuras <bart.k@confio.gmbh>"]
 edition = "2018"
 description = "Implementing tgrade-community-pool voting contract"
+repository = "https://github.com/confio/poe-contracts"
+homepage = "https://tgrade.finance"
+license = "Apache-2.0"
 
 [lib]
 crate-type = ["cdylib", "rlib"]

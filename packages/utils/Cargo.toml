@@ -4,8 +4,9 @@ version = "0.5.3"
 authors = ["Ethan Frey <ethanfrey@users.noreply.github.com>"]
 edition = "2018"
 description = "Tgrade Utils: helpers for various contracts"
-repository = "https://github.com/confio/tgrade-contracts"
+repository = "https://github.com/confio/poe-contracts"
 homepage = "https://tgrade.finance"
+license = "Apache-2.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

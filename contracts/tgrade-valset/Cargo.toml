@@ -4,8 +4,10 @@ version = "0.5.3"
 authors = ["Ethan Frey <ethanfrey@users.noreply.github.com>"]
 edition = "2018"
 description = "Control the validator set based on membership of trusted tg4 contract"
-repository = "https://github.com/confio/tgrade-contracts"
+repository = "https://github.com/confio/poe-contracts"
 homepage = "https://tgrade.finance"
+license = "Apache-2.0"
+
 
 exclude = [
   # Those files are rust-optimizer artifacts. You might want to commit them for convenience but they should not be part of the source code publication.
