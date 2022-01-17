@@ -36,6 +36,5 @@ thiserror = { version = "1.0.21" }
 cosmwasm-schema = { version = "1.0.0-beta" }
 cw-multi-test = { version = "0.11.0" }
 tg-bindings-test = { version = "0.5.3", path = "../../packages/bindings-test" }
-tg4-mixer = { path = "../tg4-mixer/", version = "0.5.3" }
 derivative = "2"
 anyhow = "1"
