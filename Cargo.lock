@@ -1507,6 +1507,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "tg-test-utils"
+version = "0.5.2"
+dependencies = [
+ "cosmwasm-std",
+ "tg-voting-contract",
+]
+
+[[package]]
 name = "tg-utils"
 version = "0.5.3"
 dependencies = [
