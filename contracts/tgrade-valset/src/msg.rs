@@ -5,7 +5,7 @@ use std::ops::Add;
 
 use tg4::Member;
 use tg_bindings::{Ed25519Pubkey, Pubkey};
-use tg_utils::{Expiration, JailingDuration};
+use tg_utils::{Duration, Expiration};
 
 use crate::error::ContractError;
 use crate::state::{DistributionContract, OperatorInfo, ValidatorInfo, ValidatorSlashing};
@@ -240,7 +240,7 @@ pub enum ExecuteMsg {
         /// Operator which should be jailed
         operator: String,
         /// Duration for how long validator is jailed
-        duration: JailingDuration,
+        duration: Duration,
     },
     /// Unjails validator. Admin can unjail anyone anytime, others can unjail only themselves and
     /// only if the jail period passed.
@@ -311,14 +311,14 @@ pub struct OperatorResponse {
     pub operator: String,
     pub pubkey: Pubkey,
     pub metadata: ValidatorMetadata,
-    pub jailed_until: Option<JailingPeriod>,
+    pub jailed_until: Option<Expiration>,
 }
 
 impl OperatorResponse {
     pub fn from_info(
         info: OperatorInfo,
         operator: String,
-        jailed_until: impl Into<Option<JailingPeriod>>,
+        jailed_until: impl Into<Option<Expiration>>,
     ) -> Self {
         OperatorResponse {
             operator,
@@ -331,24 +331,15 @@ impl OperatorResponse {
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
-pub enum JailingPeriod {
-    Forever {},
-    Until(Expiration),
-}
+pub struct JailingPeriod(pub Expiration);
 
 impl JailingPeriod {
-    pub fn from_duration(duration: JailingDuration, block: &BlockInfo) -> Self {
-        match duration {
-            JailingDuration::Duration(duration) => Self::Until(duration.after(block)),
-            JailingDuration::Forever {} => Self::Forever {},
-        }
+    pub fn from_duration(duration: Duration, block: &BlockInfo) -> Self {
+        Self(duration.after(block))
     }
 
     pub fn is_expired(&self, block: &BlockInfo) -> bool {
-        match self {
-            Self::Forever {} => false,
-            Self::Until(expires) => expires.is_expired(block),
-        }
+        self.0.is_expired(block)
     }
 }
 

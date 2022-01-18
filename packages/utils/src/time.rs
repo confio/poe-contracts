@@ -37,6 +37,11 @@ impl Expiration {
         Self(timestamp)
     }
 
+    pub fn zero() -> Self {
+        Self(Timestamp::from_seconds(0))
+    }
+
+
     pub fn is_expired(&self, block: &BlockInfo) -> bool {
         self.is_expired_time(block.time)
     }

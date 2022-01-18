@@ -19,14 +19,13 @@ use tg_bindings::{
     request_privileges, Ed25519Pubkey, Evidence, EvidenceType, Privilege, PrivilegeChangeMsg,
     Pubkey, TgradeMsg, TgradeSudoMsg, ValidatorDiff, ValidatorUpdate,
 };
-use tg_utils::{JailingDuration, SlashMsg, ADMIN};
+use tg_utils::{Duration, Expiration, SlashMsg, ADMIN};
 
 use crate::error::ContractError;
 use crate::msg::{
-    EpochResponse, ExecuteMsg, InstantiateMsg, InstantiateResponse, JailingPeriod,
-    ListActiveValidatorsResponse, ListValidatorResponse, ListValidatorSlashingResponse,
-    OperatorResponse, QueryMsg, RewardsDistribution, RewardsInstantiateMsg, ValidatorMetadata,
-    ValidatorResponse,
+    EpochResponse, ExecuteMsg, InstantiateMsg, InstantiateResponse, ListActiveValidatorsResponse,
+    ListValidatorResponse, ListValidatorSlashingResponse, OperatorResponse, QueryMsg,
+    RewardsDistribution, RewardsInstantiateMsg, ValidatorMetadata, ValidatorResponse,
 };
 use crate::rewards::pay_block_rewards;
 use crate::state::{
@@ -220,27 +219,21 @@ fn execute_jail(
     env: Env,
     info: MessageInfo,
     operator: String,
-    duration: JailingDuration,
+    duration: Duration,
 ) -> Result<Response, ContractError> {
     ADMIN.assert_admin(deps.as_ref(), &info.sender)?;
 
-    let expiration = JailingPeriod::from_duration(duration, &env.block);
-
+    let expiration = duration.after(&env.block);
     JAIL.save(
         deps.storage,
         &deps.api.addr_validate(&operator)?,
         &expiration,
     )?;
 
-    let until_attr = match expiration {
-        JailingPeriod::Until(expires) => Timestamp::from(expires).to_string(),
-        JailingPeriod::Forever {} => "forever".to_owned(),
-    };
-
     let res = Response::new()
         .add_attribute("action", "jail")
         .add_attribute("operator", &operator)
-        .add_attribute("until", &until_attr);
+        .add_attribute("until", &Timestamp::from(expiration).to_string());
 
     Ok(res)
 }
@@ -265,7 +258,7 @@ fn execute_unjail(
         Err(err) => return Err(err.into()),
         // Operator is not jailed, unjailing does nothing and succeeds
         Ok(None) => (),
-        Ok(Some(JailingPeriod::Forever {})) => {
+        Ok(Some(expiration)) if expiration.time().seconds() == 0 => {
             return Err(ContractError::UnjailFromJailForeverForbidden {});
         }
         // Jailing period expired or called by admin - can unjail
@@ -460,8 +453,8 @@ fn list_validator_slashing(
         .may_load(deps.storage, &addr)?
         .unwrap_or_default();
     let (jailed_until, tombstoned) = match JAIL.may_load(deps.storage, &addr)? {
-        Some(JailingPeriod::Forever {}) => (None, true),
-        Some(JailingPeriod::Until(u)) => (Some(u), false),
+        Some(expiration) if expiration.time().seconds() == 0 => (None, true),
+        Some(expiration) => (Some(expiration), false),
         None => (None, false),
     };
     Ok(ListValidatorSlashingResponse {
@@ -807,7 +800,7 @@ fn begin_block(
                     config.double_sign_slash_ratio,
                 )?;
 
-                JAIL.save(deps.storage, &validator, &JailingPeriod::Forever {})?;
+                JAIL.save(deps.storage, &validator, &Expiration::zero())?;
 
                 response = response
                     .clone()

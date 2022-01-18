@@ -11,7 +11,7 @@ pub enum JailMsg {
         /// Operator which should be jailed
         operator: String,
         /// Duration for how long validator is jailed
-        duration: JailingDuration,
+        duration: Duration,
     },
     /// Unjails validator. Admin can unjail anyone anytime, others can unjail only themselves and
     /// only if the jail period passed.
@@ -20,17 +20,4 @@ pub enum JailMsg {
         /// message (for convenience when unjailing self after the jail period).
         operator: Option<String>,
     },
-}
-
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
-#[serde(rename_all = "snake_case")]
-pub enum JailingDuration {
-    Duration(Duration),
-    Forever,
-}
-
-impl From<Duration> for JailingDuration {
-    fn from(dur: Duration) -> Self {
-        Self::Duration(dur)
-    }
 }
