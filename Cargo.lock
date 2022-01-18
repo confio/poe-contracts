@@ -1462,7 +1462,7 @@ dependencies = [
 
 [[package]]
 name = "tg-bindings"
-version = "0.5.3"
+version = "0.5.3-2"
 dependencies = [
  "base64",
  "cosmwasm-schema",
@@ -1475,7 +1475,7 @@ dependencies = [
 
 [[package]]
 name = "tg-bindings-test"
-version = "0.5.3"
+version = "0.5.3-2"
 dependencies = [
  "anyhow",
  "cosmwasm-std",
@@ -1489,7 +1489,7 @@ dependencies = [
 
 [[package]]
 name = "tg-test-utils"
-version = "0.5.3"
+version = "0.5.3-2"
 dependencies = [
  "cosmwasm-std",
  "tg-voting-contract",
@@ -1497,7 +1497,7 @@ dependencies = [
 
 [[package]]
 name = "tg-utils"
-version = "0.5.3"
+version = "0.5.3-2"
 dependencies = [
  "cosmwasm-std",
  "cw-controllers",
@@ -1512,7 +1512,7 @@ dependencies = [
 
 [[package]]
 name = "tg-voting-contract"
-version = "0.5.3"
+version = "0.5.3-2"
 dependencies = [
  "anyhow",
  "cosmwasm-schema",
@@ -1534,7 +1534,7 @@ dependencies = [
 
 [[package]]
 name = "tg4"
-version = "0.5.3"
+version = "0.5.3-2"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -1545,7 +1545,7 @@ dependencies = [
 
 [[package]]
 name = "tg4-engagement"
-version = "0.5.3"
+version = "0.5.3-2"
 dependencies = [
  "anyhow",
  "cosmwasm-schema",
@@ -1567,7 +1567,7 @@ dependencies = [
 
 [[package]]
 name = "tg4-mixer"
-version = "0.5.3"
+version = "0.5.3-2"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -1592,7 +1592,7 @@ dependencies = [
 
 [[package]]
 name = "tg4-stake"
-version = "0.5.3"
+version = "0.5.3-2"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -1611,7 +1611,7 @@ dependencies = [
 
 [[package]]
 name = "tgrade-community-pool"
-version = "0.5.3"
+version = "0.5.3-2"
 dependencies = [
  "anyhow",
  "cosmwasm-schema",
@@ -1631,7 +1631,7 @@ dependencies = [
 
 [[package]]
 name = "tgrade-gov-reflect"
-version = "0.5.3"
+version = "0.5.3-2"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -1644,7 +1644,7 @@ dependencies = [
 
 [[package]]
 name = "tgrade-validator-voting"
-version = "0.5.3"
+version = "0.5.3-2"
 dependencies = [
  "anyhow",
  "cosmwasm-schema",
@@ -1666,7 +1666,7 @@ dependencies = [
 
 [[package]]
 name = "tgrade-valset"
-version = "0.5.3"
+version = "0.5.3-2"
 dependencies = [
  "anyhow",
  "assert_matches",
@@ -1691,7 +1691,7 @@ dependencies = [
 
 [[package]]
 name = "tgrade-vesting-account"
-version = "0.5.3"
+version = "0.5.3-2"
 dependencies = [
  "anyhow",
  "assert_matches",
