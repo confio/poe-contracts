@@ -5,7 +5,7 @@ command -v shellcheck > /dev/null && shellcheck "$0"
 # These are imported by other packages - wait 30 seconds between each as they have linear dependencies
 BASE_CRATES="packages/bindings packages/bindings-test packages/tg4 packages/utils contracts/tg4-engagement contracts/tg4-stake contracts/tg4-mixer"
 
-ALL_CRATES="packages/voting-contract contracts/tgrade-community-pool contracts/tgrade-validator-voting contracts/tgrade-valset"
+ALL_CRATES="packages/voting-contract packages/test-utils contracts/tgrade-community-pool contracts/tgrade-validator-voting contracts/tgrade-valset"
 
 SLEEP_TIME=30
 
