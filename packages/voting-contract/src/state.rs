@@ -37,6 +37,10 @@ pub struct Proposal<P> {
     pub votes: Votes,
 }
 
+pub trait TextProposal {
+    fn is_text(&self) -> bool;
+}
+
 /// Note, if you are storing custom messages in the proposal,
 /// the querier needs to know what possible custom message types
 /// those are in order to parse the response

@@ -2,6 +2,7 @@ use cosmwasm_std::StdError;
 use cw3::Status;
 use tg_utils::Expiration;
 
+use crate::multitest::contracts::voting::Proposal;
 use crate::multitest::suite::{get_proposal_id, SuiteBuilder};
 use crate::state::{ProposalResponse, RulesBuilder, Votes};
 use crate::ContractError;
@@ -21,7 +22,7 @@ fn proposal_creation() {
             "alice",
             "best proposal",
             "it's just the best",
-            "do the thing",
+            Proposal::DoTheThing {},
         )
         .unwrap();
 
@@ -40,7 +41,7 @@ fn proposal_creation() {
             id: 1,
             title: "best proposal".to_string(),
             description: "it's just the best".to_string(),
-            proposal: "do the thing".to_string(),
+            proposal: Proposal::DoTheThing {},
             status: Status::Open,
             expires: expected_expiration,
             rules,

@@ -2,6 +2,7 @@ use cosmwasm_std::Decimal;
 use cw3::{Status, Vote, VoteInfo};
 use tg_utils::Expiration;
 
+use super::contracts::voting::Proposal;
 use crate::multitest::suite::{get_proposal_id, SuiteBuilder};
 use crate::state::{ProposalResponse, RulesBuilder, Votes};
 
@@ -48,7 +49,7 @@ fn query_proposal() {
             "alice",
             "best proposal",
             "it's just the best",
-            "do the thing",
+            Proposal::DoTheThing {},
         )
         .unwrap();
 
@@ -67,7 +68,7 @@ fn query_proposal() {
             id: 1,
             title: "best proposal".to_string(),
             description: "it's just the best".to_string(),
-            proposal: "do the thing".to_string(),
+            proposal: Proposal::DoTheThing {},
             status: Status::Open,
             expires: expected_expiration,
             rules: rules.clone(),
@@ -92,7 +93,7 @@ fn query_proposal() {
             id: 1,
             title: "best proposal".to_string(),
             description: "it's just the best".to_string(),
-            proposal: "do the thing".to_string(),
+            proposal: Proposal::DoTheThing {},
             status: Status::Open,
             expires: expected_expiration,
             rules: rules.clone(),
@@ -114,7 +115,7 @@ fn query_proposal() {
             id: 1,
             title: "best proposal".to_string(),
             description: "it's just the best".to_string(),
-            proposal: "do the thing".to_string(),
+            proposal: Proposal::DoTheThing {},
             status: Status::Rejected,
             expires: expected_expiration,
             rules,
@@ -179,7 +180,7 @@ fn query_individual_votes() {
 fn list_proposals() {
     let mut suite = SuiteBuilder::new().with_member("alice", 1).build();
 
-    fn titles(props: Vec<ProposalResponse<String>>) -> Vec<String> {
+    fn titles(props: Vec<ProposalResponse<Proposal>>) -> Vec<String> {
         props.into_iter().map(|p| p.title).collect()
     }
 
@@ -206,7 +207,7 @@ fn list_proposals() {
 fn reverse_proposals() {
     let mut suite = SuiteBuilder::new().with_member("alice", 1).build();
 
-    fn titles(props: Vec<ProposalResponse<String>>) -> Vec<String> {
+    fn titles(props: Vec<ProposalResponse<Proposal>>) -> Vec<String> {
         props.into_iter().map(|p| p.title).collect()
     }
 
@@ -342,4 +343,44 @@ fn voter() {
 fn group_contract() {
     let suite = SuiteBuilder::new().build();
     assert_eq!(suite.group, suite.query_group_contract().unwrap())
+}
+
+#[test]
+fn list_text_proposals() {
+    let mut suite = SuiteBuilder::new().with_member("alice", 1).build();
+
+    fn titles(props: Vec<ProposalResponse<Proposal>>) -> Vec<String> {
+        props.into_iter().map(|p| p.title).collect()
+    }
+
+    suite
+        .propose_detailed("alice", "1", "1", Proposal::Text {})
+        .unwrap();
+    suite
+        .propose_detailed("alice", "2", "2", Proposal::DoTheThing {})
+        .unwrap();
+    suite
+        .propose_detailed("alice", "3", "3", Proposal::Text {})
+        .unwrap();
+    suite
+        .propose_detailed("alice", "4", "4", Proposal::DoTheThing {})
+        .unwrap();
+    suite
+        .propose_detailed("alice", "5", "5", Proposal::Text {})
+        .unwrap();
+    suite
+        .propose_detailed("alice", "6", "6", Proposal::Text {})
+        .unwrap();
+
+    assert_eq!(
+        titles(suite.list_text_proposals(None, 10).unwrap()),
+        ["1", "3", "5", "6"]
+    );
+    assert_eq!(titles(suite.list_text_proposals(None, 1).unwrap()), ["1"]);
+    assert_eq!(
+        titles(suite.list_text_proposals(None, 3).unwrap()),
+        ["1", "3", "5"]
+    );
+    assert_eq!(titles(suite.list_text_proposals(1, 2).unwrap()), ["3", "5"]);
+    assert_eq!(titles(suite.list_text_proposals(3, 2).unwrap()), ["5", "6"]);
 }
