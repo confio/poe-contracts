@@ -69,11 +69,8 @@ pub fn execute_propose(
 ) -> Result<Response, ContractError> {
     use Proposal::*;
 
-    match &proposal {
-        SendProposal { to_addr, .. } => {
-            deps.api.addr_validate(to_addr)?;
-        }
-        _ => {}
+    if let SendProposal { to_addr, .. } = &proposal {
+        deps.api.addr_validate(to_addr)?;
     }
 
     propose(deps, env, info, title, description, proposal).map_err(ContractError::from)
