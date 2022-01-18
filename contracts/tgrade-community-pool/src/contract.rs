@@ -8,7 +8,7 @@ use tg_bindings::TgradeMsg;
 use crate::msg::{ExecuteMsg, InstantiateMsg, Proposal, QueryMsg};
 use crate::ContractError;
 
-use tg_voting_contract::state::{TextProposal, CONFIG as VOTING_CONFIG};
+use tg_voting_contract::state::CONFIG as VOTING_CONFIG;
 use tg_voting_contract::{
     close as execute_close, list_proposals, list_text_proposals, list_voters, list_votes,
     mark_executed, propose, query_group_contract, query_proposal, query_rules, query_vote,
