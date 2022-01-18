@@ -401,7 +401,7 @@ jobs:
   package_test_utils:
     docker:
       - image: rust:1.53.0
-    working_directory: ~/project/packages/voting-contract
+    working_directory: ~/project/packages/test-utils
     steps:
       - checkout:
           path: ~/project
@@ -417,9 +417,6 @@ jobs:
       - run:
           name: Run unit tests
           command: cargo test --locked
-      - run:
-          name: Build and run schema generator
-          command: cargo schema --locked
       - save_cache:
           paths:
             - /usr/local/cargo/registry
