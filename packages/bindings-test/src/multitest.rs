@@ -10,7 +10,7 @@ use thiserror::Error;
 use cosmwasm_std::testing::{MockApi, MockStorage};
 use cosmwasm_std::{
     from_slice, to_binary, Addr, Api, Binary, BlockInfo, Coin, CustomQuery, Empty, Order, Querier,
-    StdError, StdResult, Storage,
+    StdError, StdResult, Storage, Timestamp,
 };
 use cw_multi_test::{
     App, AppResponse, BankKeeper, BankSudo, BasicAppBuilder, CosmosRouter, Executor, Module,
@@ -326,13 +326,35 @@ impl DerefMut for TgradeApp {
 impl TgradeApp {
     pub fn new(owner: &str) -> Self {
         let owner = Addr::unchecked(owner);
-        TgradeApp(
+        Self(
             BasicAppBuilder::<TgradeMsg, TgradeQuery>::new_custom()
                 .with_custom(TgradeModule {})
                 .build(|router, _, storage| {
                     router.custom.set_owner(storage, &owner).unwrap();
                 }),
         )
+    }
+
+    pub fn new_genesis(owner: &str) -> Self {
+        let owner = Addr::unchecked(owner);
+        let block_info = BlockInfo {
+            height: 0,
+            time: Timestamp::from_nanos(1_571_797_419_879_305_533),
+            chain_id: "tgrade-testnet-14002".to_owned(),
+        };
+
+        Self(
+            BasicAppBuilder::<TgradeMsg, TgradeQuery>::new_custom()
+                .with_custom(TgradeModule {})
+                .with_block(block_info)
+                .build(|router, _, storage| {
+                    router.custom.set_owner(storage, &owner).unwrap();
+                }),
+        )
+    }
+
+    pub fn block_info(&self) -> BlockInfo {
+        self.0.block_info()
     }
 
     pub fn promote(&mut self, owner: &str, contract: &str) -> AnyResult<AppResponse> {
