@@ -1,6 +1,6 @@
 [package]
 name = "tg-test-utils"
-version = "0.5.2"
+version = "0.5.3"
 authors = ["Jakub Bogucki <jakub@confio.gmbh>"]
 edition = "2018"
 description = "Utilities used in contract tests"
@@ -9,4 +9,4 @@ homepage = "https://tgrade.finance"
 
 [dependencies]
 cosmwasm-std = "1.0.0-beta"
-tg-voting-contract = { path = "../voting-contract", version = "0.5.2" }
+tg-voting-contract = { path = "../voting-contract", version = "0.5.3" }
