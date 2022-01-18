@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use cosmwasm_std::Binary;
 use cw3::Vote;
 
-use tg_voting_contract::state::VotingRules;
+use tg_voting_contract::state::{TextProposal, VotingRules};
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 pub struct InstantiateMsg {
@@ -79,6 +79,14 @@ pub enum ValidatorProposal {
         /// encoded message to be passed to perform the migration
         migrate_msg: Binary,
     },
+    /// An open text proposal with no actual logic executed when it passes
+    Text {},
+}
+
+impl TextProposal for ValidatorProposal {
+    fn is_text(&self) -> bool {
+        *self == Self::Text {}
+    }
 }
 
 // We can also add this as a cw3 extension
@@ -116,4 +124,9 @@ pub enum QueryMsg {
     },
     /// Returns address of current's group contract
     GroupContract {},
+    /// List all text proposals
+    ListTextProposals {
+        start_after: Option<u64>,
+        limit: Option<u32>,
+    },
 }

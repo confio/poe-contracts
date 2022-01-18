@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use cosmwasm_std::Coin;
 use cw3::Vote;
 
-use tg_voting_contract::state::VotingRules;
+use tg_voting_contract::state::{TextProposal, VotingRules};
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
@@ -25,6 +25,14 @@ pub enum Proposal {
         /// Funds to send
         amount: Coin,
     },
+    /// An open text proposal with no actual logic executed when it passes
+    Text {},
+}
+
+impl TextProposal for Proposal {
+    fn is_text(&self) -> bool {
+        *self == Proposal::Text {}
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -89,4 +97,9 @@ pub enum QueryMsg {
     },
     /// Returns address of current's group contract
     GroupContract {},
+    /// List all text proposals
+    ListTextProposals {
+        start_after: Option<u64>,
+        limit: Option<u32>,
+    },
 }
