@@ -223,13 +223,13 @@ fn execute_jail(
 ) -> Result<Response, ContractError> {
     ADMIN.assert_admin(deps.as_ref(), &info.sender)?;
 
-    let expiration = duration.after(&env.block);
     JAIL.save(
         deps.storage,
         &deps.api.addr_validate(&operator)?,
-        &expiration,
+        &duration,
     )?;
 
+    let expiration = duration.after(&env.block);
     let res = Response::new()
         .add_attribute("action", "jail")
         .add_attribute("operator", &operator)
@@ -257,7 +257,9 @@ fn execute_unjail(
     match JAIL.may_load(deps.storage, operator) {
         Err(err) => return Err(err.into()),
         // Operator is not jailed, unjailing does nothing and succeeds
-        Ok(None) => (),
+        Ok(Some(expiration)) => {
+            let
+        },
         Ok(Some(expiration)) if expiration.time().seconds() == 0 => {
             return Err(ContractError::UnjailFromJailForeverForbidden {});
         }
@@ -453,7 +455,7 @@ fn list_validator_slashing(
         .may_load(deps.storage, &addr)?
         .unwrap_or_default();
     let (jailed_until, tombstoned) = match JAIL.may_load(deps.storage, &addr)? {
-        Some(expiration) if expiration.time().seconds() == 0 => (None, true),
+        Some(expiration) if expiration.time().seconds() == 0 => (Some(expiration), true),
         Some(expiration) => (Some(expiration), false),
         None => (None, false),
     };

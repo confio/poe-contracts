@@ -1,10 +1,9 @@
 use crate::error::ContractError;
-use crate::msg::JailingPeriod;
 
 use super::helpers::{assert_active_validators, assert_operators, members_init};
 use super::suite::SuiteBuilder;
 use cw_controllers::AdminError;
-use tg_utils::{Duration, Expiration, JailingDuration};
+use tg_utils::{Duration, Expiration};
 
 #[test]
 fn only_admin_can_jail() {
@@ -17,7 +16,7 @@ fn only_admin_can_jail() {
 
     // Admin can jail forever
     suite
-        .jail(&admin, members[1], JailingDuration::Forever {})
+        .jail(&admin, members[1], Duration::new(0))
         .unwrap();
 
     // Validator jailed forever is also marked as tombstoned
@@ -37,11 +36,11 @@ fn only_admin_can_jail() {
         ))
     );
 
-    let jailed_until = JailingPeriod::Until(Duration::new(3600).after(&suite.app().block_info()));
+    let jailed_until = Duration::new(3600).after(&suite.app().block_info());
 
     // Non-admin cannot jail forever
     let err = suite
-        .jail(members[0], members[2], JailingDuration::Forever {})
+        .jail(members[0], members[2], Duration::new(0))
         .unwrap_err();
 
     assert_eq!(
@@ -67,7 +66,7 @@ fn only_admin_can_jail() {
         &suite.list_validators(None, None).unwrap(),
         &[
             (members[0], None),
-            (members[1], Some(JailingPeriod::Forever {})),
+            (members[1], Some(Expiration::zero())),
             (members[2], Some(jailed_until)),
             (members[3], None),
         ],
@@ -85,7 +84,7 @@ fn admin_can_unjail_almost_anyone() {
 
     // Jailing some operators to have someone to unjail
     suite
-        .jail(&admin, members[1], JailingDuration::Forever {})
+        .jail(&admin, members[1], Duration::new(0))
         .unwrap();
     suite.jail(&admin, members[2], Duration::new(3600)).unwrap();
 
@@ -109,7 +108,7 @@ fn admin_can_unjail_almost_anyone() {
         &suite.list_validators(None, None).unwrap(),
         &[
             (members[0], None),
-            (members[1], Some(JailingPeriod::Forever {})),
+            (members[1], Some(Expiration::zero())),
             (members[2], None),
             (members[3], None),
         ],
@@ -130,7 +129,7 @@ fn anyone_can_unjail_self_after_period() {
     suite.jail(&admin, members[1], Duration::new(3600)).unwrap();
     suite.jail(&admin, members[2], Duration::new(3600)).unwrap();
 
-    let jailed_until = JailingPeriod::Until(Duration::new(3600).after(&suite.app().block_info()));
+    let jailed_until = Duration::new(3600).after(&suite.app().block_info());
 
     // Move a little bit forward, so some time passed, but not eough for any jailing to
     // expire
@@ -246,12 +245,12 @@ fn auto_unjail() {
 
     let admin = suite.admin().to_owned();
 
-    let jailed_until = JailingPeriod::Until(Duration::new(3600).after(&suite.app().block_info()));
+    let jailed_until = Duration::new(3600).after(&suite.app().block_info());
 
     // Jailing some operators to begin with
     suite.jail(&admin, members[0], Duration::new(3600)).unwrap();
     suite
-        .jail(&admin, members[1], JailingDuration::Forever {})
+        .jail(&admin, members[1], Duration::new(0))
         .unwrap();
 
     // Move forward a little, but not enough for jailing to expire
@@ -262,7 +261,7 @@ fn auto_unjail() {
         &suite.list_validators(None, None).unwrap(),
         &[
             (members[0], Some(jailed_until)),
-            (members[1], Some(JailingPeriod::Forever {})),
+            (members[1], Some(Expiration::zero())),
             (members[2], None),
             (members[3], None),
         ],
@@ -282,7 +281,7 @@ fn auto_unjail() {
         &suite.list_validators(None, None).unwrap(),
         &[
             (members[0], None),
-            (members[1], Some(JailingPeriod::Forever {})),
+            (members[1], Some(Expiration::zero())),
             (members[2], None),
             (members[3], None),
         ],
@@ -308,7 +307,7 @@ fn enb_block_ignores_jailed_validators() {
     // Jailing some operators to begin with
     suite.jail(&admin, members[0], Duration::new(3600)).unwrap();
     suite
-        .jail(&admin, members[1], JailingDuration::Forever {})
+        .jail(&admin, members[1], Duration::new(0))
         .unwrap();
 
     suite.advance_epoch().unwrap();

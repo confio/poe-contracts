@@ -1,10 +1,11 @@
 use cosmwasm_std::coin;
 use cosmwasm_std::{Binary, Decimal};
 use tg_bindings::{Ed25519Pubkey, Evidence, EvidenceType, ToAddress, Validator};
+use tg_utils::Expiration;
 
 use super::helpers::{addr_to_pubkey, assert_operators, mock_pubkey};
 use super::suite::SuiteBuilder;
-use crate::msg::{JailingPeriod, ValidatorMetadata};
+use crate::msg::ValidatorMetadata;
 use crate::multitest::helpers::members_init;
 
 use std::convert::TryFrom;
@@ -55,7 +56,7 @@ fn evidence_slash_and_jail() {
     assert_operators(
         &suite.list_validators(None, None).unwrap(),
         &[
-            (members[0].0, Some(JailingPeriod::Forever {})),
+            (members[0].0, Some(Expiration::zero())),
             (members[1].0, None),
         ],
     );
@@ -99,7 +100,7 @@ fn evidence_doesnt_affect_engagement_rewards() {
     assert_operators(
         &suite.list_validators(None, None).unwrap(),
         &[
-            (members[0].0, Some(JailingPeriod::Forever {})),
+            (members[0].0, Some(Expiration::zero())),
             (members[1].0, None),
         ],
     );
@@ -175,9 +176,9 @@ fn multiple_evidences() {
     assert_operators(
         &suite.list_validators(None, None).unwrap(),
         &[
-            (members[0].0, Some(JailingPeriod::Forever {})),
+            (members[0].0, Some(Expiration::zero())),
             (members[1].0, None),
-            (members[2].0, Some(JailingPeriod::Forever {})),
+            (members[2].0, Some(Expiration::zero())),
         ],
     );
 }
@@ -227,7 +228,7 @@ fn evidence_with_not_matching_date() {
         &suite.list_validators(None, None).unwrap(),
         &[
             (members[0].0, None),
-            (members[1].0, Some(JailingPeriod::Forever {})),
+            (members[1].0, Some(Expiration::zero())),
             (members[2].0, None),
         ],
     );

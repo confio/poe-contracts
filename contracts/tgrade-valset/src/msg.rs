@@ -9,7 +9,7 @@ use tg_utils::{Duration, Expiration};
 
 use crate::error::ContractError;
 use crate::state::{DistributionContract, OperatorInfo, ValidatorInfo, ValidatorSlashing};
-use cosmwasm_std::{Addr, Api, BlockInfo, Coin, Decimal};
+use cosmwasm_std::{Addr, Api, Coin, Decimal};
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 pub struct InstantiateMsg {
@@ -326,20 +326,6 @@ impl OperatorResponse {
             metadata: info.metadata,
             jailed_until: jailed_until.into(),
         }
-    }
-}
-
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
-#[serde(rename_all = "snake_case")]
-pub struct JailingPeriod(pub Expiration);
-
-impl JailingPeriod {
-    pub fn from_duration(duration: Duration, block: &BlockInfo) -> Self {
-        Self(duration.after(block))
-    }
-
-    pub fn is_expired(&self, block: &BlockInfo) -> bool {
-        self.0.is_expired(block)
     }
 }
 

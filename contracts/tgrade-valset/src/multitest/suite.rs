@@ -10,7 +10,7 @@ use derivative::Derivative;
 use tg4::{AdminResponse, Member};
 use tg_bindings::{Evidence, Pubkey, TgradeMsg, ValidatorDiff};
 use tg_bindings_test::TgradeApp;
-use tg_utils::{Duration, JailingDuration};
+use tg_utils::Duration;
 
 use crate::msg::OperatorInitInfo;
 
@@ -482,7 +482,7 @@ impl Suite {
         &mut self,
         executor: &str,
         operator: &str,
-        duration: impl Into<JailingDuration>,
+        duration: impl Into<Duration>,
     ) -> AnyResult<AppResponse> {
         self.app.execute_contract(
             Addr::unchecked(executor),

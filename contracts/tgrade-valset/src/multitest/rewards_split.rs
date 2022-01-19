@@ -1,7 +1,7 @@
 use super::suite::SuiteBuilder;
 use cosmwasm_std::{coin, Decimal};
 
-use tg_utils::JailingDuration;
+use tg_utils::Duration;
 
 #[test]
 fn no_fees_no_split() {
@@ -241,7 +241,7 @@ fn jailed_validators_not_rewarded() {
     let admin = suite.admin().to_owned();
 
     suite
-        .jail(&admin, members[0], JailingDuration::Forever {})
+        .jail(&admin, members[0], Duration::new(0))
         .unwrap();
     suite.advance_epoch().unwrap();
 
