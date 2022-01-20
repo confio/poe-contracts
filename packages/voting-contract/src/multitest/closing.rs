@@ -17,7 +17,7 @@ fn expired_proposals_can_be_closed() {
         .build();
 
     // Create proposal with 1 voting power
-    let response = suite.propose("alice", "cool proposal").unwrap();
+    let response = suite.propose("alice", "cool proposal", "cool").unwrap();
     let proposal_id: u64 = get_proposal_id(&response).unwrap();
 
     // Move time forward so proposal expires
@@ -48,7 +48,7 @@ fn active_proposals_cannot_be_closed() {
         .build();
 
     // Create proposal with 1 voting power
-    let response = suite.propose("alice", "cool proposal").unwrap();
+    let response = suite.propose("alice", "cool proposal", "cool").unwrap();
     let proposal_id: u64 = get_proposal_id(&response).unwrap();
 
     // Non-expired proposals cannot be closed
@@ -69,7 +69,7 @@ fn passed_proposals_cannot_be_closed() {
         .build();
 
     // Create proposal with 2 voting power - should pass immediately
-    let response = suite.propose("bob", "cool proposal").unwrap();
+    let response = suite.propose("bob", "cool proposal", "cool").unwrap();
     let proposal_id: u64 = get_proposal_id(&response).unwrap();
 
     // Passed proposals cannot be closed
@@ -90,7 +90,7 @@ fn expired_proposals_cannot_be_closed_twice() {
         .build();
 
     // Create proposal with 1 voting power
-    let response = suite.propose("alice", "cool proposal").unwrap();
+    let response = suite.propose("alice", "cool proposal", "cool").unwrap();
     let proposal_id: u64 = get_proposal_id(&response).unwrap();
 
     // Move time forward so proposal expires

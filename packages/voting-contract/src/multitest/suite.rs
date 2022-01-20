@@ -137,7 +137,7 @@ impl Suite {
         )
     }
 
-    pub fn propose_detailed(
+    pub fn propose(
         &mut self,
         executor: &str,
         title: &str,
@@ -161,13 +161,9 @@ impl Suite {
         title: &str,
         description: &str,
     ) -> AnyResult<AppResponse> {
-        let prop = self.propose_detailed(executor, title, description)?;
+        let prop = self.propose(executor, title, description)?;
         let id = get_proposal_id(&prop)?;
         self.execute_proposal(executor, id)
-    }
-
-    pub fn propose(&mut self, executor: &str, title: &str) -> AnyResult<AppResponse> {
-        self.propose_detailed(executor, title, title)
     }
 
     pub fn vote(&mut self, executor: &str, proposal_id: u64, vote: Vote) -> AnyResult<AppResponse> {

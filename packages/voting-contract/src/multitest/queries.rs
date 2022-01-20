@@ -45,7 +45,7 @@ fn query_proposal() {
         .build();
 
     let res = suite
-        .propose_detailed("alice", "best proposal", "it's just the best")
+        .propose("alice", "best proposal", "it's just the best")
         .unwrap();
 
     let id = get_proposal_id(&res).unwrap();
@@ -139,7 +139,7 @@ fn query_individual_votes() {
         .build();
 
     // Create proposal with 1 voting power
-    let response = suite.propose("alice", "proposal").unwrap();
+    let response = suite.propose("alice", "proposal", "proposal").unwrap();
     let proposal_id: u64 = get_proposal_id(&response).unwrap();
 
     suite.vote("bob", proposal_id, Vote::No).unwrap();
@@ -179,11 +179,11 @@ fn list_proposals() {
         props.into_iter().map(|p| p.title).collect()
     }
 
-    suite.propose("alice", "1").unwrap();
-    suite.propose("alice", "2").unwrap();
-    suite.propose("alice", "3").unwrap();
-    suite.propose("alice", "4").unwrap();
-    suite.propose("alice", "5").unwrap();
+    suite.propose("alice", "1", "proposal").unwrap();
+    suite.propose("alice", "2", "proposal").unwrap();
+    suite.propose("alice", "3", "proposal").unwrap();
+    suite.propose("alice", "4", "proposal").unwrap();
+    suite.propose("alice", "5", "proposal").unwrap();
 
     assert_eq!(
         titles(suite.list_proposals(None, 10).unwrap()),
@@ -206,11 +206,11 @@ fn reverse_proposals() {
         props.into_iter().map(|p| p.title).collect()
     }
 
-    suite.propose("alice", "1").unwrap();
-    suite.propose("alice", "2").unwrap();
-    suite.propose("alice", "3").unwrap();
-    suite.propose("alice", "4").unwrap();
-    suite.propose("alice", "5").unwrap();
+    suite.propose("alice", "1", "proposal").unwrap();
+    suite.propose("alice", "2", "proposal").unwrap();
+    suite.propose("alice", "3", "proposal").unwrap();
+    suite.propose("alice", "4", "proposal").unwrap();
+    suite.propose("alice", "5", "proposal").unwrap();
 
     assert_eq!(
         titles(suite.reverse_proposals(None, 10).unwrap()),
@@ -242,7 +242,7 @@ fn list_votes() {
         .build();
 
     // Create proposal with 1 voting power
-    let response = suite.propose("alice", "proposal").unwrap();
+    let response = suite.propose("alice", "proposal", "proposal").unwrap();
     let proposal_id: u64 = get_proposal_id(&response).unwrap();
 
     suite.vote("bob", proposal_id, Vote::No).unwrap();
@@ -280,7 +280,7 @@ fn list_votes_pagination() {
         .build();
 
     // Create proposal with 1 voting power
-    let response = suite.propose("alice", "proposal").unwrap();
+    let response = suite.propose("alice", "proposal", "proposal").unwrap();
     let proposal_id: u64 = get_proposal_id(&response).unwrap();
 
     suite.vote("bob", proposal_id, Vote::No).unwrap();

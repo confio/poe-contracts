@@ -18,7 +18,7 @@ fn proposal_creation() {
         .build();
 
     let res = suite
-        .propose_detailed("alice", "best proposal", "it's just the best")
+        .propose("alice", "best proposal", "it's just the best")
         .unwrap();
 
     let id = get_proposal_id(&res).unwrap();
@@ -53,7 +53,9 @@ fn member_with_no_voting_power_cannot_propose() {
         .with_member("bob", 3)
         .build();
 
-    let err = suite.propose("alice", "do the thing").unwrap_err();
+    let err = suite
+        .propose("alice", "do the thing", "do the thing")
+        .unwrap_err();
 
     assert_eq!(
         ContractError::Std(StdError::GenericErr {
@@ -67,7 +69,9 @@ fn member_with_no_voting_power_cannot_propose() {
 fn proposal_from_non_voter_is_rejected() {
     let mut suite = SuiteBuilder::new().with_member("alice", 1).build();
 
-    let err = suite.propose("bob", "do the thing").unwrap_err();
+    let err = suite
+        .propose("bob", "do the thing", "do the thing")
+        .unwrap_err();
 
     assert_eq!(
         ContractError::Std(StdError::GenericErr {
@@ -84,7 +88,9 @@ fn proposal_from_voter_is_accepted() {
         .with_member("bob", 3)
         .build();
 
-    let res = suite.propose("alice", "do the thing").unwrap();
+    let res = suite
+        .propose("alice", "do the thing", "do the thing")
+        .unwrap();
 
     assert_eq!(
         res.custom_attrs(1),
@@ -104,7 +110,9 @@ fn proposal_from_voter_can_directly_pass() {
         .with_member("bob", 3)
         .build();
 
-    let res = suite.propose("bob", "do the thing").unwrap();
+    let res = suite
+        .propose("bob", "do the thing", "do the thing")
+        .unwrap();
 
     assert_eq!(
         res.custom_attrs(1),

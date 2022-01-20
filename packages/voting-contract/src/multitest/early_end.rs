@@ -20,7 +20,7 @@ fn yes_vote_can_pass_proposal_early() {
         .build();
 
     // Create proposal with 1 voting power
-    let response = suite.propose("alice", "proposal").unwrap();
+    let response = suite.propose("alice", "proposal", "proposal").unwrap();
     let proposal_id: u64 = get_proposal_id(&response).unwrap();
 
     // Carol votes and passes proposal
@@ -46,7 +46,7 @@ fn passed_on_expiration_can_be_executed() {
         .build();
 
     // Create proposal with 4 voting power
-    let response = suite.propose("alice", "proposal").unwrap();
+    let response = suite.propose("alice", "proposal", "proposal").unwrap();
     let proposal_id: u64 = get_proposal_id(&response).unwrap();
     let prop = suite.query_proposal(proposal_id).unwrap();
     assert_eq!(prop.status, Status::Open);
@@ -86,7 +86,7 @@ fn abstaining_can_cause_early_pass() {
         .build();
 
     // Create proposal with 2 voting power
-    let response = suite.propose("bob", "proposal").unwrap();
+    let response = suite.propose("bob", "proposal", "proposal").unwrap();
     let proposal_id: u64 = get_proposal_id(&response).unwrap();
     let prop = suite.query_proposal(proposal_id).unwrap();
     assert_eq!(prop.status, Status::Open);
@@ -121,7 +121,7 @@ fn no_can_cause_early_pass() {
         .build();
 
     // Create proposal with 3 voting power
-    let response = suite.propose("carol", "proposal").unwrap();
+    let response = suite.propose("carol", "proposal", "proposal").unwrap();
     let proposal_id: u64 = get_proposal_id(&response).unwrap();
     let prop = suite.query_proposal(proposal_id).unwrap();
     assert_eq!(prop.status, Status::Open);
@@ -148,7 +148,7 @@ fn early_end_can_be_disabled() {
         .build();
 
     // Create proposal with 1 voting power
-    let response = suite.propose("alice", "proposal").unwrap();
+    let response = suite.propose("alice", "proposal", "proposal").unwrap();
     let proposal_id: u64 = get_proposal_id(&response).unwrap();
 
     // Carol votes. He'd trigger an early end here, but early end is turned off

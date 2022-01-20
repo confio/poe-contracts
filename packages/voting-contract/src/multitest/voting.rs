@@ -19,7 +19,7 @@ fn proposal_creator_votes_automatically() {
         .build();
 
     // Create proposal with 1 voting power
-    let response = suite.propose("alice", "proposal").unwrap();
+    let response = suite.propose("alice", "proposal", "proposal").unwrap();
     let proposal_id: u64 = get_proposal_id(&response).unwrap();
 
     let prop = suite.query_proposal(proposal_id).unwrap();
@@ -40,7 +40,7 @@ fn simple_vote() {
         .build();
 
     // Create proposal with 1 voting power
-    let response = suite.propose("alice", "proposal").unwrap();
+    let response = suite.propose("alice", "proposal", "proposal").unwrap();
     let proposal_id: u64 = get_proposal_id(&response).unwrap();
 
     // Bob votes
@@ -63,7 +63,7 @@ fn proposal_creator_cannot_vote() {
         .build();
 
     // Create proposal with 1 voting power
-    let response = suite.propose("alice", "proposal").unwrap();
+    let response = suite.propose("alice", "proposal", "proposal").unwrap();
     let proposal_id: u64 = get_proposal_id(&response).unwrap();
 
     // Creator cannot vote (again)
@@ -85,7 +85,7 @@ fn cannot_double_vote() {
         .build();
 
     // Create proposal with 1 voting power
-    let response = suite.propose("alice", "proposal").unwrap();
+    let response = suite.propose("alice", "proposal", "proposal").unwrap();
     let proposal_id: u64 = get_proposal_id(&response).unwrap();
 
     // Bob votes
@@ -111,7 +111,7 @@ fn non_voters_cannot_vote() {
     let proposal_creation_height = suite.app.block_info().height;
 
     // Create proposal with 1 voting power
-    let response = suite.propose("alice", "proposal").unwrap();
+    let response = suite.propose("alice", "proposal", "proposal").unwrap();
     let proposal_id: u64 = get_proposal_id(&response).unwrap();
 
     // A random tries to vote
@@ -143,7 +143,7 @@ fn members_with_no_voting_power_cannot_vote() {
     let proposal_creation_height = suite.app.block_info().height;
 
     // Create proposal with 1 voting power
-    let response = suite.propose("alice", "proposal").unwrap();
+    let response = suite.propose("alice", "proposal", "proposal").unwrap();
     let proposal_id: u64 = get_proposal_id(&response).unwrap();
 
     // A random tries to vote
@@ -174,7 +174,7 @@ fn veto_counts_as_no() {
         .build();
 
     // Create proposal with 1 voting power
-    let response = suite.propose("alice", "proposal").unwrap();
+    let response = suite.propose("alice", "proposal", "proposal").unwrap();
     let proposal_id: u64 = get_proposal_id(&response).unwrap();
 
     // Bob votes VETO - it's 33% yes votes
@@ -208,7 +208,7 @@ fn proposal_rejected_when_quorum_not_reached() {
         .build();
 
     // Create proposal with 2 voting power
-    let response = suite.propose("bob", "proposal").unwrap();
+    let response = suite.propose("bob", "proposal", "proposal").unwrap();
     let proposal_id: u64 = get_proposal_id(&response).unwrap();
 
     // Alice votes no. Quorum isn't reached because 3/10 voting power has been used.
@@ -237,7 +237,7 @@ fn abstaining_can_help_reach_quorum() {
         .build();
 
     // Create proposal with 2 voting power
-    let response = suite.propose("bob", "proposal").unwrap();
+    let response = suite.propose("bob", "proposal", "proposal").unwrap();
     let proposal_id: u64 = get_proposal_id(&response).unwrap();
 
     // Alice votes no. Quorum isn't reached because 3/10 voting power has been used.
@@ -269,7 +269,7 @@ fn abstaining_does_not_count_as_yes() {
         .build();
 
     // Create proposal with 2 voting power
-    let response = suite.propose("bob", "proposal").unwrap();
+    let response = suite.propose("bob", "proposal", "proposal").unwrap();
     let proposal_id: u64 = get_proposal_id(&response).unwrap();
 
     // Carol votes no.
@@ -299,7 +299,7 @@ fn proposal_can_be_rejected_after_voting_period() {
         .build();
 
     // Create proposal with 1 voting power
-    let response = suite.propose("alice", "proposal").unwrap();
+    let response = suite.propose("alice", "proposal", "proposal").unwrap();
     let proposal_id: u64 = get_proposal_id(&response).unwrap();
 
     // Bob votes NO - it's 33% yes votes
@@ -330,7 +330,7 @@ fn passing_a_proposal_after_voting_period_works() {
         .build();
 
     // Create proposal with 4 voting power
-    let response = suite.propose("alice", "proposal").unwrap();
+    let response = suite.propose("alice", "proposal", "proposal").unwrap();
     let proposal_id: u64 = get_proposal_id(&response).unwrap();
 
     // Proposal doesn't pass early because Bob could still reject it
@@ -358,7 +358,7 @@ fn expired_proposals_cannot_be_voted_on() {
         .build();
 
     // Create proposal with 1 voting power
-    let response = suite.propose("alice", "cool proposal").unwrap();
+    let response = suite.propose("alice", "cool proposal", "proposal").unwrap();
     let proposal_id: u64 = get_proposal_id(&response).unwrap();
 
     // Move time forward so proposal expires
