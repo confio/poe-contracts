@@ -142,7 +142,6 @@ impl Suite {
         executor: &str,
         title: &str,
         description: &str,
-        proposal: Proposal,
     ) -> AnyResult<AppResponse> {
         self.app.execute_contract(
             Addr::unchecked(executor),
@@ -150,7 +149,7 @@ impl Suite {
             &voting::ExecuteMsg::Propose {
                 title: title.to_owned(),
                 description: description.to_owned(),
-                proposal,
+                proposal: Proposal::Text {},
             },
             &[],
         )
@@ -161,15 +160,14 @@ impl Suite {
         executor: &str,
         title: &str,
         description: &str,
-        proposal: Proposal,
     ) -> AnyResult<AppResponse> {
-        let prop = self.propose_detailed(executor, title, description, proposal)?;
+        let prop = self.propose_detailed(executor, title, description)?;
         let id = get_proposal_id(&prop)?;
         self.execute_proposal(executor, id)
     }
 
     pub fn propose(&mut self, executor: &str, title: &str) -> AnyResult<AppResponse> {
-        self.propose_detailed(executor, title, title, Proposal::Text {})
+        self.propose_detailed(executor, title, title)
     }
 
     pub fn vote(&mut self, executor: &str, proposal_id: u64, vote: Vote) -> AnyResult<AppResponse> {

@@ -45,12 +45,7 @@ fn query_proposal() {
         .build();
 
     let res = suite
-        .propose_detailed(
-            "alice",
-            "best proposal",
-            "it's just the best",
-            Proposal::Text {},
-        )
+        .propose_detailed("alice", "best proposal", "it's just the best")
         .unwrap();
 
     let id = get_proposal_id(&res).unwrap();
@@ -353,21 +348,11 @@ fn list_text_proposals() {
         props.into_iter().map(|p| p.title).collect()
     }
 
-    suite
-        .propose_and_execute("alice", "1", "1", Proposal::Text {})
-        .unwrap();
-    suite
-        .propose_and_execute("alice", "2", "2", Proposal::Text {})
-        .unwrap();
-    suite
-        .propose_and_execute("alice", "3", "3", Proposal::Text {})
-        .unwrap();
-    suite
-        .propose_and_execute("alice", "4", "4", Proposal::Text {})
-        .unwrap();
-    suite
-        .propose_and_execute("alice", "5", "5", Proposal::Text {})
-        .unwrap();
+    suite.propose_and_execute("alice", "1", "1").unwrap();
+    suite.propose_and_execute("alice", "2", "2").unwrap();
+    suite.propose_and_execute("alice", "3", "3").unwrap();
+    suite.propose_and_execute("alice", "4", "4").unwrap();
+    suite.propose_and_execute("alice", "5", "5").unwrap();
 
     assert_eq!(
         titles(suite.list_text_proposals(None, 10).unwrap()),

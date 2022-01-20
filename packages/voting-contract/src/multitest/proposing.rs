@@ -18,12 +18,7 @@ fn proposal_creation() {
         .build();
 
     let res = suite
-        .propose_detailed(
-            "alice",
-            "best proposal",
-            "it's just the best",
-            Proposal::Text {},
-        )
+        .propose_detailed("alice", "best proposal", "it's just the best")
         .unwrap();
 
     let id = get_proposal_id(&res).unwrap();
