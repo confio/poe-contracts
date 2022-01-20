@@ -6,7 +6,7 @@ pub mod state;
 
 pub use error::ContractError;
 
-use cosmwasm_std::{Addr, BlockInfo, Deps, DepsMut, Env, MessageInfo, Order, StdResult};
+use cosmwasm_std::{Addr, BlockInfo, Deps, DepsMut, Env, MessageInfo, Order, StdResult, Storage};
 use cw3::{
     Status, Vote, VoteInfo, VoteListResponse, VoteResponse, VoterDetail, VoterListResponse,
     VoterResponse,
@@ -16,8 +16,8 @@ use cw_utils::maybe_addr;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use state::{
-    next_id, proposals, Ballot, Config, Proposal, ProposalListResponse, ProposalResponse,
-    TextProposal, Votes, VotingRules, BALLOTS, CONFIG,
+    next_id, proposals, text_proposals, Ballot, Config, Proposal, ProposalListResponse,
+    ProposalResponse, TextProposal, Votes, VotingRules, BALLOTS, CONFIG,
 };
 use tg4::Tg4Contract;
 use tg_bindings::TgradeMsg;
@@ -155,14 +155,14 @@ where
 /// as you you wouldn't be able to execute it in the future (If the contract call errors, this status
 /// change will be reverted / ignored).
 pub fn mark_executed<P>(
-    deps: DepsMut,
+    storage: &mut dyn Storage,
     env: Env,
     proposal_id: u64,
 ) -> Result<Proposal<P>, ContractError>
 where
     P: Serialize + DeserializeOwned,
 {
-    let mut proposal = proposals::<P>().load(deps.storage, proposal_id)?;
+    let mut proposal = proposals::<P>().load(storage, proposal_id)?;
 
     // We allow execution even after the proposal "expiration" as long as all votes come in before
     // that point. If it was approved on time, it can be executed any time.
@@ -172,8 +172,17 @@ where
 
     // Set it to executed
     proposal.status = Status::Executed;
-    proposals::<P>().save(deps.storage, proposal_id, &proposal)?;
+    proposals::<P>().save(storage, proposal_id, &proposal)?;
     Ok(proposal)
+}
+
+pub fn execute_text<P>(deps: DepsMut, id: u64, proposal: &Proposal<P>) -> Result<(), ContractError>
+where
+    P: Serialize + DeserializeOwned + TextProposal,
+{
+    text_proposals().save(deps.storage, id, proposal)?;
+
+    Ok(())
 }
 
 pub fn close<P>(
@@ -281,17 +290,8 @@ where
     P: Serialize + DeserializeOwned + TextProposal,
 {
     let start = start_after.map(Bound::exclusive_int);
-    let props: StdResult<Vec<_>> = proposals()
+    let props: StdResult<Vec<_>> = text_proposals()
         .range(deps.storage, start, None, Order::Ascending)
-        .filter(
-            |r: &Result<(u64, state::Proposal<P>), cosmwasm_std::StdError>| {
-                if let Ok((_, p)) = r {
-                    p.proposal.is_text()
-                } else {
-                    true
-                }
-            },
-        )
         .take(limit)
         .map(|p| map_proposal(&env.block, p))
         .collect();

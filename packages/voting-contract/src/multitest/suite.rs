@@ -156,6 +156,18 @@ impl Suite {
         )
     }
 
+    pub fn propose_and_execute(
+        &mut self,
+        executor: &str,
+        title: &str,
+        description: &str,
+        proposal: Proposal,
+    ) -> AnyResult<AppResponse> {
+        let prop = self.propose_detailed(executor, title, description, proposal)?;
+        let id = get_proposal_id(&prop)?;
+        self.execute_proposal(executor, id)
+    }
+
     pub fn propose(&mut self, executor: &str, title: &str) -> AnyResult<AppResponse> {
         self.propose_detailed(executor, title, title, Proposal::Text {})
     }

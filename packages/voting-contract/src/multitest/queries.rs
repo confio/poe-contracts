@@ -354,22 +354,22 @@ fn list_text_proposals() {
     }
 
     suite
-        .propose_detailed("alice", "1", "1", Proposal::Text {})
+        .propose_and_execute("alice", "1", "1", Proposal::Text {})
         .unwrap();
     suite
-        .propose_detailed("alice", "2", "2", Proposal::DoTheThing {})
+        .propose_and_execute("alice", "2", "2", Proposal::DoTheThing {})
         .unwrap();
     suite
-        .propose_detailed("alice", "3", "3", Proposal::Text {})
+        .propose_and_execute("alice", "3", "3", Proposal::Text {})
         .unwrap();
     suite
-        .propose_detailed("alice", "4", "4", Proposal::DoTheThing {})
+        .propose_and_execute("alice", "4", "4", Proposal::DoTheThing {})
         .unwrap();
     suite
-        .propose_detailed("alice", "5", "5", Proposal::Text {})
+        .propose_and_execute("alice", "5", "5", Proposal::Text {})
         .unwrap();
     suite
-        .propose_detailed("alice", "6", "6", Proposal::Text {})
+        .propose_and_execute("alice", "6", "6", Proposal::Text {})
         .unwrap();
 
     assert_eq!(

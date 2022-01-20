@@ -10,9 +10,9 @@ use crate::ContractError;
 
 use tg_voting_contract::state::CONFIG as VOTING_CONFIG;
 use tg_voting_contract::{
-    close as execute_close, list_proposals, list_text_proposals, list_voters, list_votes,
-    mark_executed, propose, query_group_contract, query_proposal, query_rules, query_vote,
-    query_voter, reverse_proposals, vote as execute_vote,
+    close as execute_close, execute_text, list_proposals, list_text_proposals, list_voters,
+    list_votes, mark_executed, propose, query_group_contract, query_proposal, query_rules,
+    query_vote, query_voter, reverse_proposals, vote as execute_vote,
 };
 
 pub type Response = cosmwasm_std::Response<TgradeMsg>;
@@ -102,12 +102,15 @@ pub fn execute_execute(
     use Proposal::*;
 
     // anyone can trigger this if the vote passed
-    let prop = mark_executed::<Proposal>(deps, env, proposal_id)?;
+    let prop = mark_executed::<Proposal>(deps.storage, env, proposal_id)?;
 
     // dispatch all proposed messages
     let resp = match prop.proposal {
         SendProposal { to_addr, amount } => execute_send_proposal(to_addr, amount)?,
-        Text {} => Response::default(),
+        Text {} => {
+            execute_text(deps, proposal_id, &prop)?;
+            Response::default()
+        }
     };
 
     let resp = resp

@@ -259,6 +259,10 @@ pub fn proposals<'m, P>() -> Map<'m, u64, Proposal<P>> {
     Map::new("proposals")
 }
 
+pub fn text_proposals<'m, P: TextProposal>() -> Map<'m, u64, Proposal<P>> {
+    Map::new("text_proposals")
+}
+
 pub fn next_id(store: &mut dyn Storage) -> StdResult<u64> {
     let id: u64 = PROPOSAL_COUNT.may_load(store)?.unwrap_or_default() + 1;
     PROPOSAL_COUNT.save(store, &id)?;

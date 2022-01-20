@@ -15,9 +15,9 @@ use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg, ValidatorProposal};
 use crate::ContractError;
 
 use tg_voting_contract::{
-    close as execute_close, list_proposals, list_text_proposals, list_voters, list_votes,
-    mark_executed, propose as execute_propose, query_group_contract, query_proposal, query_rules,
-    query_vote, query_voter, reverse_proposals, vote as execute_vote,
+    close as execute_close, execute_text, list_proposals, list_text_proposals, list_voters,
+    list_votes, mark_executed, propose as execute_propose, query_group_contract, query_proposal,
+    query_rules, query_vote, query_voter, reverse_proposals, vote as execute_vote,
 };
 
 pub type Response = cosmwasm_std::Response<TgradeMsg>;
@@ -112,7 +112,7 @@ pub fn execute_execute(
 ) -> Result<Response, ContractError> {
     use ValidatorProposal::*;
     // anyone can trigger this if the vote passed
-    let proposal = mark_executed::<ValidatorProposal>(deps, env, proposal_id)?;
+    let proposal = mark_executed::<ValidatorProposal>(deps.storage, env, proposal_id)?;
 
     let mut res = Response::new();
 
@@ -176,7 +176,7 @@ pub fn execute_execute(
                 msg: migrate_msg,
             }))
         }
-        Text {} => {}
+        Text {} => execute_text(deps, proposal_id, &proposal)?,
     };
 
     Ok(res

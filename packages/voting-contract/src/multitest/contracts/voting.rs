@@ -1,13 +1,11 @@
-use cosmwasm_std::{from_slice, to_binary};
-use cw3::Vote;
-use serde::de::DeserializeOwned;
-
 use crate::{
-    list_proposals, list_text_proposals, list_voters, list_votes, propose, query_group_contract,
-    query_proposal, query_rules, query_vote, query_voter, reverse_proposals,
+    execute_text, list_proposals, list_text_proposals, list_voters, list_votes, propose,
+    query_group_contract, query_proposal, query_rules, query_vote, query_voter, reverse_proposals,
     state::{TextProposal, VotingRules},
     ContractError, Response,
 };
+use cosmwasm_std::{from_slice, to_binary};
+use cw3::Vote;
 
 use super::*;
 
@@ -126,7 +124,7 @@ impl Contract<TgradeMsg> for VotingContract {
             Vote { proposal_id, vote } => {
                 crate::vote::<Proposal>(deps, env, info, proposal_id, vote)
             }
-            Execute { proposal_id } => execute::<Proposal>(deps, env, info, proposal_id),
+            Execute { proposal_id } => execute(deps, env, info, proposal_id),
             Close { proposal_id } => crate::close::<Proposal>(deps, env, info, proposal_id),
         }
         .map_err(anyhow::Error::from)
@@ -205,17 +203,18 @@ impl Contract<TgradeMsg> for VotingContract {
     }
 }
 
-fn execute<P>(
+fn execute(
     deps: DepsMut,
     env: Env,
     info: MessageInfo,
     proposal_id: u64,
-) -> Result<Response, ContractError>
-where
-    P: Serialize + DeserializeOwned,
-{
+) -> Result<Response, ContractError> {
     // anyone can trigger this if the vote passed
-    let _prop = crate::mark_executed::<P>(deps, env, proposal_id)?;
+    let prop = crate::mark_executed(deps.storage, env, proposal_id)?;
+    match prop.proposal {
+        Proposal::DoTheThing {} => {}
+        Proposal::Text {} => execute_text(deps, proposal_id, &prop)?,
+    }
 
     Ok(Response::new()
         .add_attribute("action", "execute")
