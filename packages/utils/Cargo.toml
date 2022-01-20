@@ -15,8 +15,10 @@ cosmwasm-std = "1.0.0-beta"
 cw-utils = "0.11.0"
 cw-controllers = "0.11.0"
 cw-storage-plus = "0.11.0"
+cw2 = "0.11.0"
 schemars = "0.8.1"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
 tg4 = { path = "../tg4", version = "0.5.3-2" }
 tg-bindings = { path = "../bindings", version = "0.5.3-2" }
 thiserror = { version = "1.0.21" }
+semver = "1"

@@ -1,8 +1,8 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    coin, coins, to_binary, Addr, BankMsg, Binary, Coin, Decimal, Deps, DepsMut, Env, MessageInfo,
-    Order, StdResult, Storage, Uint128,
+    coin, coins, to_binary, Addr, BankMsg, Binary, Coin, Decimal, Deps, DepsMut, Empty, Env,
+    MessageInfo, Order, StdResult, Storage, Uint128,
 };
 
 use cw2::set_contract_version;
@@ -13,8 +13,8 @@ use tg4::{
 };
 use tg_bindings::{request_privileges, Privilege, PrivilegeChangeMsg, TgradeMsg, TgradeSudoMsg};
 use tg_utils::{
-    members, validate_portion, Duration, ADMIN, HOOKS, PREAUTH_HOOKS, PREAUTH_SLASHING, SLASHERS,
-    TOTAL,
+    ensure_from_older_version, members, validate_portion, Duration, ADMIN, HOOKS, PREAUTH_HOOKS,
+    PREAUTH_SLASHING, SLASHERS, TOTAL,
 };
 
 use crate::error::ContractError;
@@ -565,6 +565,12 @@ fn list_members_by_weight(
         .collect();
 
     Ok(MemberListResponse { members: members? })
+}
+
+#[cfg_attr(not(feature = "library"), entry_point)]
+pub fn migrate(deps: DepsMut, _env: Env, _msg: Empty) -> Result<Response, ContractError> {
+    ensure_from_older_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
+    Ok(Response::new())
 }
 
 #[cfg(test)]

@@ -18,15 +18,9 @@ pub enum TgradeQuery {
 
 impl CustomQuery for TgradeQuery {}
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Default, Clone, PartialEq, JsonSchema, Debug)]
 pub struct ValidatorVoteResponse {
     pub votes: Vec<ValidatorVote>,
-}
-
-impl Default for ValidatorVoteResponse {
-    fn default() -> Self {
-        ValidatorVoteResponse { votes: vec![] }
-    }
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
