@@ -23,6 +23,7 @@ cosmwasm-std = "1.0.0-beta"
 schemars = "0.8.1"
 serde = { version = "1", default-features = false, features = ["derive"] }
 tg-bindings = { path = "../../packages/bindings", version = "0.5.3-2" }
+tg-utils = { path = "../../packages/utils", version = "0.5.3-2" }
 tg-voting-contract = { version = "0.5.3-2", path = "../../packages/voting-contract" }
 tg4-engagement = { path = "../tg4-engagement", version = "0.5.3-2", features = ["library"] }
 thiserror = "1"

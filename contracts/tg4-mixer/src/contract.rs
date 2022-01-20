@@ -1,7 +1,8 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    to_binary, Addr, Binary, Decimal, Deps, DepsMut, Env, MessageInfo, Order, StdError, StdResult,
+    to_binary, Addr, Binary, Decimal, Deps, DepsMut, Empty, Env, MessageInfo, Order, StdError,
+    StdResult,
 };
 
 use cw2::set_contract_version;
@@ -10,7 +11,8 @@ use cw_utils::maybe_addr;
 
 use tg_bindings::TgradeMsg;
 use tg_utils::{
-    members, validate_portion, SlashMsg, HOOKS, PREAUTH_HOOKS, PREAUTH_SLASHING, SLASHERS, TOTAL,
+    ensure_from_older_version, members, validate_portion, SlashMsg, HOOKS, PREAUTH_HOOKS,
+    PREAUTH_SLASHING, SLASHERS, TOTAL,
 };
 
 use tg4::{
@@ -467,6 +469,12 @@ pub fn query_reward_function(
     .to_poe_fn()?;
 
     poe_function.rewards(stake, engagement)
+}
+
+#[cfg_attr(not(feature = "library"), entry_point)]
+pub fn migrate(deps: DepsMut, _env: Env, _msg: Empty) -> Result<Response, ContractError> {
+    ensure_from_older_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
+    Ok(Response::new())
 }
 
 #[cfg(test)]

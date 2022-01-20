@@ -1,9 +1,12 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
-use cosmwasm_std::{to_binary, BankMsg, Binary, Coin, Deps, DepsMut, Env, MessageInfo, StdResult};
+use cosmwasm_std::{
+    to_binary, BankMsg, Binary, Coin, Deps, DepsMut, Empty, Env, MessageInfo, StdResult,
+};
 
 use cw2::set_contract_version;
 use tg_bindings::TgradeMsg;
+use tg_utils::ensure_from_older_version;
 
 use crate::msg::{ExecuteMsg, InstantiateMsg, Proposal, QueryMsg};
 use crate::ContractError;
@@ -187,6 +190,12 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
         ListVoters { start_after, limit } => to_binary(&list_voters(deps, start_after, limit)?),
         GroupContract {} => to_binary(&query_group_contract(deps)?),
     }
+}
+
+#[cfg_attr(not(feature = "library"), entry_point)]
+pub fn migrate(deps: DepsMut, _env: Env, _msg: Empty) -> Result<Response, ContractError> {
+    ensure_from_older_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
+    Ok(Response::new())
 }
 
 #[cfg(test)]

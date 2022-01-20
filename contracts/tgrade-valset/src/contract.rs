@@ -5,8 +5,8 @@ use std::convert::TryInto;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    to_binary, Addr, Binary, BlockInfo, Decimal, Deps, DepsMut, Env, MessageInfo, Order, Reply,
-    StdResult, Timestamp, WasmMsg,
+    to_binary, Addr, Binary, BlockInfo, Decimal, Deps, DepsMut, Empty, Env, MessageInfo, Order,
+    Reply, StdResult, Timestamp, WasmMsg,
 };
 
 use cw2::set_contract_version;
@@ -19,7 +19,7 @@ use tg_bindings::{
     request_privileges, Ed25519Pubkey, Evidence, EvidenceType, Privilege, PrivilegeChangeMsg,
     Pubkey, TgradeMsg, TgradeSudoMsg, ValidatorDiff, ValidatorUpdate,
 };
-use tg_utils::{JailingDuration, SlashMsg, ADMIN};
+use tg_utils::{ensure_from_older_version, JailingDuration, SlashMsg, ADMIN};
 
 use crate::error::ContractError;
 use crate::msg::{
@@ -719,6 +719,12 @@ fn calculate_diff(
         ValidatorDiff { diffs },
         RewardsDistribution::UpdateMembers { add, remove },
     )
+}
+
+#[cfg_attr(not(feature = "library"), entry_point)]
+pub fn migrate(deps: DepsMut, _env: Env, _msg: Empty) -> Result<Response, ContractError> {
+    ensure_from_older_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
+    Ok(Response::new())
 }
 
 mod evidence {
