@@ -32,7 +32,7 @@ pub fn ensure_from_older_version(
 }
 
 fn from_semver(err: semver::Error) -> StdError {
-    StdError::generic_err(format!("Semver: {}", err.to_string()))
+    StdError::generic_err(format!("Semver: {}", err))
 }
 
 #[cfg(test)]
@@ -66,8 +66,7 @@ mod tests {
         let mut storage = MockStorage::new();
         set_contract_version(&mut storage, "demo", "0.1.2").unwrap();
         // ensure this matches
-        let err = ensure_from_older_version(&mut storage, "cw20-base", "0.1.2")
-            .unwrap_err();
+        let err = ensure_from_older_version(&mut storage, "cw20-base", "0.1.2").unwrap_err();
         assert!(err.to_string().contains("cw20-base"), "{}", err);
         assert!(err.to_string().contains("demo"), "{}", err);
     }
@@ -77,8 +76,7 @@ mod tests {
         let mut storage = MockStorage::new();
         set_contract_version(&mut storage, "demo", "0.10.2").unwrap();
         // ensure this matches
-        let err =
-            ensure_from_older_version(&mut storage, "demo", "0.9.7").unwrap_err();
+        let err = ensure_from_older_version(&mut storage, "demo", "0.9.7").unwrap_err();
         assert!(err.to_string().contains("0.10.2"), "{}", err);
         assert!(err.to_string().contains("0.9.7"), "{}", err);
     }
