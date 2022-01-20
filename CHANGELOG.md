@@ -1,8 +1,17 @@
 # Changelog
 
+
 ## [Unreleased](https://github.com/confio/poe-contracts/tree/HEAD)
 
-[Full Changelog](https://github.com/confio/poe-contracts/compare/v0.5.3-2...HEAD)
+[Full Changelog](https://github.com/confio/poe-contracts/compare/v0.5.4...HEAD)
+
+## [v0.5.4](https://github.com/confio/poe-contracts/tree/v0.5.4) (2022-01-20)
+
+[Full Changelog](https://github.com/confio/poe-contracts/compare/v0.5.3-2...v0.5.4)
+
+**Merged pull requests:**
+
+- Allow migrations [\#29](https://github.com/confio/poe-contracts/pull/29) ([ethanfrey](https://github.com/ethanfrey))
 
 ## [v0.5.3](https://github.com/confio/poe-contracts/tree/v0.5.3-2) (2022-01-18)
 
