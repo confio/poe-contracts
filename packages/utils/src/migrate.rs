@@ -45,7 +45,7 @@ mod tests {
         let mut storage = MockStorage::new();
         set_contract_version(&mut storage, "demo", "0.1.2").unwrap();
         // ensure this matches
-        ensure_from_older_version(&mut storage, "demo".into(), "0.1.2".into()).unwrap();
+        ensure_from_older_version(&mut storage, "demo", "0.1.2").unwrap();
     }
 
     #[test]
@@ -53,7 +53,7 @@ mod tests {
         let mut storage = MockStorage::new();
         set_contract_version(&mut storage, "demo", "0.4.0").unwrap();
         // ensure this matches
-        ensure_from_older_version(&mut storage, "demo".into(), "0.4.2".into()).unwrap();
+        ensure_from_older_version(&mut storage, "demo", "0.4.2").unwrap();
 
         // check the version is updated
         let stored = get_contract_version(&storage).unwrap();
@@ -66,7 +66,7 @@ mod tests {
         let mut storage = MockStorage::new();
         set_contract_version(&mut storage, "demo", "0.1.2").unwrap();
         // ensure this matches
-        let err = ensure_from_older_version(&mut storage, "cw20-base".into(), "0.1.2".into())
+        let err = ensure_from_older_version(&mut storage, "cw20-base", "0.1.2")
             .unwrap_err();
         assert!(err.to_string().contains("cw20-base"), "{}", err);
         assert!(err.to_string().contains("demo"), "{}", err);
@@ -78,7 +78,7 @@ mod tests {
         set_contract_version(&mut storage, "demo", "0.10.2").unwrap();
         // ensure this matches
         let err =
-            ensure_from_older_version(&mut storage, "demo".into(), "0.9.7".into()).unwrap_err();
+            ensure_from_older_version(&mut storage, "demo", "0.9.7").unwrap_err();
         assert!(err.to_string().contains("0.10.2"), "{}", err);
         assert!(err.to_string().contains("0.9.7"), "{}", err);
     }
