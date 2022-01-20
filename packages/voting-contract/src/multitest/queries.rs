@@ -49,7 +49,7 @@ fn query_proposal() {
             "alice",
             "best proposal",
             "it's just the best",
-            Proposal::DoTheThing {},
+            Proposal::Text {},
         )
         .unwrap();
 
@@ -68,7 +68,7 @@ fn query_proposal() {
             id: 1,
             title: "best proposal".to_string(),
             description: "it's just the best".to_string(),
-            proposal: Proposal::DoTheThing {},
+            proposal: Proposal::Text {},
             status: Status::Open,
             expires: expected_expiration,
             rules: rules.clone(),
@@ -93,7 +93,7 @@ fn query_proposal() {
             id: 1,
             title: "best proposal".to_string(),
             description: "it's just the best".to_string(),
-            proposal: Proposal::DoTheThing {},
+            proposal: Proposal::Text {},
             status: Status::Open,
             expires: expected_expiration,
             rules: rules.clone(),
@@ -115,7 +115,7 @@ fn query_proposal() {
             id: 1,
             title: "best proposal".to_string(),
             description: "it's just the best".to_string(),
-            proposal: Proposal::DoTheThing {},
+            proposal: Proposal::Text {},
             status: Status::Rejected,
             expires: expected_expiration,
             rules,
@@ -357,30 +357,27 @@ fn list_text_proposals() {
         .propose_and_execute("alice", "1", "1", Proposal::Text {})
         .unwrap();
     suite
-        .propose_and_execute("alice", "2", "2", Proposal::DoTheThing {})
+        .propose_and_execute("alice", "2", "2", Proposal::Text {})
         .unwrap();
     suite
         .propose_and_execute("alice", "3", "3", Proposal::Text {})
         .unwrap();
     suite
-        .propose_and_execute("alice", "4", "4", Proposal::DoTheThing {})
+        .propose_and_execute("alice", "4", "4", Proposal::Text {})
         .unwrap();
     suite
         .propose_and_execute("alice", "5", "5", Proposal::Text {})
         .unwrap();
-    suite
-        .propose_and_execute("alice", "6", "6", Proposal::Text {})
-        .unwrap();
 
     assert_eq!(
         titles(suite.list_text_proposals(None, 10).unwrap()),
-        ["1", "3", "5", "6"]
+        ["1", "2", "3", "4", "5"]
     );
     assert_eq!(titles(suite.list_text_proposals(None, 1).unwrap()), ["1"]);
     assert_eq!(
         titles(suite.list_text_proposals(None, 3).unwrap()),
-        ["1", "3", "5"]
+        ["1", "2", "3"]
     );
-    assert_eq!(titles(suite.list_text_proposals(1, 2).unwrap()), ["3", "5"]);
-    assert_eq!(titles(suite.list_text_proposals(3, 2).unwrap()), ["5", "6"]);
+    assert_eq!(titles(suite.list_text_proposals(1, 2).unwrap()), ["2", "3"]);
+    assert_eq!(titles(suite.list_text_proposals(3, 2).unwrap()), ["4", "5"]);
 }

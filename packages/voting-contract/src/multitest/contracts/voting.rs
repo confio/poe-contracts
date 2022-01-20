@@ -1,8 +1,7 @@
 use crate::{
     execute_text, list_proposals, list_text_proposals, list_voters, list_votes, propose,
     query_group_contract, query_proposal, query_rules, query_vote, query_voter, reverse_proposals,
-    state::{TextProposal, VotingRules},
-    ContractError, Response,
+    state::VotingRules, ContractError, Response,
 };
 use cosmwasm_std::{from_slice, to_binary};
 use cw3::Vote;
@@ -39,14 +38,7 @@ pub enum ExecuteMsg {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum Proposal {
-    DoTheThing {},
     Text {},
-}
-
-impl TextProposal for Proposal {
-    fn is_text(&self) -> bool {
-        *self == Proposal::Text {}
-    }
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
@@ -210,11 +202,8 @@ fn execute(
     proposal_id: u64,
 ) -> Result<Response, ContractError> {
     // anyone can trigger this if the vote passed
-    let prop = crate::mark_executed(deps.storage, env, proposal_id)?;
-    match prop.proposal {
-        Proposal::DoTheThing {} => {}
-        Proposal::Text {} => execute_text(deps, proposal_id, &prop)?,
-    }
+    let prop = crate::mark_executed::<Proposal>(deps.storage, env, proposal_id)?;
+    execute_text(deps, proposal_id, &prop)?;
 
     Ok(Response::new()
         .add_attribute("action", "execute")

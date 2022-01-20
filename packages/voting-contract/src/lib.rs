@@ -17,7 +17,7 @@ use serde::de::DeserializeOwned;
 use serde::Serialize;
 use state::{
     next_id, proposals, text_proposals, Ballot, Config, Proposal, ProposalListResponse,
-    ProposalResponse, TextProposal, Votes, VotingRules, BALLOTS, CONFIG,
+    ProposalResponse, Votes, VotingRules, BALLOTS, CONFIG,
 };
 use tg4::Tg4Contract;
 use tg_bindings::TgradeMsg;
@@ -178,7 +178,7 @@ where
 
 pub fn execute_text<P>(deps: DepsMut, id: u64, proposal: &Proposal<P>) -> Result<(), ContractError>
 where
-    P: Serialize + DeserializeOwned + TextProposal,
+    P: Serialize + DeserializeOwned,
 {
     text_proposals().save(deps.storage, id, proposal)?;
 
@@ -287,7 +287,7 @@ pub fn list_text_proposals<P>(
     limit: usize,
 ) -> StdResult<ProposalListResponse<P>>
 where
-    P: Serialize + DeserializeOwned + TextProposal,
+    P: Serialize + DeserializeOwned,
 {
     let start = start_after.map(Bound::exclusive_int);
     let props: StdResult<Vec<_>> = text_proposals()

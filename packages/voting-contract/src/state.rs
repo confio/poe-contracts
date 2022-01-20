@@ -37,10 +37,6 @@ pub struct Proposal<P> {
     pub votes: Votes,
 }
 
-pub trait TextProposal {
-    fn is_text(&self) -> bool;
-}
-
 /// Note, if you are storing custom messages in the proposal,
 /// the querier needs to know what possible custom message types
 /// those are in order to parse the response
@@ -259,7 +255,7 @@ pub fn proposals<'m, P>() -> Map<'m, u64, Proposal<P>> {
     Map::new("proposals")
 }
 
-pub fn text_proposals<'m, P: TextProposal>() -> Map<'m, u64, Proposal<P>> {
+pub fn text_proposals<'m, P>() -> Map<'m, u64, Proposal<P>> {
     Map::new("text_proposals")
 }
 

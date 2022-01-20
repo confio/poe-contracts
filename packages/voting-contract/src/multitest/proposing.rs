@@ -22,7 +22,7 @@ fn proposal_creation() {
             "alice",
             "best proposal",
             "it's just the best",
-            Proposal::DoTheThing {},
+            Proposal::Text {},
         )
         .unwrap();
 
@@ -41,7 +41,7 @@ fn proposal_creation() {
             id: 1,
             title: "best proposal".to_string(),
             description: "it's just the best".to_string(),
-            proposal: Proposal::DoTheThing {},
+            proposal: Proposal::Text {},
             status: Status::Open,
             expires: expected_expiration,
             rules,
