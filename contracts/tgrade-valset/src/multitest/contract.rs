@@ -59,7 +59,7 @@ fn initialization() {
 
     // Validators should be set on genesis processing block
     assert_active_validators(
-        &suite.list_active_validators().unwrap(),
+        &suite.list_active_validators(None, None).unwrap(),
         &[(members[2], 5), (members[3], 8)],
     );
 
@@ -90,7 +90,7 @@ fn simulate_validators() {
     );
 
     assert_active_validators(
-        &suite.list_active_validators().unwrap(),
+        &suite.list_active_validators(None, None).unwrap(),
         &[(members[4], 13), (members[5], 21)],
     );
 }

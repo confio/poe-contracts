@@ -86,8 +86,6 @@ pub fn instantiate(
     };
     EPOCH.save(deps.storage, &epoch)?;
 
-    VALIDATORS.save(deps.storage, &vec![])?;
-
     for op in msg.initial_keys.into_iter() {
         let oper = deps.api.addr_validate(&op.operator)?;
         let pubkey: Ed25519Pubkey = op.validator_pubkey.try_into()?;
@@ -345,7 +343,11 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> Result<Binary, ContractErro
             start_after,
             limit,
         )?)?),
-        ListActiveValidators {} => Ok(to_binary(&list_active_validators(deps, env)?)?),
+        ListActiveValidators { start_after, limit } => Ok(to_binary(&list_active_validators(
+            deps,
+            start_after,
+            limit,
+        )?)?),
         SimulateActiveValidators {} => Ok(to_binary(&simulate_active_validators(deps, env)?)?),
         ListValidatorSlashing { operator } => {
             Ok(to_binary(&list_validator_slashing(deps, env, operator)?)?)
@@ -432,9 +434,21 @@ fn list_validator_keys(
 
 fn list_active_validators(
     deps: Deps,
-    _env: Env,
+    start_after: Option<String>,
+    limit: Option<u32>,
 ) -> Result<ListActiveValidatorsResponse, ContractError> {
-    let validators = VALIDATORS.load(deps.storage)?;
+    let limit = limit.unwrap_or(DEFAULT_LIMIT).min(MAX_LIMIT) as usize;
+    let start_after = maybe_addr(deps.api, start_after)?;
+    let start = start_after.map(|addr| Bound::exclusive(addr.as_str()));
+
+    let validators = VALIDATORS
+        .range(deps.storage, start, None, Order::Descending)
+        .map(|validator_info| {
+            let (_, info) = validator_info?;
+            Ok(info)
+        })
+        .take(limit)
+        .collect::<StdResult<Vec<ValidatorInfo>>>()?;
     Ok(ListActiveValidatorsResponse { validators })
 }
 
@@ -537,8 +551,25 @@ fn end_block(deps: DepsMut, env: Env) -> Result<Response, ContractError> {
         JAIL.remove(deps.storage, addr)
     }
 
-    let old_validators = VALIDATORS.load(deps.storage)?;
-    VALIDATORS.save(deps.storage, &validators)?;
+    // First iteration - load all validators, second - remove all, third - add all new
+    // Not very efficient...
+    // load old validators into vector
+    let old_validators = VALIDATORS
+        .range(deps.storage, None, None, Order::Descending)
+        .map(|validator_info| {
+            let (_, info) = validator_info?;
+            Ok(info)
+        })
+        .collect::<StdResult<Vec<ValidatorInfo>>>()?;
+    // remove all old validators
+    for validator in &old_validators {
+        VALIDATORS.remove(deps.storage, &validator.operator);
+    }
+    // add all new (actual) validators
+    for validator in &validators {
+        VALIDATORS.save(deps.storage, &validator.operator, validator)?;
+    }
+
     // determine the diff to send back to tendermint
     let (diff, update_members) = calculate_diff(validators, old_validators);
 

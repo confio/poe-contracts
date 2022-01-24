@@ -90,7 +90,7 @@ pub const EPOCH: Item<EpochInfo> = Item::new("epoch");
 
 /// VALIDATORS is the calculated list of the active validators from the last execution.
 /// This will be empty only on the first run.
-pub const VALIDATORS: Item<Vec<ValidatorInfo>> = Item::new("validators");
+pub const VALIDATORS: Map<&Addr, ValidatorInfo> = Map::new("validators");
 
 /// Map of operator addr to block height it initially became a validator. If operator doesn't
 /// appear in this map, he was never in the validator set.
