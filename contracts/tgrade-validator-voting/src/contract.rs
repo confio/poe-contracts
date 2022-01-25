@@ -118,63 +118,63 @@ pub fn execute_execute(
 
     match proposal.proposal {
         RegisterUpgrade { name, height, info } => {
-            res = res.add_submessage(SubMsg::new(TgradeMsg::ExecuteGovProposal {
+            res = res.add_message(TgradeMsg::ExecuteGovProposal {
                 title: proposal.title,
                 description: proposal.description,
                 proposal: GovProposal::RegisterUpgrade { name, height, info },
-            }))
+            })
         }
         CancelUpgrade {} => {
-            res = res.add_submessage(SubMsg::new(TgradeMsg::ExecuteGovProposal {
+            res = res.add_message(TgradeMsg::ExecuteGovProposal {
                 title: proposal.title,
                 description: proposal.description,
                 proposal: GovProposal::CancelUpgrade {},
-            }))
+            })
         }
         PinCodes(code_ids) => {
-            res = res.add_submessage(SubMsg::new(TgradeMsg::ExecuteGovProposal {
+            res = res.add_message(TgradeMsg::ExecuteGovProposal {
                 title: proposal.title,
                 description: proposal.description,
                 proposal: GovProposal::PinCodes { code_ids },
-            }))
+            })
         }
         UnpinCodes(code_ids) => {
-            res = res.add_submessage(SubMsg::new(TgradeMsg::ExecuteGovProposal {
+            res = res.add_message(TgradeMsg::ExecuteGovProposal {
                 title: proposal.title,
                 description: proposal.description,
                 proposal: GovProposal::UnpinCodes { code_ids },
-            }))
+            })
         }
         UpdateConsensusBlockParams { max_bytes, max_gas } => {
-            res = res.add_submessage(SubMsg::new(TgradeMsg::ConsensusParams(ConsensusParams {
+            res = res.add_message(TgradeMsg::ConsensusParams(ConsensusParams {
                 block: Some(BlockParams { max_bytes, max_gas }),
                 evidence: None,
-            })))
+            }))
         }
         UpdateConsensusEvidenceParams {
             max_age_num_blocks,
             max_age_duration,
             max_bytes,
         } => {
-            res = res.add_submessage(SubMsg::new(TgradeMsg::ConsensusParams(ConsensusParams {
+            res = res.add_message(TgradeMsg::ConsensusParams(ConsensusParams {
                 block: None,
                 evidence: Some(EvidenceParams {
                     max_age_num_blocks,
                     max_age_duration,
                     max_bytes,
                 }),
-            })))
+            }))
         }
         MigrateContract {
             contract,
             code_id,
             migrate_msg,
         } => {
-            res = res.add_submessage(SubMsg::new(WasmMsg::Migrate {
+            res = res.add_message(WasmMsg::Migrate {
                 contract_addr: contract,
                 new_code_id: code_id,
                 msg: migrate_msg,
-            }))
+            })
         }
         Text {} => execute_text(deps, proposal_id, &proposal)?,
     };
