@@ -16,8 +16,8 @@ use cw_utils::maybe_addr;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use state::{
-    next_id, proposals, text_proposals, Ballot, Config, Proposal, ProposalListResponse,
-    ProposalResponse, Votes, VotingRules, BALLOTS, CONFIG,
+    next_id, proposals, Ballot, Config, Proposal, ProposalListResponse, ProposalResponse,
+    TextProposalListResponse, Votes, VotingRules, BALLOTS, CONFIG, TEXT_PROPOSALS,
 };
 use tg4::Tg4Contract;
 use tg_bindings::TgradeMsg;
@@ -176,11 +176,11 @@ where
     Ok(proposal)
 }
 
-pub fn execute_text<P>(deps: DepsMut, id: u64, proposal: &Proposal<P>) -> Result<(), ContractError>
+pub fn execute_text<P>(deps: DepsMut, id: u64, proposal: Proposal<P>) -> Result<(), ContractError>
 where
     P: Serialize + DeserializeOwned,
 {
-    text_proposals().save(deps.storage, id, proposal)?;
+    TEXT_PROPOSALS.save(deps.storage, id, &proposal.into())?;
 
     Ok(())
 }
@@ -280,23 +280,19 @@ where
     Ok(ProposalListResponse { proposals: props? })
 }
 
-pub fn list_text_proposals<P>(
+pub fn list_text_proposals(
     deps: Deps,
-    env: Env,
     start_after: Option<u64>,
     limit: usize,
-) -> StdResult<ProposalListResponse<P>>
-where
-    P: Serialize + DeserializeOwned,
-{
+) -> StdResult<TextProposalListResponse> {
     let start = start_after.map(Bound::exclusive_int);
-    let props: StdResult<Vec<_>> = text_proposals()
+    let props: StdResult<Vec<_>> = TEXT_PROPOSALS
         .range(deps.storage, start, None, Order::Ascending)
         .take(limit)
-        .map(|p| map_proposal(&env.block, p))
+        .map(|r| r.map(|(_, p)| p.into()))
         .collect();
 
-    Ok(ProposalListResponse { proposals: props? })
+    Ok(TextProposalListResponse { proposals: props? })
 }
 
 pub fn reverse_proposals<P>(

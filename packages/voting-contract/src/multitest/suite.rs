@@ -15,7 +15,10 @@ use tg4::Member;
 use tg_bindings_test::TgradeApp;
 
 use crate::{
-    state::{ProposalListResponse, ProposalResponse, RulesBuilder, VotingRules},
+    state::{
+        ProposalInfo, ProposalListResponse, ProposalResponse, RulesBuilder,
+        TextProposalListResponse, VotingRules,
+    },
     ContractError,
 };
 
@@ -258,8 +261,8 @@ impl Suite {
         &self,
         start_after: impl Into<Option<u64>>,
         limit: impl Into<Option<usize>>,
-    ) -> StdResult<Vec<ProposalResponse<Proposal>>> {
-        let proposals: ProposalListResponse<Proposal> = self.app.wrap().query_wasm_smart(
+    ) -> StdResult<Vec<ProposalInfo>> {
+        let proposals: TextProposalListResponse = self.app.wrap().query_wasm_smart(
             self.voting.clone(),
             &voting::QueryMsg::ListTextProposals {
                 start_after: start_after.into(),

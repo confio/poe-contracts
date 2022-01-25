@@ -108,7 +108,7 @@ pub fn execute_execute(
     let resp = match prop.proposal {
         SendProposal { to_addr, amount } => execute_send_proposal(to_addr, amount)?,
         Text {} => {
-            execute_text(deps, proposal_id, &prop)?;
+            execute_text(deps, proposal_id, prop)?;
             Response::default()
         }
     };
@@ -189,12 +189,7 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
         ListVoters { start_after, limit } => to_binary(&list_voters(deps, start_after, limit)?),
         GroupContract {} => to_binary(&query_group_contract(deps)?),
         ListTextProposals { start_after, limit } => {
-            to_binary(&list_text_proposals::<crate::msg::Proposal>(
-                deps,
-                env,
-                start_after,
-                align_limit(limit),
-            )?)
+            to_binary(&list_text_proposals(deps, start_after, align_limit(limit))?)
         }
     }
 }

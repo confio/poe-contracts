@@ -4,7 +4,7 @@ use tg_utils::Expiration;
 
 use super::contracts::voting::Proposal;
 use crate::multitest::suite::{get_proposal_id, SuiteBuilder};
-use crate::state::{ProposalResponse, RulesBuilder, Votes};
+use crate::state::{ProposalInfo, ProposalResponse, RulesBuilder, Votes};
 
 #[test]
 fn query_rules() {
@@ -344,7 +344,7 @@ fn group_contract() {
 fn list_text_proposals() {
     let mut suite = SuiteBuilder::new().with_member("alice", 1).build();
 
-    fn titles(props: Vec<ProposalResponse<Proposal>>) -> Vec<String> {
+    fn titles(props: Vec<ProposalInfo>) -> Vec<String> {
         props.into_iter().map(|p| p.title).collect()
     }
 

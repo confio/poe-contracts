@@ -156,12 +156,7 @@ impl Contract<TgradeMsg> for VotingContract {
             Voter { address } => to_binary(&query_voter(deps, address)?),
             GroupContract {} => to_binary(&query_group_contract(deps)?),
             ListTextProposals { start_after, limit } => {
-                to_binary(&list_text_proposals::<self::Proposal>(
-                    deps,
-                    env,
-                    start_after,
-                    limit,
-                )?)
+                to_binary(&list_text_proposals(deps, start_after, limit)?)
             }
         }
         .map_err(anyhow::Error::from)
@@ -203,7 +198,7 @@ fn execute(
 ) -> Result<Response, ContractError> {
     // anyone can trigger this if the vote passed
     let prop = crate::mark_executed::<Proposal>(deps.storage, env, proposal_id)?;
-    execute_text(deps, proposal_id, &prop)?;
+    execute_text(deps, proposal_id, prop)?;
 
     Ok(Response::new()
         .add_attribute("action", "execute")

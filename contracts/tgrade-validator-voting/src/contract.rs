@@ -176,7 +176,7 @@ pub fn execute_execute(
                 msg: migrate_msg,
             })
         }
-        Text {} => execute_text(deps, proposal_id, &proposal)?,
+        Text {} => execute_text(deps, proposal_id, proposal)?,
     };
 
     Ok(res
@@ -233,12 +233,7 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
         ListVoters { start_after, limit } => to_binary(&list_voters(deps, start_after, limit)?),
         GroupContract {} => to_binary(&query_group_contract(deps)?),
         ListTextProposals { start_after, limit } => {
-            to_binary(&list_text_proposals::<ValidatorProposal>(
-                deps,
-                env,
-                start_after,
-                align_limit(limit),
-            )?)
+            to_binary(&list_text_proposals(deps, start_after, align_limit(limit))?)
         }
     }
 }
