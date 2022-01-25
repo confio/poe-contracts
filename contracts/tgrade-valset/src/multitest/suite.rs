@@ -654,7 +654,7 @@ impl Suite {
         &self,
         start_after: impl Into<Option<String>>,
         limit: impl Into<Option<u32>>,
-    ) -> StdResult<Vec<ValidatorInfo>> {
+    ) -> AnyResult<Vec<ValidatorInfo>> {
         let resp: ListActiveValidatorsResponse = self.app.wrap().query_wasm_smart(
             self.valset.clone(),
             &QueryMsg::ListActiveValidators {

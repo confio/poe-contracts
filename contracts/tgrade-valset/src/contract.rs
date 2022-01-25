@@ -442,7 +442,7 @@ fn list_active_validators(
     let start = start_after.map(|addr| Bound::exclusive(addr.as_str()));
 
     let validators = VALIDATORS
-        .range(deps.storage, start, None, Order::Descending)
+        .range(deps.storage, start, None, Order::Ascending)
         .map(|validator_info| {
             let (_, info) = validator_info?;
             Ok(info)
@@ -553,7 +553,6 @@ fn end_block(deps: DepsMut, env: Env) -> Result<Response, ContractError> {
 
     // First iteration - load all validators, second - remove all, third - add all new
     // Not very efficient...
-    // load old validators into vector
     let old_validators = VALIDATORS
         .range(deps.storage, None, None, Order::Descending)
         .map(|validator_info| {
@@ -561,11 +560,9 @@ fn end_block(deps: DepsMut, env: Env) -> Result<Response, ContractError> {
             Ok(info)
         })
         .collect::<StdResult<Vec<ValidatorInfo>>>()?;
-    // remove all old validators
     for validator in &old_validators {
         VALIDATORS.remove(deps.storage, &validator.operator);
     }
-    // add all new (actual) validators
     for validator in &validators {
         VALIDATORS.save(deps.storage, &validator.operator, validator)?;
     }

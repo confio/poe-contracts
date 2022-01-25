@@ -72,6 +72,54 @@ fn initialization() {
 }
 
 #[test]
+fn validators_query_pagination() {
+    let members = vec!["member1", "member2", "member3", "member4", "member5"];
+
+    let suite = SuiteBuilder::new()
+        .with_engagement(&members_init(&members, &[2, 3, 5, 8, 4]))
+        .with_operators(&members)
+        .with_epoch_reward(coin(100, "eth"))
+        .with_max_validators(10)
+        .with_min_weight(2)
+        .with_epoch_length(3600)
+        .build();
+
+    // Query without pagination
+    assert_active_validators(
+        &suite.list_active_validators(None, None).unwrap(),
+        &[
+            (members[0], 2),
+            (members[1], 3),
+            (members[2], 5),
+            (members[3], 8),
+            (members[4], 4),
+        ],
+    );
+
+    // List only first 3
+    assert_active_validators(
+        &suite.list_active_validators(None, 3).unwrap(),
+        &[(members[0], 2), (members[1], 3), (members[2], 5)],
+    );
+
+    // List 2 entries after 2rd validator
+    assert_active_validators(
+        &suite
+            .list_active_validators(members[1].to_owned(), 2)
+            .unwrap(),
+        &[(members[2], 5), (members[3], 8)],
+    );
+
+    // Starting at unknown validator will return empty query result
+    assert_active_validators(
+        &suite
+            .list_active_validators("unknown_member".to_owned(), None)
+            .unwrap(),
+        &[],
+    );
+}
+
+#[test]
 fn simulate_validators() {
     let members = vec![
         "member1", "member2", "member3", "member4", "member5", "member6",
