@@ -575,7 +575,7 @@ fn end_block(deps: DepsMut, env: Env) -> Result<Response, ContractError> {
     for op in ops {
         let active = validators.iter().any(|val| val.operator == op);
         operators().update::<_, StdError>(deps.storage, &op, |op| {
-            let mut op = op.ok_or(StdError::generic_err("operator doesn't exist"))?;
+            let mut op = op.ok_or_else(|| StdError::generic_err("operator doesn't exist"))?;
             op.active_validator = active;
             Ok(op)
         })?;
