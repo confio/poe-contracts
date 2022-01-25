@@ -312,3 +312,39 @@ fn enb_block_ignores_jailed_validators() {
         &[(members[2], 5), (members[3], 8)],
     );
 }
+
+#[test]
+fn jailed_validators_show_up_as_inactive_when_listed() {
+    let members = vec!["member1", "member2", "member3", "member4"];
+    let mut suite = SuiteBuilder::new()
+        .with_engagement(&members_init(&members, &[2, 3, 5, 8]))
+        .with_operators(&members)
+        .build();
+    let admin = suite.admin().to_owned();
+
+    // Jailing operators as test prerequirements
+    suite.jail(&admin, members[0], Duration::new(3600)).unwrap();
+    suite.jail(&admin, members[1], Duration::new(3600)).unwrap();
+
+    // Move forward a bit
+    suite.next_block().unwrap();
+
+    let operators = suite.list_validators(None, None).unwrap();
+    assert!(!operators[0].active_validator);
+    assert!(!operators[1].active_validator);
+    assert!(operators[2].active_validator);
+    assert!(operators[3].active_validator);
+
+    // Moving forward so jailing periods expired
+    suite.advance_seconds(4000).unwrap();
+
+    // Unjail one of the jailed ops
+    suite.unjail(&admin, members[0]).unwrap();
+
+    suite.advance_epoch().unwrap();
+    let operators = suite.list_validators(None, None).unwrap();
+    assert!(operators[0].active_validator);
+    assert!(!operators[1].active_validator);
+    assert!(operators[2].active_validator);
+    assert!(operators[3].active_validator);
+}
