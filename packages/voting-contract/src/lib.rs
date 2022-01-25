@@ -289,7 +289,7 @@ pub fn list_text_proposals(
     let props: StdResult<Vec<_>> = TEXT_PROPOSALS
         .range(deps.storage, start, None, Order::Ascending)
         .take(limit)
-        .map(|r| r.map(|(_, p)| p.into()))
+        .map(|r| r.map(|(_, p)| p))
         .collect();
 
     Ok(TextProposalListResponse { proposals: props? })
