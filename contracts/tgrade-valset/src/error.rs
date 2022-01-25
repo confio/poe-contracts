@@ -68,6 +68,9 @@ pub enum ContractError {
 
     #[error("Cannot unjail validator who's been jailed forever")]
     UnjailFromJailForeverForbidden {},
+
+    #[error("Jail did not yet expire")]
+    JailDidNotExpire {},
 }
 
 impl From<Ed25519PubkeyConversionError> for ContractError {

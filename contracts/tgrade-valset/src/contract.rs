@@ -272,8 +272,8 @@ fn execute_unjail(
         Ok(Some(expiration)) if (expiration.is_expired(&env.block) || is_admin) => {
             JAIL.remove(deps.storage, operator);
         }
-        // Jail not expired and called by non-admin
-        _ => return Err(AdminError::NotAdmin {}.into()),
+        // Jail not expired
+        _ => return Err(ContractError::JailDidNotExpire {}),
     }
 
     let res = Response::new()
