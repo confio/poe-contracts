@@ -138,17 +138,11 @@ fn anyone_can_unjail_self_after_period() {
 
     // I cannot unjail myself before expiration...
     let err = suite.unjail(members[0], None).unwrap_err();
-    assert_eq!(
-        ContractError::AdminError(AdminError::NotAdmin {}),
-        err.downcast().unwrap(),
-    );
+    assert_eq!(ContractError::JailDidNotExpire {}, err.downcast().unwrap(),);
 
     // ...even directly pointing myself
     let err = suite.unjail(members[0], members[0]).unwrap_err();
-    assert_eq!(
-        ContractError::AdminError(AdminError::NotAdmin {}),
-        err.downcast().unwrap(),
-    );
+    assert_eq!(ContractError::JailDidNotExpire {}, err.downcast().unwrap(),);
 
     // And I cannot unjail anyone else
     let err = suite.unjail(members[0], members[1]).unwrap_err();
