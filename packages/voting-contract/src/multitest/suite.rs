@@ -1,4 +1,8 @@
-use super::contracts::{self, engagement_contract, voting, VotingContract};
+use super::contracts::{
+    self, engagement_contract,
+    voting::{self, Proposal},
+    VotingContract,
+};
 use anyhow::Result as AnyResult;
 use cosmwasm_std::{Addr, StdResult};
 use cw3::{
@@ -11,7 +15,10 @@ use tg4::Member;
 use tg_bindings_test::TgradeApp;
 
 use crate::{
-    state::{ProposalListResponse, ProposalResponse, RulesBuilder, VotingRules},
+    state::{
+        ProposalInfo, ProposalListResponse, ProposalResponse, RulesBuilder,
+        TextProposalListResponse, VotingRules,
+    },
     ContractError,
 };
 
@@ -133,12 +140,11 @@ impl Suite {
         )
     }
 
-    pub fn propose_detailed(
+    pub fn propose(
         &mut self,
         executor: &str,
         title: &str,
         description: &str,
-        proposal: &str,
     ) -> AnyResult<AppResponse> {
         self.app.execute_contract(
             Addr::unchecked(executor),
@@ -146,14 +152,21 @@ impl Suite {
             &voting::ExecuteMsg::Propose {
                 title: title.to_owned(),
                 description: description.to_owned(),
-                proposal: proposal.to_string(),
+                proposal: Proposal::Text {},
             },
             &[],
         )
     }
 
-    pub fn propose(&mut self, executor: &str, title: &str) -> AnyResult<AppResponse> {
-        self.propose_detailed(executor, title, title, title)
+    pub fn propose_and_execute(
+        &mut self,
+        executor: &str,
+        title: &str,
+        description: &str,
+    ) -> AnyResult<AppResponse> {
+        let prop = self.propose(executor, title, description)?;
+        let id = get_proposal_id(&prop)?;
+        self.execute_proposal(executor, id)
     }
 
     pub fn vote(&mut self, executor: &str, proposal_id: u64, vote: Vote) -> AnyResult<AppResponse> {
@@ -183,8 +196,8 @@ impl Suite {
         )
     }
 
-    pub fn query_proposal(&self, proposal_id: u64) -> StdResult<ProposalResponse<String>> {
-        let prop: ProposalResponse<String> = self.app.wrap().query_wasm_smart(
+    pub fn query_proposal(&self, proposal_id: u64) -> StdResult<ProposalResponse<Proposal>> {
+        let prop: ProposalResponse<Proposal> = self.app.wrap().query_wasm_smart(
             self.voting.clone(),
             &voting::QueryMsg::Proposal { proposal_id },
         )?;
@@ -233,10 +246,25 @@ impl Suite {
         &self,
         start_after: impl Into<Option<u64>>,
         limit: impl Into<Option<usize>>,
-    ) -> StdResult<Vec<ProposalResponse<String>>> {
-        let proposals: ProposalListResponse<String> = self.app.wrap().query_wasm_smart(
+    ) -> StdResult<Vec<ProposalResponse<Proposal>>> {
+        let proposals: ProposalListResponse<Proposal> = self.app.wrap().query_wasm_smart(
             self.voting.clone(),
             &voting::QueryMsg::ListProposals {
+                start_after: start_after.into(),
+                limit: limit.into().unwrap_or(10),
+            },
+        )?;
+        Ok(proposals.proposals)
+    }
+
+    pub fn list_text_proposals(
+        &self,
+        start_after: impl Into<Option<u64>>,
+        limit: impl Into<Option<usize>>,
+    ) -> StdResult<Vec<ProposalInfo>> {
+        let proposals: TextProposalListResponse = self.app.wrap().query_wasm_smart(
+            self.voting.clone(),
+            &voting::QueryMsg::ListTextProposals {
                 start_after: start_after.into(),
                 limit: limit.into().unwrap_or(10),
             },
@@ -248,8 +276,8 @@ impl Suite {
         &self,
         start_before: impl Into<Option<u64>>,
         limit: impl Into<Option<usize>>,
-    ) -> StdResult<Vec<ProposalResponse<String>>> {
-        let proposals: ProposalListResponse<String> = self.app.wrap().query_wasm_smart(
+    ) -> StdResult<Vec<ProposalResponse<Proposal>>> {
+        let proposals: ProposalListResponse<Proposal> = self.app.wrap().query_wasm_smart(
             self.voting.clone(),
             &voting::QueryMsg::ReverseProposals {
                 start_before: start_before.into(),

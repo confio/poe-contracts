@@ -25,6 +25,8 @@ pub enum Proposal {
         /// Funds to send
         amount: Coin,
     },
+    /// An open text proposal with no actual logic executed when it passes
+    Text {},
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -89,4 +91,9 @@ pub enum QueryMsg {
     },
     /// Returns address of current's group contract
     GroupContract {},
+    /// List all text proposals
+    ListTextProposals {
+        start_after: Option<u64>,
+        limit: Option<u32>,
+    },
 }

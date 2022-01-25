@@ -79,6 +79,8 @@ pub enum ValidatorProposal {
         /// encoded message to be passed to perform the migration
         migrate_msg: Binary,
     },
+    /// An open text proposal with no actual logic executed when it passes
+    Text {},
 }
 
 // We can also add this as a cw3 extension
@@ -116,4 +118,9 @@ pub enum QueryMsg {
     },
     /// Returns address of current's group contract
     GroupContract {},
+    /// List all text proposals
+    ListTextProposals {
+        start_after: Option<u64>,
+        limit: Option<u32>,
+    },
 }

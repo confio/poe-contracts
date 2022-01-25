@@ -20,7 +20,9 @@ fn group_change_does_not_affect_old_proposals() {
     let proposal_creation_height = suite.app.block_info().height;
 
     let owner = suite.owner.clone();
-    let response = suite.propose("alice", "great proposal").unwrap();
+    let response = suite
+        .propose("alice", "great proposal", "proposal")
+        .unwrap();
     let proposal_id: u64 = get_proposal_id(&response).unwrap();
 
     suite
@@ -82,7 +84,9 @@ fn new_proposals_follow_updated_membership() {
 
     let proposal_creation_height = suite.app.block_info().height;
 
-    let response = suite.propose("alice", "great proposal").unwrap();
+    let response = suite
+        .propose("alice", "great proposal", "proposal")
+        .unwrap();
     let proposal_id: u64 = get_proposal_id(&response).unwrap();
 
     // Proposal is still open - alice's 5 voting power is no longer the majority, it's only 5/25

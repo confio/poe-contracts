@@ -1,12 +1,10 @@
+use crate::{
+    execute_text, list_proposals, list_text_proposals, list_voters, list_votes, propose,
+    query_group_contract, query_proposal, query_rules, query_vote, query_voter, reverse_proposals,
+    state::VotingRules, ContractError, Response,
+};
 use cosmwasm_std::{from_slice, to_binary};
 use cw3::Vote;
-use serde::de::DeserializeOwned;
-
-use crate::{
-    list_proposals, list_voters, list_votes, propose, query_group_contract, query_proposal,
-    query_rules, query_vote, query_voter, reverse_proposals, state::VotingRules, ContractError,
-    Response,
-};
 
 use super::*;
 
@@ -23,7 +21,7 @@ pub enum ExecuteMsg {
     Propose {
         title: String,
         description: String,
-        proposal: String,
+        proposal: Proposal,
     },
     Vote {
         proposal_id: u64,
@@ -35,6 +33,12 @@ pub enum ExecuteMsg {
     Close {
         proposal_id: u64,
     },
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum Proposal {
+    Text {},
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
@@ -71,6 +75,11 @@ pub enum QueryMsg {
     },
     /// Returns address of current's group contract
     GroupContract {},
+    /// Returns ProposalListResponse
+    ListTextProposals {
+        start_after: Option<u64>,
+        limit: usize,
+    },
 }
 
 pub struct VotingContract;
@@ -104,9 +113,11 @@ impl Contract<TgradeMsg> for VotingContract {
                 description,
                 proposal,
             } => propose(deps, env, info, title, description, proposal),
-            Vote { proposal_id, vote } => crate::vote::<String>(deps, env, info, proposal_id, vote),
-            Execute { proposal_id } => execute::<String>(deps, env, info, proposal_id),
-            Close { proposal_id } => crate::close::<String>(deps, env, info, proposal_id),
+            Vote { proposal_id, vote } => {
+                crate::vote::<Proposal>(deps, env, info, proposal_id, vote)
+            }
+            Execute { proposal_id } => execute(deps, env, info, proposal_id),
+            Close { proposal_id } => crate::close::<Proposal>(deps, env, info, proposal_id),
         }
         .map_err(anyhow::Error::from)
     }
@@ -119,16 +130,19 @@ impl Contract<TgradeMsg> for VotingContract {
             Rules {} => to_binary(&query_rules(deps)?),
             ListVoters { start_after, limit } => to_binary(&list_voters(deps, start_after, limit)?),
             Proposal { proposal_id } => {
-                to_binary(&query_proposal::<String>(deps, env, proposal_id)?)
+                to_binary(&query_proposal::<self::Proposal>(deps, env, proposal_id)?)
             }
             Vote { proposal_id, voter } => to_binary(&query_vote(deps, proposal_id, voter)?),
-            ListProposals { start_after, limit } => {
-                to_binary(&list_proposals::<String>(deps, env, start_after, limit)?)
-            }
+            ListProposals { start_after, limit } => to_binary(&list_proposals::<self::Proposal>(
+                deps,
+                env,
+                start_after,
+                limit,
+            )?),
             ReverseProposals {
                 start_before,
                 limit,
-            } => to_binary(&reverse_proposals::<String>(
+            } => to_binary(&reverse_proposals::<self::Proposal>(
                 deps,
                 env,
                 start_before,
@@ -141,6 +155,9 @@ impl Contract<TgradeMsg> for VotingContract {
             } => to_binary(&list_votes(deps, proposal_id, start_after, limit)?),
             Voter { address } => to_binary(&query_voter(deps, address)?),
             GroupContract {} => to_binary(&query_group_contract(deps)?),
+            ListTextProposals { start_after, limit } => {
+                to_binary(&list_text_proposals(deps, start_after, limit)?)
+            }
         }
         .map_err(anyhow::Error::from)
     }
@@ -173,17 +190,15 @@ impl Contract<TgradeMsg> for VotingContract {
     }
 }
 
-fn execute<P>(
+fn execute(
     deps: DepsMut,
     env: Env,
     info: MessageInfo,
     proposal_id: u64,
-) -> Result<Response, ContractError>
-where
-    P: Serialize + DeserializeOwned,
-{
+) -> Result<Response, ContractError> {
     // anyone can trigger this if the vote passed
-    let _prop = crate::mark_executed::<P>(deps, env, proposal_id)?;
+    let prop = crate::mark_executed::<Proposal>(deps.storage, env, proposal_id)?;
+    execute_text(deps, proposal_id, prop)?;
 
     Ok(Response::new()
         .add_attribute("action", "execute")

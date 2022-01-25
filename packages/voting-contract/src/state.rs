@@ -37,6 +37,15 @@ pub struct Proposal<P> {
     pub votes: Votes,
 }
 
+impl<P> From<Proposal<P>> for ProposalInfo {
+    fn from(p: Proposal<P>) -> Self {
+        Self {
+            title: p.title,
+            description: p.description,
+        }
+    }
+}
+
 /// Note, if you are storing custom messages in the proposal,
 /// the querier needs to know what possible custom message types
 /// those are in order to parse the response
@@ -56,6 +65,11 @@ pub struct ProposalResponse<P> {
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 pub struct ProposalListResponse<P> {
     pub proposals: Vec<ProposalResponse<P>>,
+}
+
+#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+pub struct TextProposalListResponse {
+    pub proposals: Vec<ProposalInfo>,
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug, JsonSchema)]
@@ -254,6 +268,14 @@ pub const BALLOTS: Map<(u64, &Addr), Ballot> = Map::new("votes");
 pub fn proposals<'m, P>() -> Map<'m, u64, Proposal<P>> {
     Map::new("proposals")
 }
+
+#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+pub struct ProposalInfo {
+    pub title: String,
+    pub description: String,
+}
+
+pub const TEXT_PROPOSALS: Map<u64, ProposalInfo> = Map::new("text_proposals");
 
 pub fn next_id(store: &mut dyn Storage) -> StdResult<u64> {
     let id: u64 = PROPOSAL_COUNT.may_load(store)?.unwrap_or_default() + 1;

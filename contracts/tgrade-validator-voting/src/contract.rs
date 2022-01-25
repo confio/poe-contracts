@@ -16,9 +16,9 @@ use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg, ValidatorProposal};
 use crate::ContractError;
 
 use tg_voting_contract::{
-    close as execute_close, list_proposals, list_voters, list_votes, mark_executed,
-    propose as execute_propose, query_group_contract, query_proposal, query_rules, query_vote,
-    query_voter, reverse_proposals, vote as execute_vote,
+    close as execute_close, execute_text, list_proposals, list_text_proposals, list_voters,
+    list_votes, mark_executed, propose as execute_propose, query_group_contract, query_proposal,
+    query_rules, query_vote, query_voter, reverse_proposals, vote as execute_vote,
 };
 
 pub type Response = cosmwasm_std::Response<TgradeMsg>;
@@ -113,31 +113,41 @@ pub fn execute_execute(
 ) -> Result<Response, ContractError> {
     use ValidatorProposal::*;
     // anyone can trigger this if the vote passed
-    let proposal = mark_executed::<ValidatorProposal>(deps, env, proposal_id)?;
+    let proposal = mark_executed::<ValidatorProposal>(deps.storage, env, proposal_id)?;
 
-    let msg = match proposal.proposal {
-        RegisterUpgrade { name, height, info } => SubMsg::new(TgradeMsg::ExecuteGovProposal {
-            title: proposal.title,
-            description: proposal.description,
-            proposal: GovProposal::RegisterUpgrade { name, height, info },
-        }),
-        CancelUpgrade {} => SubMsg::new(TgradeMsg::ExecuteGovProposal {
-            title: proposal.title,
-            description: proposal.description,
-            proposal: GovProposal::CancelUpgrade {},
-        }),
-        PinCodes(code_ids) => SubMsg::new(TgradeMsg::ExecuteGovProposal {
-            title: proposal.title,
-            description: proposal.description,
-            proposal: GovProposal::PinCodes { code_ids },
-        }),
-        UnpinCodes(code_ids) => SubMsg::new(TgradeMsg::ExecuteGovProposal {
-            title: proposal.title,
-            description: proposal.description,
-            proposal: GovProposal::UnpinCodes { code_ids },
-        }),
+    let mut res = Response::new();
+
+    match proposal.proposal {
+        RegisterUpgrade { name, height, info } => {
+            res = res.add_message(TgradeMsg::ExecuteGovProposal {
+                title: proposal.title,
+                description: proposal.description,
+                proposal: GovProposal::RegisterUpgrade { name, height, info },
+            })
+        }
+        CancelUpgrade {} => {
+            res = res.add_message(TgradeMsg::ExecuteGovProposal {
+                title: proposal.title,
+                description: proposal.description,
+                proposal: GovProposal::CancelUpgrade {},
+            })
+        }
+        PinCodes(code_ids) => {
+            res = res.add_message(TgradeMsg::ExecuteGovProposal {
+                title: proposal.title,
+                description: proposal.description,
+                proposal: GovProposal::PinCodes { code_ids },
+            })
+        }
+        UnpinCodes(code_ids) => {
+            res = res.add_message(TgradeMsg::ExecuteGovProposal {
+                title: proposal.title,
+                description: proposal.description,
+                proposal: GovProposal::UnpinCodes { code_ids },
+            })
+        }
         UpdateConsensusBlockParams { max_bytes, max_gas } => {
-            SubMsg::new(TgradeMsg::ConsensusParams(ConsensusParams {
+            res = res.add_message(TgradeMsg::ConsensusParams(ConsensusParams {
                 block: Some(BlockParams { max_bytes, max_gas }),
                 evidence: None,
             }))
@@ -146,29 +156,33 @@ pub fn execute_execute(
             max_age_num_blocks,
             max_age_duration,
             max_bytes,
-        } => SubMsg::new(TgradeMsg::ConsensusParams(ConsensusParams {
-            block: None,
-            evidence: Some(EvidenceParams {
-                max_age_num_blocks,
-                max_age_duration,
-                max_bytes,
-            }),
-        })),
+        } => {
+            res = res.add_message(TgradeMsg::ConsensusParams(ConsensusParams {
+                block: None,
+                evidence: Some(EvidenceParams {
+                    max_age_num_blocks,
+                    max_age_duration,
+                    max_bytes,
+                }),
+            }))
+        }
         MigrateContract {
             contract,
             code_id,
             migrate_msg,
-        } => SubMsg::new(WasmMsg::Migrate {
-            contract_addr: contract,
-            new_code_id: code_id,
-            msg: migrate_msg,
-        }),
+        } => {
+            res = res.add_message(WasmMsg::Migrate {
+                contract_addr: contract,
+                new_code_id: code_id,
+                msg: migrate_msg,
+            })
+        }
+        Text {} => execute_text(deps, proposal_id, proposal)?,
     };
 
-    Ok(Response::new()
+    Ok(res
         .add_attribute("action", "execute")
-        .add_attribute("sender", info.sender)
-        .add_submessage(msg))
+        .add_attribute("sender", info.sender))
 }
 
 fn align_limit(limit: Option<u32>) -> usize {
@@ -219,6 +233,9 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
         Voter { address } => to_binary(&query_voter(deps, address)?),
         ListVoters { start_after, limit } => to_binary(&list_voters(deps, start_after, limit)?),
         GroupContract {} => to_binary(&query_group_contract(deps)?),
+        ListTextProposals { start_after, limit } => {
+            to_binary(&list_text_proposals(deps, start_after, align_limit(limit))?)
+        }
     }
 }
 

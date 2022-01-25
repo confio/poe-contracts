@@ -2,6 +2,7 @@ use cosmwasm_std::StdError;
 use cw3::Status;
 use tg_utils::Expiration;
 
+use crate::multitest::contracts::voting::Proposal;
 use crate::multitest::suite::{get_proposal_id, SuiteBuilder};
 use crate::state::{ProposalResponse, RulesBuilder, Votes};
 use crate::ContractError;
@@ -17,12 +18,7 @@ fn proposal_creation() {
         .build();
 
     let res = suite
-        .propose_detailed(
-            "alice",
-            "best proposal",
-            "it's just the best",
-            "do the thing",
-        )
+        .propose("alice", "best proposal", "it's just the best")
         .unwrap();
 
     let id = get_proposal_id(&res).unwrap();
@@ -40,7 +36,7 @@ fn proposal_creation() {
             id: 1,
             title: "best proposal".to_string(),
             description: "it's just the best".to_string(),
-            proposal: "do the thing".to_string(),
+            proposal: Proposal::Text {},
             status: Status::Open,
             expires: expected_expiration,
             rules,
@@ -57,7 +53,9 @@ fn member_with_no_voting_power_cannot_propose() {
         .with_member("bob", 3)
         .build();
 
-    let err = suite.propose("alice", "do the thing").unwrap_err();
+    let err = suite
+        .propose("alice", "do the thing", "do the thing")
+        .unwrap_err();
 
     assert_eq!(
         ContractError::Std(StdError::GenericErr {
@@ -71,7 +69,9 @@ fn member_with_no_voting_power_cannot_propose() {
 fn proposal_from_non_voter_is_rejected() {
     let mut suite = SuiteBuilder::new().with_member("alice", 1).build();
 
-    let err = suite.propose("bob", "do the thing").unwrap_err();
+    let err = suite
+        .propose("bob", "do the thing", "do the thing")
+        .unwrap_err();
 
     assert_eq!(
         ContractError::Std(StdError::GenericErr {
@@ -88,7 +88,9 @@ fn proposal_from_voter_is_accepted() {
         .with_member("bob", 3)
         .build();
 
-    let res = suite.propose("alice", "do the thing").unwrap();
+    let res = suite
+        .propose("alice", "do the thing", "do the thing")
+        .unwrap();
 
     assert_eq!(
         res.custom_attrs(1),
@@ -108,7 +110,9 @@ fn proposal_from_voter_can_directly_pass() {
         .with_member("bob", 3)
         .build();
 
-    let res = suite.propose("bob", "do the thing").unwrap();
+    let res = suite
+        .propose("bob", "do the thing", "do the thing")
+        .unwrap();
 
     assert_eq!(
         res.custom_attrs(1),
