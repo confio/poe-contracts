@@ -94,6 +94,7 @@ pub fn instantiate(
         let info = OperatorInfo {
             pubkey,
             metadata: op.metadata,
+            active_validator: false,
         };
         operators().save(deps.storage, &oper, &info)?;
     }
@@ -203,7 +204,11 @@ fn execute_register_validator_key(
     let pubkey: Ed25519Pubkey = pubkey.try_into()?;
     let moniker = metadata.moniker.clone();
 
-    let operator = OperatorInfo { pubkey, metadata };
+    let operator = OperatorInfo {
+        pubkey,
+        metadata,
+        active_validator: false,
+    };
     match operators().may_load(deps.storage, &info.sender)? {
         Some(_) => return Err(ContractError::OperatorRegistered {}),
         None => operators().save(deps.storage, &info.sender, &operator)?,
@@ -450,6 +455,7 @@ fn list_validator_keys(
                 metadata: info.metadata,
                 pubkey: info.pubkey.into(),
                 jailed_until,
+                active_validator: info.active_validator,
             })
         })
         .take(limit)
@@ -561,6 +567,19 @@ fn end_block(deps: DepsMut, env: Env) -> Result<Response, ContractError> {
 
     // calculate and store new validator set
     let (validators, auto_unjail) = calculate_validators(deps.as_ref(), &env)?;
+
+    // update operators list with info about whether or not they're active validators
+    let ops: Vec<_> = operators()
+        .keys(deps.storage, None, None, Order::Ascending)
+        .collect::<StdResult<_>>()?;
+    for op in ops {
+        let active = validators.iter().any(|val| val.operator == op);
+        operators().update::<_, StdError>(deps.storage, &op, |op| {
+            let mut op = op.ok_or(StdError::generic_err("operator doesn't exist"))?;
+            op.active_validator = active;
+            Ok(op)
+        })?;
+    }
 
     // auto unjailing
     for addr in &auto_unjail {
