@@ -8,3 +8,4 @@ mod rewards_split;
 mod slashing;
 mod stake;
 mod suite;
+mod update_config;

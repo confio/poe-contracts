@@ -226,6 +226,11 @@ pub enum ExecuteMsg {
     UpdateAdmin {
         admin: Option<String>,
     },
+    /// Alter config values
+    UpdateConfig {
+        min_weight: Option<u64>,
+        max_validators: Option<u32>,
+    },
     /// Links info.sender (operator) to this Tendermint consensus key.
     /// The operator cannot re-register another key.
     /// No two operators may have the same consensus_key.

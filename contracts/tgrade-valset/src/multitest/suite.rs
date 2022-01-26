@@ -556,6 +556,23 @@ impl Suite {
         )
     }
 
+    pub fn update_config(
+        &mut self,
+        executor: &str,
+        min_weight: impl Into<Option<u64>>,
+        max_validators: impl Into<Option<u32>>,
+    ) -> AnyResult<AppResponse> {
+        self.app.execute_contract(
+            Addr::unchecked(executor),
+            self.valset.clone(),
+            &ExecuteMsg::UpdateConfig {
+                min_weight: min_weight.into(),
+                max_validators: max_validators.into(),
+            },
+            &[],
+        )
+    }
+
     pub fn slash(
         &mut self,
         executor: &str,
