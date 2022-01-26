@@ -26,7 +26,7 @@ pub enum JailMsg {
 #[serde(rename_all = "snake_case")]
 pub enum JailingDuration {
     Duration(Duration),
-    Forever,
+    Forever {},
 }
 
 impl From<Duration> for JailingDuration {

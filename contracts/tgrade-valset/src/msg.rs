@@ -332,8 +332,8 @@ impl OperatorResponse {
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
 pub enum JailingPeriod {
-    Forever {},
     Until(Expiration),
+    Forever {},
 }
 
 impl JailingPeriod {
