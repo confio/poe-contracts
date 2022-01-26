@@ -39,7 +39,8 @@ pub fn contract_valset() -> Box<dyn Contract<TgradeMsg>> {
         crate::contract::query,
     )
     .with_sudo(crate::contract::sudo)
-    .with_reply(crate::contract::reply);
+    .with_reply(crate::contract::reply)
+    .with_migrate(crate::contract::migrate);
 
     Box::new(contract)
 }
@@ -391,6 +392,7 @@ impl SuiteBuilder {
 
         Suite {
             app,
+            valset_code_id: valset_id,
             valset,
             membership,
             distribution_contracts,
@@ -409,6 +411,8 @@ pub struct Suite {
     /// Multitest app
     #[derivative(Debug = "ignore")]
     app: TgradeApp,
+    /// The code id of the valset contract
+    valset_code_id: u64,
     /// tgrade-valset contract address
     valset: Addr,
     /// membership contract address
@@ -732,6 +736,17 @@ impl Suite {
             self.membership.clone(),
             &tg4_stake::msg::ExecuteMsg::Unbond { tokens },
             &[],
+        )
+    }
+
+    /// Migrates the contract to the same version (same code id), but possibly changing
+    /// some cfg values via MigrateMsg.
+    pub fn migrate(&mut self, addr: &str, msg: &MigrateMsg) -> AnyResult<AppResponse> {
+        self.app.migrate_contract(
+            Addr::unchecked(addr),
+            self.valset.clone(),
+            msg,
+            self.valset_code_id,
         )
     }
 }

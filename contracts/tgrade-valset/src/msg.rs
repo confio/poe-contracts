@@ -416,6 +416,13 @@ pub struct InstantiateResponse {
     pub rewards_contract: Addr,
 }
 
+#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[serde(rename_all = "snake_case")]
+pub struct MigrateMsg {
+    pub min_weight: Option<u64>,
+    pub max_validators: Option<u32>,
+}
+
 #[cfg(test)]
 mod test {
     use super::*;

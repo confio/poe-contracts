@@ -5,8 +5,8 @@ use std::convert::TryInto;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    to_binary, Addr, Binary, BlockInfo, Decimal, Deps, DepsMut, Empty, Env, MessageInfo, Order,
-    Reply, StdResult, Timestamp, WasmMsg,
+    to_binary, Addr, Binary, BlockInfo, Decimal, Deps, DepsMut, Env, MessageInfo, Order, Reply,
+    StdError, StdResult, Timestamp, WasmMsg,
 };
 
 use cw2::set_contract_version;
@@ -24,7 +24,7 @@ use tg_utils::{ensure_from_older_version, JailingDuration, SlashMsg, ADMIN};
 use crate::error::ContractError;
 use crate::msg::{
     EpochResponse, ExecuteMsg, InstantiateMsg, InstantiateResponse, JailingPeriod,
-    ListActiveValidatorsResponse, ListValidatorResponse, ListValidatorSlashingResponse,
+    ListActiveValidatorsResponse, ListValidatorResponse, ListValidatorSlashingResponse, MigrateMsg,
     OperatorResponse, QueryMsg, RewardsDistribution, RewardsInstantiateMsg, ValidatorMetadata,
     ValidatorResponse,
 };
@@ -722,8 +722,19 @@ fn calculate_diff(
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn migrate(deps: DepsMut, _env: Env, _msg: Empty) -> Result<Response, ContractError> {
+pub fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> Result<Response, ContractError> {
     ensure_from_older_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
+
+    CONFIG.update::<_, StdError>(deps.storage, |mut cfg| {
+        if let Some(min_weight) = msg.min_weight {
+            cfg.min_weight = min_weight;
+        }
+        if let Some(max_validators) = msg.max_validators {
+            cfg.max_validators = max_validators;
+        }
+        Ok(cfg)
+    })?;
+
     Ok(Response::new())
 }
 

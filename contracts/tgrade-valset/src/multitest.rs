@@ -3,6 +3,7 @@ mod contract;
 mod double_sign;
 mod helpers;
 mod jailing;
+mod migration;
 mod rewards_split;
 mod slashing;
 mod stake;
