@@ -400,12 +400,12 @@ pub fn sudo(deps: DepsMut, env: Env, msg: TgradeSudoMsg) -> Result<Response, Con
 fn privilege_promote(deps: DepsMut) -> Result<Response, ContractError> {
     let config = CONFIG.load(deps.storage)?;
 
+    let privileges = [Privilege::Delegatable];
     if config.auto_return_limit > 0 {
-        let msgs = request_privileges(&[Privilege::EndBlocker]);
-        Ok(Response::new().add_submessages(msgs))
-    } else {
-        Ok(Response::new())
+        privileges.push(Privilege::EndBlocker)
     }
+    let msgs = request_privileges(&privileges);
+    Ok(Response::new().add_submessages(msgs))
 }
 
 fn end_block(deps: DepsMut, env: Env) -> Result<Response, ContractError> {

@@ -21,6 +21,8 @@ pub enum Privilege {
     TokenMinter,
     /// contracts registered here are allowed to use ConsensusParams msg to adjust tendermint
     ConsensusParamChanger,
+    /// contracts registered here are allowed to have vesting accounts to un-/delegate tokens
+    Delegatable,
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
