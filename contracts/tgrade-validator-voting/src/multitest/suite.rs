@@ -162,7 +162,7 @@ pub struct Suite {
 }
 
 impl Suite {
-    fn propose(
+    pub fn propose(
         &mut self,
         executor: &str,
         title: &str,
