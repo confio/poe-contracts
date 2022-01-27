@@ -3,7 +3,7 @@ use std::fs::create_dir_all;
 
 use cosmwasm_schema::{export_schema, export_schema_with_title, remove_schemas, schema_for};
 
-pub use tg4::{AdminResponse, MemberListResponse, MemberResponse, TotalWeightResponse};
+pub use tg4::{AdminResponse, MemberListResponse, MemberResponse, TotalPointsResponse};
 pub use tg4_engagement::msg::{
     DelegatedResponse, ExecuteMsg, FundsResponse, InstantiateMsg, PreauthResponse, QueryMsg,
     SudoMsg,
@@ -21,7 +21,7 @@ fn main() {
     export_schema(&schema_for!(AdminResponse), &out_dir);
     export_schema(&schema_for!(MemberListResponse), &out_dir);
     export_schema(&schema_for!(MemberResponse), &out_dir);
-    export_schema(&schema_for!(TotalWeightResponse), &out_dir);
+    export_schema(&schema_for!(TotalPointsResponse), &out_dir);
     export_schema(&schema_for!(PreauthResponse), &out_dir);
     export_schema(&schema_for!(SudoMsg), &out_dir);
     export_schema(&schema_for!(FundsResponse), &out_dir);

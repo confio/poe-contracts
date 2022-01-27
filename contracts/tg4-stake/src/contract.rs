@@ -511,7 +511,7 @@ fn query_member(deps: Deps, addr: String, height: Option<u64>) -> StdResult<Memb
         Some(h) => members().may_load_at_height(deps.storage, &addr, h),
         None => members().may_load(deps.storage, &addr),
     }?;
-    Ok(MemberResponse { weight })
+    Ok(MemberResponse { points: weight })
 }
 
 // settings for pagination
@@ -534,7 +534,7 @@ fn list_members(
             let (addr, weight) = item?;
             Ok(Member {
                 addr: addr.into(),
-                weight,
+                points: weight,
             })
         })
         .collect();
@@ -548,7 +548,7 @@ fn list_members_by_weight(
     limit: Option<u32>,
 ) -> StdResult<MemberListResponse> {
     let limit = limit.unwrap_or(DEFAULT_LIMIT).min(MAX_LIMIT) as usize;
-    let start = start_after.map(|m| Bound::exclusive((m.weight, m.addr.as_str()).joined_key()));
+    let start = start_after.map(|m| Bound::exclusive((m.points, m.addr.as_str()).joined_key()));
 
     let members: StdResult<Vec<_>> = members()
         .idx
@@ -559,7 +559,7 @@ fn list_members_by_weight(
             let (addr, weight) = item?;
             Ok(Member {
                 addr: addr.into(),
-                weight,
+                points: weight,
             })
         })
         .collect();
@@ -697,7 +697,7 @@ mod tests {
     fn get_member(deps: Deps, addr: String, at_height: Option<u64>) -> Option<u64> {
         let raw = query(deps, mock_env(), QueryMsg::Member { addr, at_height }).unwrap();
         let res: MemberResponse = from_slice(&raw).unwrap();
-        res.weight
+        res.points
     }
 
     // this tests the member queries
@@ -789,13 +789,13 @@ mod tests {
         bond(deps.as_mut(), 12_000, 7_500, 4_000, 1);
 
         let member1 = query_member(deps.as_ref(), USER1.into(), None).unwrap();
-        assert_eq!(member1.weight, Some(12));
+        assert_eq!(member1.points, Some(12));
 
         let member2 = query_member(deps.as_ref(), USER2.into(), None).unwrap();
-        assert_eq!(member2.weight, Some(7));
+        assert_eq!(member2.points, Some(7));
 
         let member3 = query_member(deps.as_ref(), USER3.into(), None).unwrap();
-        assert_eq!(member3.weight, None);
+        assert_eq!(member3.points, None);
 
         let members = list_members(deps.as_ref(), None, None).unwrap().members;
         assert_eq!(members.len(), 2);
@@ -805,11 +805,11 @@ mod tests {
             vec![
                 Member {
                     addr: USER1.into(),
-                    weight: 12
+                    points: 12
                 },
                 Member {
                     addr: USER2.into(),
-                    weight: 7
+                    points: 7
                 },
             ]
         );
@@ -822,7 +822,7 @@ mod tests {
             members,
             vec![Member {
                 addr: USER1.into(),
-                weight: 12
+                points: 12
             },]
         );
 
@@ -837,7 +837,7 @@ mod tests {
             members,
             vec![Member {
                 addr: USER2.into(),
-                weight: 7
+                points: 7
             },]
         );
 
@@ -866,15 +866,15 @@ mod tests {
             vec![
                 Member {
                     addr: USER1.into(),
-                    weight: 11
+                    points: 11
                 },
                 Member {
                     addr: USER2.into(),
-                    weight: 6
+                    points: 6
                 },
                 Member {
                     addr: USER3.into(),
-                    weight: 5
+                    points: 5
                 }
             ]
         );
@@ -889,7 +889,7 @@ mod tests {
             members,
             vec![Member {
                 addr: USER1.into(),
-                weight: 11
+                points: 11
             },]
         );
 
@@ -906,11 +906,11 @@ mod tests {
             vec![
                 Member {
                     addr: USER2.into(),
-                    weight: 6
+                    points: 6
                 },
                 Member {
                     addr: USER3.into(),
-                    weight: 5
+                    points: 5
                 }
             ]
         );

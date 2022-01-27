@@ -430,7 +430,7 @@ pub fn list_voters(
         .into_iter()
         .map(|member| VoterDetail {
             addr: member.addr,
-            weight: member.weight,
+            weight: member.points,
         })
         .collect();
     Ok(VoterListResponse { voters })

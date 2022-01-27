@@ -25,7 +25,7 @@ pub fn expected_members(members: Vec<(&str, u64)>) -> Vec<Member> {
         .into_iter()
         .map(|(addr, weight)| Member {
             addr: addr.to_owned(),
-            weight,
+            points: weight,
         })
         .collect()
 }
@@ -45,7 +45,7 @@ impl SuiteBuilder {
     pub fn with_member(mut self, addr: &str, weight: u64) -> Self {
         self.members.push(Member {
             addr: addr.to_owned(),
-            weight,
+            points: weight,
         });
         self
     }
@@ -211,7 +211,7 @@ impl Suite {
             .iter()
             .map(|(addr, weight)| Member {
                 addr: (*addr).to_owned(),
-                weight: *weight,
+                points: *weight,
             })
             .collect();
 

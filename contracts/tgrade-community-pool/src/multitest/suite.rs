@@ -52,7 +52,7 @@ impl SuiteBuilder {
     pub fn with_group_member(mut self, addr: &str, weight: u64) -> Self {
         self.group_members.push(Member {
             addr: addr.to_owned(),
-            weight,
+            points: weight,
         });
         self
     }
@@ -147,7 +147,7 @@ impl SuiteBuilder {
                     remove: vec![],
                     add: vec![Member {
                         addr: contract.to_string(),
-                        weight: self.contract_weight,
+                        points: self.contract_weight,
                     }],
                 },
                 &[],

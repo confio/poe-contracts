@@ -179,7 +179,7 @@ impl SuiteBuilder {
                 .iter()
                 .map(|(addr, weight)| Member {
                     addr: (*addr).to_owned(),
-                    weight: *weight,
+                    points: *weight,
                 })
                 .collect(),
             halflife: halflife.into(),
@@ -226,7 +226,10 @@ impl SuiteBuilder {
 
                 let members = members
                     .into_iter()
-                    .map(|(addr, weight)| Member { addr, weight })
+                    .map(|(addr, weight)| Member {
+                        addr,
+                        points: weight,
+                    })
                     .collect();
 
                 app.instantiate_contract(

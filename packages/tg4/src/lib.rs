@@ -8,6 +8,6 @@ pub use crate::hook::{MemberChangedHookMsg, MemberDiff};
 pub use crate::msg::Tg4ExecuteMsg;
 pub use crate::query::{
     member_key, AdminResponse, HooksResponse, Member, MemberListResponse, MemberResponse,
-    Tg4QueryMsg, TotalWeightResponse, MEMBERS_CHANGELOG, MEMBERS_CHECKPOINTS, MEMBERS_KEY,
+    Tg4QueryMsg, TotalPointsResponse, MEMBERS_CHANGELOG, MEMBERS_CHECKPOINTS, MEMBERS_KEY,
     TOTAL_KEY,
 };

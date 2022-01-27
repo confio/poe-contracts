@@ -193,7 +193,7 @@ mod tests {
         assert_eq!(
             SudoMsg::UpdateMember(Member {
                 addr: "xxx".to_string(),
-                weight: 123
+                points: 123
             }),
             cosmwasm_std::from_slice::<SudoMsg>(message.as_bytes()).unwrap()
         );

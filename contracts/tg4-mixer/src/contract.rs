@@ -17,7 +17,7 @@ use tg_utils::{
 
 use tg4::{
     HooksResponse, Member, MemberChangedHookMsg, MemberDiff, MemberListResponse, MemberResponse,
-    Tg4Contract, TotalWeightResponse,
+    Tg4Contract, TotalPointsResponse,
 };
 
 use crate::error::ContractError;
@@ -109,7 +109,7 @@ fn initialize_members(
             // like calling `list_members` on the right side as well
             let other = groups.right.is_member(&deps.querier, &addr)?;
             if let Some(right) = other {
-                let weight = poe_function.rewards(member.weight, right)?;
+                let weight = poe_function.rewards(member.points, right)?;
                 total += weight;
                 members().save(deps.storage, &addr, &weight, height)?;
             }
@@ -382,9 +382,9 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     }
 }
 
-fn query_total_weight(deps: Deps) -> StdResult<TotalWeightResponse> {
+fn query_total_weight(deps: Deps) -> StdResult<TotalPointsResponse> {
     let weight = TOTAL.load(deps.storage)?;
-    Ok(TotalWeightResponse { weight })
+    Ok(TotalPointsResponse { points: weight })
 }
 
 fn query_groups(deps: Deps) -> StdResult<GroupsResponse> {
@@ -401,7 +401,7 @@ fn query_member(deps: Deps, addr: String, height: Option<u64>) -> StdResult<Memb
         Some(h) => members().may_load_at_height(deps.storage, &addr, h),
         None => members().may_load(deps.storage, &addr),
     }?;
-    Ok(MemberResponse { weight })
+    Ok(MemberResponse { points: weight })
 }
 
 // settings for pagination
@@ -424,7 +424,7 @@ fn list_members(
             let (addr, weight) = item?;
             Ok(Member {
                 addr: addr.into(),
-                weight,
+                points: weight,
             })
         })
         .collect();
@@ -438,7 +438,7 @@ fn list_members_by_weight(
     limit: Option<u32>,
 ) -> StdResult<MemberListResponse> {
     let limit = limit.unwrap_or(DEFAULT_LIMIT).min(MAX_LIMIT) as usize;
-    let start = start_after.map(|m| Bound::exclusive((m.weight, m.addr).joined_key()));
+    let start = start_after.map(|m| Bound::exclusive((m.points, m.addr).joined_key()));
     let members: StdResult<Vec<_>> = members()
         .idx
         .weight
@@ -448,7 +448,7 @@ fn list_members_by_weight(
             let (addr, weight) = item?;
             Ok(Member {
                 addr: addr.into(),
-                weight,
+                points: weight,
             })
         })
         .collect();
@@ -498,7 +498,7 @@ mod tests {
     fn member<T: Into<String>>(addr: T, weight: u64) -> Member {
         Member {
             addr: addr.into(),
-            weight,
+            points: weight,
         }
     }
 
@@ -573,7 +573,7 @@ mod tests {
         // stake any needed tokens
         for staker in stakers {
             // give them a balance
-            let balance = coins(staker.weight as u128, STAKE_DENOM);
+            let balance = coins(staker.points as u128, STAKE_DENOM);
             let caller = Addr::unchecked(staker.addr);
 
             // they stake to the contract
@@ -649,7 +649,7 @@ mod tests {
                     },
                 )
                 .unwrap();
-            o.weight
+            o.points
         };
 
         assert_eq!(weight(OWNER), owner);
@@ -675,7 +675,7 @@ mod tests {
                     .init_balance(
                         storage,
                         &Addr::unchecked(&staker.addr),
-                        coins(staker.weight as u128, STAKE_DENOM),
+                        coins(staker.points as u128, STAKE_DENOM),
                     )
                     .unwrap();
             }
@@ -716,7 +716,7 @@ mod tests {
                     .init_balance(
                         storage,
                         &Addr::unchecked(&staker.addr),
-                        coins(staker.weight as u128, STAKE_DENOM),
+                        coins(staker.points as u128, STAKE_DENOM),
                     )
                     .unwrap();
             }
@@ -771,11 +771,11 @@ mod tests {
             add: vec![
                 Member {
                     addr: VOTER2.into(),
-                    weight: 300,
+                    points: 300,
                 },
                 Member {
                     addr: VOTER3.into(),
-                    weight: 1200,
+                    points: 1200,
                 },
             ],
         };
@@ -818,7 +818,7 @@ mod tests {
                     .init_balance(
                         storage,
                         &Addr::unchecked(&staker.addr),
-                        coins(staker.weight as u128, STAKE_DENOM),
+                        coins(staker.points as u128, STAKE_DENOM),
                     )
                     .unwrap();
             }
@@ -846,11 +846,11 @@ mod tests {
                 add: vec![
                     Member {
                         addr: VOTER2.to_owned(),
-                        weight: 400,
+                        points: 400,
                     },
                     Member {
                         addr: VOTER1.to_owned(),
-                        weight: 8000,
+                        points: 8000,
                     },
                 ],
                 remove: vec![VOTER3.to_owned()],
@@ -892,7 +892,7 @@ mod tests {
                     .init_balance(
                         storage,
                         &Addr::unchecked(&staker.addr),
-                        coins(staker.weight as u128, STAKE_DENOM),
+                        coins(staker.points as u128, STAKE_DENOM),
                     )
                     .unwrap();
             }

@@ -10,7 +10,7 @@ use tg_utils::{Duration, PreauthError};
 fn member(addr: &str, weight: u64) -> Member {
     Member {
         addr: addr.to_owned(),
-        weight,
+        points: weight,
     }
 }
 

@@ -708,7 +708,7 @@ fn calculate_validators(
 
         let filtered: Vec<_> = batch
             .into_iter()
-            .filter(|m| m.weight >= min_weight)
+            .filter(|m| m.points >= min_weight)
             .filter_map(|m| -> Option<StdResult<_>> {
                 // why do we allow Addr::unchecked here?
                 // all valid keys for `operators()` are already validated before insertion
@@ -740,7 +740,7 @@ fn calculate_validators(
                     Ok(ValidatorInfo {
                         operator: m_addr,
                         validator_pubkey: op.pubkey.into(),
-                        power: m.weight * scaling,
+                        power: m.points * scaling,
                     })
                 })
             })
@@ -787,7 +787,7 @@ fn calculate_diff(
             };
             let member = Member {
                 addr: vi.operator.to_string(),
-                weight: vi.power,
+                points: vi.power,
             };
 
             (update, member)
@@ -1001,7 +1001,7 @@ mod test {
             .into_iter()
             .map(|(addr, weight)| Member {
                 addr: addr.to_owned(),
-                weight,
+                points: weight,
             })
             .collect()
     }
