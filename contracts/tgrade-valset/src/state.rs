@@ -109,6 +109,8 @@ pub const JAIL: Map<&Addr, JailingPeriod> = Map::new("jail");
 pub struct OperatorInfo {
     pub pubkey: Ed25519Pubkey,
     pub metadata: ValidatorMetadata,
+    /// Is this an active validator?
+    pub active_validator: bool,
 }
 
 /// This defines the stored and returned data for a slashing event.

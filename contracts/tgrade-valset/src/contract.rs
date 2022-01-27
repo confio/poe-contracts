@@ -94,6 +94,7 @@ pub fn instantiate(
         let info = OperatorInfo {
             pubkey,
             metadata: op.metadata,
+            active_validator: false,
         };
         operators().save(deps.storage, &oper, &info)?;
     }
@@ -203,7 +204,11 @@ fn execute_register_validator_key(
     let pubkey: Ed25519Pubkey = pubkey.try_into()?;
     let moniker = metadata.moniker.clone();
 
-    let operator = OperatorInfo { pubkey, metadata };
+    let operator = OperatorInfo {
+        pubkey,
+        metadata,
+        active_validator: false,
+    };
     match operators().may_load(deps.storage, &info.sender)? {
         Some(_) => return Err(ContractError::OperatorRegistered {}),
         None => operators().save(deps.storage, &info.sender, &operator)?,
@@ -450,6 +455,7 @@ fn list_validator_keys(
                 metadata: info.metadata,
                 pubkey: info.pubkey.into(),
                 jailed_until,
+                active_validator: info.active_validator,
             })
         })
         .take(limit)
@@ -570,7 +576,27 @@ fn end_block(deps: DepsMut, env: Env) -> Result<Response, ContractError> {
     let old_validators = VALIDATORS.load(deps.storage)?;
     VALIDATORS.save(deps.storage, &validators)?;
     // determine the diff to send back to tendermint
-    let (diff, update_members) = calculate_diff(validators, old_validators);
+    let (diff, add, remove) = calculate_diff(validators, old_validators);
+    let update_members = RewardsDistribution::UpdateMembers {
+        add: add.clone(),
+        remove: remove.clone(),
+    };
+
+    // update operators list with info about whether or not they're active validators
+    for op in add {
+        operators().update::<_, StdError>(deps.storage, &Addr::unchecked(op.addr), |op| {
+            let mut op = op.ok_or_else(|| StdError::generic_err("operator doesn't exist"))?;
+            op.active_validator = true;
+            Ok(op)
+        })?;
+    }
+    for op in remove {
+        operators().update::<_, StdError>(deps.storage, &Addr::unchecked(op), |op| {
+            let mut op = op.ok_or_else(|| StdError::generic_err("operator doesn't exist"))?;
+            op.active_validator = false;
+            Ok(op)
+        })?;
+    }
 
     // Store starting heights of new validators
     match &update_members {
@@ -699,7 +725,7 @@ fn calculate_validators(
 fn calculate_diff(
     cur_vals: Vec<ValidatorInfo>,
     old_vals: Vec<ValidatorInfo>,
-) -> (ValidatorDiff, RewardsDistribution) {
+) -> (ValidatorDiff, Vec<Member>, Vec<String>) {
     // Compute additions and updates
     let cur: BTreeSet<_> = cur_vals.iter().collect();
     let old: BTreeSet<_> = old_vals.iter().collect();
@@ -745,10 +771,7 @@ fn calculate_diff(
     // Compute, map and append removals to diffs
     diffs.extend(removed_diff);
 
-    (
-        ValidatorDiff { diffs },
-        RewardsDistribution::UpdateMembers { add, remove },
-    )
+    (ValidatorDiff { diffs }, add, remove)
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
@@ -924,16 +947,14 @@ mod test {
         vals
     }
 
-    fn update_members_msg(remove: Vec<&str>, add: Vec<(&str, u64)>) -> RewardsDistribution {
-        let remove = remove.into_iter().map(str::to_owned).collect();
-        let add = add
+    fn members(members: Vec<(&str, u64)>) -> Vec<Member> {
+        members
             .into_iter()
             .map(|(addr, weight)| Member {
                 addr: addr.to_owned(),
                 weight,
             })
-            .collect();
-        RewardsDistribution::UpdateMembers { add, remove }
+            .collect()
     }
 
     // Unit tests for calculate_diff()
@@ -970,12 +991,12 @@ mod test {
         ];
 
         // diff with itself must be empty
-        let (diff, update_members) = calculate_diff(vals.clone(), vals.clone());
+        let (diff, add, remove) = calculate_diff(vals.clone(), vals.clone());
         assert_eq!(diff.diffs, vec![]);
-        assert_eq!(update_members, update_members_msg(vec![], vec! {}));
+        assert_eq!((add, remove), (vec![], vec![]));
 
         // diff with empty must be itself (additions)
-        let (diff, update_members) = calculate_diff(vals.clone(), empty.clone());
+        let (diff, add, remove) = calculate_diff(vals.clone(), empty.clone());
         assert_eq!(
             vec![
                 ValidatorUpdate {
@@ -989,13 +1010,11 @@ mod test {
             ],
             diff.diffs
         );
-        assert_eq!(
-            update_members,
-            update_members_msg(vec![], vec![("op1", 1), ("op2", 2)])
-        );
+        assert!(remove.is_empty());
+        assert_eq!(add, members(vec![("op1", 1), ("op2", 2)]));
 
         // diff between empty and vals must be removals
-        let (diff, update_members) = calculate_diff(empty, vals.clone());
+        let (diff, add, remove) = calculate_diff(empty, vals.clone());
         assert_eq!(
             vec![
                 ValidatorUpdate {
@@ -1009,10 +1028,8 @@ mod test {
             ],
             diff.diffs
         );
-        assert_eq!(
-            update_members,
-            update_members_msg(vec!["op1", "op2"], vec![])
-        );
+        assert!(add.is_empty());
+        assert_eq!(remove, ["op1", "op2"]);
 
         // Add a new member
         let mut cur = vals.clone();
@@ -1030,7 +1047,7 @@ mod test {
         });
 
         // diff must be add last
-        let (diff, update_members) = calculate_diff(cur, vals.clone());
+        let (diff, add, remove) = calculate_diff(cur, vals.clone());
         assert_eq!(
             vec![ValidatorUpdate {
                 pubkey: Pubkey::Ed25519(b"pubkey3".into()),
@@ -1038,13 +1055,14 @@ mod test {
             },],
             diff.diffs
         );
-        assert_eq!(update_members, update_members_msg(vec![], vec![("op3", 3)]));
+        assert!(remove.is_empty());
+        assert_eq!(add, members(vec![("op3", 3)]));
 
         // add all but (one) last member
         let old: Vec<_> = vals.iter().skip(1).cloned().collect();
 
         // diff must be add all but last
-        let (diff, update_members) = calculate_diff(vals.clone(), old);
+        let (diff, add, remove) = calculate_diff(vals.clone(), old);
         assert_eq!(
             vec![ValidatorUpdate {
                 pubkey: Pubkey::Ed25519(b"pubkey1".into()),
@@ -1052,12 +1070,13 @@ mod test {
             },],
             diff.diffs
         );
-        assert_eq!(update_members, update_members_msg(vec![], vec![("op1", 1)]));
+        assert!(remove.is_empty());
+        assert_eq!(add, members(vec![("op1", 1)]));
 
         // remove last member
         let cur: Vec<_> = vals.iter().take(1).cloned().collect();
         // diff must be remove last
-        let (diff, update_members) = calculate_diff(cur, vals.clone());
+        let (diff, add, remove) = calculate_diff(cur, vals.clone());
         assert_eq!(
             vec![ValidatorUpdate {
                 pubkey: Pubkey::Ed25519(b"pubkey2".into()),
@@ -1065,12 +1084,13 @@ mod test {
             },],
             diff.diffs
         );
-        assert_eq!(update_members, update_members_msg(vec!["op2"], vec![]));
+        assert!(add.is_empty());
+        assert_eq!(remove, ["op2"]);
 
         // remove all but last member
         let cur: Vec<_> = vals.iter().skip(1).cloned().collect();
         // diff must be remove all but last
-        let (diff, update_members) = calculate_diff(cur, vals);
+        let (diff, add, remove) = calculate_diff(cur, vals);
         assert_eq!(
             vec![ValidatorUpdate {
                 pubkey: Pubkey::Ed25519(b"pubkey1".into()),
@@ -1078,8 +1098,8 @@ mod test {
             },],
             diff.diffs
         );
-
-        assert_eq!(update_members, update_members_msg(vec!["op1"], vec![]));
+        assert!(add.is_empty());
+        assert_eq!(remove, ["op1"]);
     }
 
     // TODO: Another 7 in 1 test to be split
@@ -1089,12 +1109,13 @@ mod test {
         let vals = validators(VALIDATORS);
 
         // diff with itself must be empty
-        let (diff, update_members) = calculate_diff(vals.clone(), vals.clone());
+        let (diff, add, remove) = calculate_diff(vals.clone(), vals.clone());
         assert_eq!(diff.diffs, vec![]);
-        assert_eq!(update_members, update_members_msg(vec![], vec![]));
+        assert!(add.is_empty());
+        assert!(remove.is_empty());
 
         // diff with empty must be itself (additions)
-        let (diff, update_members) = calculate_diff(vals.clone(), empty.clone());
+        let (diff, add, remove) = calculate_diff(vals.clone(), empty.clone());
         assert_eq!(
             ValidatorDiff {
                 diffs: vals
@@ -1107,10 +1128,10 @@ mod test {
             },
             diff
         );
+        assert!(remove.is_empty());
         assert_eq!(
-            update_members,
-            update_members_msg(
-                vec![],
+            add,
+            members(
                 vals.iter()
                     .map(|vi| (vi.operator.as_str(), vi.power))
                     .collect()
@@ -1118,7 +1139,7 @@ mod test {
         );
 
         // diff between empty and vals must be removals
-        let (diff, update_members) = calculate_diff(empty, vals.clone());
+        let (diff, add, remove) = calculate_diff(empty, vals.clone());
         assert_eq!(
             ValidatorDiff {
                 diffs: vals
@@ -1131,16 +1152,19 @@ mod test {
             },
             diff
         );
+        assert!(add.is_empty());
         assert_eq!(
-            update_members,
-            update_members_msg(vals.iter().map(|vi| vi.operator.as_str()).collect(), vec![])
+            remove,
+            vals.iter()
+                .map(|vi| vi.operator.as_str())
+                .collect::<Vec<_>>()
         );
 
         // Add a new member
         let cur = validators(VALIDATORS + 1);
 
         // diff must be add last
-        let (diff, update_members) = calculate_diff(cur.clone(), vals.clone());
+        let (diff, add, remove) = calculate_diff(cur.clone(), vals.clone());
         assert_eq!(
             ValidatorDiff {
                 diffs: vec![ValidatorUpdate {
@@ -1150,22 +1174,20 @@ mod test {
             },
             diff
         );
+        assert!(remove.is_empty());
         assert_eq!(
-            update_members,
-            update_members_msg(
-                vec![],
-                vec![(
-                    cur.last().as_ref().unwrap().operator.as_str(),
-                    (VALIDATORS + 1) as u64
-                )]
-            )
+            add,
+            members(vec![(
+                cur.last().as_ref().unwrap().operator.as_str(),
+                (VALIDATORS + 1) as u64
+            )])
         );
 
         // add all but (one) last member
         let old: Vec<_> = vals.iter().skip(VALIDATORS - 1).cloned().collect();
 
         // diff must be add all but last
-        let (diff, update_members) = calculate_diff(vals.clone(), old);
+        let (diff, add, remove) = calculate_diff(vals.clone(), old);
         assert_eq!(
             ValidatorDiff {
                 diffs: vals
@@ -1179,10 +1201,10 @@ mod test {
             },
             diff
         );
+        assert!(remove.is_empty());
         assert_eq!(
-            update_members,
-            update_members_msg(
-                vec![],
+            add,
+            members(
                 vals.iter()
                     .take(VALIDATORS - 1)
                     .map(|vi| (vi.operator.as_ref(), vi.power))
@@ -1193,7 +1215,7 @@ mod test {
         // remove last member
         let cur: Vec<_> = vals.iter().take(VALIDATORS - 1).cloned().collect();
         // diff must be remove last
-        let (diff, update_members) = calculate_diff(cur, vals.clone());
+        let (diff, add, remove) = calculate_diff(cur, vals.clone());
         assert_eq!(
             ValidatorDiff {
                 diffs: vec![ValidatorUpdate {
@@ -1203,15 +1225,13 @@ mod test {
             },
             diff
         );
-        assert_eq!(
-            update_members,
-            update_members_msg(vec![vals.last().unwrap().operator.as_ref()], vec![])
-        );
+        assert!(add.is_empty());
+        assert_eq!(remove, vec![vals.last().unwrap().operator.as_ref()]);
 
         // remove all but last member
         let cur: Vec<_> = vals.iter().skip(VALIDATORS - 1).cloned().collect();
         // diff must be remove all but last
-        let (diff, update_members) = calculate_diff(cur, vals.clone());
+        let (diff, add, remove) = calculate_diff(cur, vals.clone());
         assert_eq!(
             ValidatorDiff {
                 diffs: vals
@@ -1225,15 +1245,13 @@ mod test {
             },
             diff
         );
+        assert!(add.is_empty());
         assert_eq!(
-            update_members,
-            update_members_msg(
-                vals.iter()
-                    .take(VALIDATORS - 1)
-                    .map(|vi| vi.operator.as_ref())
-                    .collect(),
-                vec![]
-            )
+            remove,
+            vals.iter()
+                .take(VALIDATORS - 1)
+                .map(|vi| vi.operator.as_ref())
+                .collect::<Vec<_>>()
         );
     }
 }
