@@ -99,7 +99,7 @@ fn validators_query_pagination() {
     // List only first 3
     assert_active_validators(
         &suite.list_active_validators(None, 3).unwrap(),
-        &[(members[0], 2), (members[1], 3), (members[2], 5)],
+        &[(members[2], 5), (members[3], 8), (members[4], 4)],
     );
 
     // List 2 entries after 2rd validator
@@ -107,7 +107,7 @@ fn validators_query_pagination() {
         &suite
             .list_active_validators(members[1].to_owned(), 2)
             .unwrap(),
-        &[(members[2], 5), (members[3], 8)],
+        &[(members[0], 2), (members[1], 3)],
     );
 
     // Starting at unknown validator will return empty query result

@@ -86,6 +86,8 @@ pub fn instantiate(
     };
     EPOCH.save(deps.storage, &epoch)?;
 
+    VALIDATORS.save(deps.storage, &vec![])?;
+
     for op in msg.initial_keys.into_iter() {
         let oper = deps.api.addr_validate(&op.operator)?;
         let pubkey: Ed25519Pubkey = op.validator_pubkey.try_into()?;
@@ -473,18 +475,30 @@ fn list_active_validators(
     start_after: Option<String>,
     limit: Option<u32>,
 ) -> Result<ListActiveValidatorsResponse, ContractError> {
-    let limit = limit.unwrap_or(DEFAULT_LIMIT).min(MAX_LIMIT) as usize;
-    let start_after = maybe_addr(deps.api, start_after)?;
-    let start = start_after.map(|addr| Bound::exclusive(addr.as_str()));
+    let validators = VALIDATORS.load(deps.storage)?;
 
-    let validators = VALIDATORS
-        .range(deps.storage, start, None, Order::Ascending)
-        .map(|validator_info| {
-            let (_, info) = validator_info?;
-            Ok(info)
-        })
-        .take(limit)
-        .collect::<StdResult<Vec<ValidatorInfo>>>()?;
+    let limit = limit
+        .unwrap_or(DEFAULT_LIMIT)
+        .min(MAX_LIMIT)
+        .min(validators.len() as u32) as usize;
+    let start_after = maybe_addr(deps.api, start_after)?;
+
+    let validator = if let Some(start_after) = start_after {
+        validators
+            .iter()
+            .position(|info| info.operator.clone() == start_after)
+    } else {
+        Some(0)
+    };
+
+    let validators = if let Some(validator) = validator {
+        validators.get(validator..validator + limit)
+    } else {
+        None
+    }
+    .unwrap_or(&[])
+    .to_vec();
+
     Ok(ListActiveValidatorsResponse { validators })
 }
 
@@ -587,21 +601,8 @@ fn end_block(deps: DepsMut, env: Env) -> Result<Response, ContractError> {
         JAIL.remove(deps.storage, addr)
     }
 
-    // First iteration - load all validators, second - remove all, third - add all new
-    // Not very efficient...
-    let old_validators = VALIDATORS
-        .range(deps.storage, None, None, Order::Descending)
-        .map(|validator_info| {
-            let (_, info) = validator_info?;
-            Ok(info)
-        })
-        .collect::<StdResult<Vec<ValidatorInfo>>>()?;
-    for validator in &old_validators {
-        VALIDATORS.remove(deps.storage, &validator.operator);
-    }
-    for validator in &validators {
-        VALIDATORS.save(deps.storage, &validator.operator, validator)?;
-    }
+    let old_validators = VALIDATORS.load(deps.storage)?;
+    VALIDATORS.save(deps.storage, &validators)?;
 
     // determine the diff to send back to tendermint
     let (diff, add, remove) = calculate_diff(validators, old_validators);
