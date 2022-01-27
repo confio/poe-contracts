@@ -281,8 +281,10 @@ pub enum QueryMsg {
     },
 
     /// List the current validator set, sorted by power descending
-    /// (no pagination - reasonable limit from max_validators)
-    ListActiveValidators {},
+    ListActiveValidators {
+        start_after: Option<String>,
+        limit: Option<u32>,
+    },
 
     /// This will calculate who the new validators would be if
     /// we recalculated end block right now.

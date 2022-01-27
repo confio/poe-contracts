@@ -308,7 +308,7 @@ fn enb_block_ignores_jailed_validators() {
     suite.advance_epoch().unwrap();
 
     assert_active_validators(
-        &suite.list_active_validators().unwrap(),
+        &suite.list_active_validators(None, None).unwrap(),
         &[(members[2], 5), (members[3], 8)],
     );
 }

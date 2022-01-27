@@ -671,11 +671,18 @@ impl Suite {
         Ok(resp.validators)
     }
 
-    pub fn list_active_validators(&self) -> StdResult<Vec<ValidatorInfo>> {
-        let resp: ListActiveValidatorsResponse = self
-            .app
-            .wrap()
-            .query_wasm_smart(self.valset.clone(), &QueryMsg::ListActiveValidators {})?;
+    pub fn list_active_validators(
+        &self,
+        start_after: impl Into<Option<String>>,
+        limit: impl Into<Option<u32>>,
+    ) -> StdResult<Vec<ValidatorInfo>> {
+        let resp: ListActiveValidatorsResponse = self.app.wrap().query_wasm_smart(
+            self.valset.clone(),
+            &QueryMsg::ListActiveValidators {
+                start_after: start_after.into(),
+                limit: limit.into(),
+            },
+        )?;
 
         Ok(resp.validators)
     }

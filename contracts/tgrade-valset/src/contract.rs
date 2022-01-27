@@ -1,4 +1,4 @@
-use std::cmp::max;
+use std::cmp::{max, min};
 use std::collections::BTreeSet;
 use std::convert::TryInto;
 
@@ -380,7 +380,11 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> Result<Binary, ContractErro
             start_after,
             limit,
         )?)?),
-        ListActiveValidators {} => Ok(to_binary(&list_active_validators(deps, env)?)?),
+        ListActiveValidators { start_after, limit } => Ok(to_binary(&list_active_validators(
+            deps,
+            start_after,
+            limit,
+        )?)?),
         SimulateActiveValidators {} => Ok(to_binary(&simulate_active_validators(deps, env)?)?),
         ListValidatorSlashing { operator } => {
             Ok(to_binary(&list_validator_slashing(deps, env, operator)?)?)
@@ -468,10 +472,28 @@ fn list_validator_keys(
 
 fn list_active_validators(
     deps: Deps,
-    _env: Env,
+    start_after: Option<String>,
+    limit: Option<u32>,
 ) -> Result<ListActiveValidatorsResponse, ContractError> {
+    let limit = limit.unwrap_or(DEFAULT_LIMIT).min(MAX_LIMIT) as usize;
+    let start_after = maybe_addr(deps.api, start_after)?;
+
     let validators = VALIDATORS.load(deps.storage)?;
-    Ok(ListActiveValidatorsResponse { validators })
+    // Simulate a range query
+    let mut i = 0;
+    if let Some(start_after) = start_after {
+        for v in &validators {
+            if v.operator == start_after {
+                i += 1;
+                break;
+            }
+            i += 1;
+        }
+    }
+    let validators = &validators[i..min(i + limit, validators.len())];
+    Ok(ListActiveValidatorsResponse {
+        validators: Vec::from(validators),
+    })
 }
 
 fn simulate_active_validators(
@@ -574,6 +596,7 @@ fn end_block(deps: DepsMut, env: Env) -> Result<Response, ContractError> {
     }
 
     let old_validators = VALIDATORS.load(deps.storage)?;
+
     VALIDATORS.save(deps.storage, &validators)?;
     // determine the diff to send back to tendermint
     let (diff, add, remove) = calculate_diff(validators, old_validators);

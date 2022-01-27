@@ -39,7 +39,7 @@ fn init_and_query_state() {
     );
 
     // no initial active set
-    let active = suite.list_active_validators().unwrap();
+    let active = suite.list_active_validators(None, None).unwrap();
     assert_eq!(active, vec![]);
 
     // check a validator is set
@@ -82,7 +82,7 @@ fn simulate_validators() {
 
     // what do we expect?
     // 1..24 have pubkeys registered, we take the top 10, but none have stake yet, so zero
-    let active = suite.list_active_validators().unwrap();
+    let active = suite.list_active_validators(None, None).unwrap();
     assert_eq!(0, active.len());
 
     // One member bonds needed tokens to have enough weight
