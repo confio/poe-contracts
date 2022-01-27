@@ -54,7 +54,7 @@ pub fn pay_block_rewards(
             reward_pool -= reward;
             messages.push(SubMsg::new(WasmMsg::Execute {
                 contract_addr: contract.contract.to_string(),
-                msg: to_binary(&DistributionMsg::DistributeFunds {})?,
+                msg: to_binary(&DistributionMsg::DistributeRewards {})?,
                 funds: coins(reward.into(), &block_reward.denom),
             }));
         }
@@ -64,7 +64,7 @@ pub fn pay_block_rewards(
     if reward_pool > Uint128::zero() {
         messages.push(SubMsg::new(WasmMsg::Execute {
             contract_addr: config.rewards_contract.to_string(),
-            msg: to_binary(&RewardsDistribution::DistributeFunds {})?,
+            msg: to_binary(&RewardsDistribution::DistributeRewards {})?,
             funds: coins(reward_pool.into(), &block_reward.denom),
         }));
     }

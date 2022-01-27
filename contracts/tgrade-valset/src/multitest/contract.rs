@@ -16,7 +16,7 @@ fn initialization() {
         .with_operators(&members)
         .with_epoch_reward(coin(100, "eth"))
         .with_max_validators(10)
-        .with_min_weight(5)
+        .with_min_points(5)
         .with_epoch_length(3600)
         .build();
 
@@ -27,7 +27,7 @@ fn initialization() {
             // This one it is basically assumed is set correctly. Other tests tests if behavior
             // of relation between those contract is correct
             membership: config.membership.clone(),
-            min_weight: 5,
+            min_points: 5,
             max_validators: 10,
             epoch_reward: coin(100, "eth"),
             scaling: None,
@@ -80,7 +80,7 @@ fn validators_query_pagination() {
         .with_operators(&members)
         .with_epoch_reward(coin(100, "eth"))
         .with_max_validators(10)
-        .with_min_weight(2)
+        .with_min_points(2)
         .with_epoch_length(3600)
         .build();
 
@@ -127,7 +127,7 @@ fn simulate_validators() {
         .with_engagement(&members_init(&members, &[2, 3, 5, 8, 13, 21]))
         .with_operators(&members)
         .with_max_validators(2)
-        .with_min_weight(5)
+        .with_min_points(5)
         .build();
 
     assert_active_validators(
@@ -195,7 +195,7 @@ fn list_validators() {
     let suite = SuiteBuilder::new()
         .with_engagement(&members_init(&members, &[2, 3, 5, 8, 13, 21]))
         .with_operators(&members)
-        .with_min_weight(5)
+        .with_min_points(5)
         .build();
 
     assert_operators(
@@ -216,7 +216,7 @@ fn list_validators_paginated() {
     let suite = SuiteBuilder::new()
         .with_engagement(&members_init(&members, &[2, 3, 5, 8, 13, 21]))
         .with_operators(&members)
-        .with_min_weight(5)
+        .with_min_points(5)
         .build();
 
     let page1 = suite.list_validators(None, 2).unwrap();

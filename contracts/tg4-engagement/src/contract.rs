@@ -699,7 +699,7 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
             at_height: height,
         } => to_binary(&query_member(deps, addr, height)?),
         ListMembers { start_after, limit } => to_binary(&list_members(deps, start_after, limit)?),
-        ListMembersByWeight { start_after, limit } => {
+        ListMembersByPoints { start_after, limit } => {
             to_binary(&list_members_by_weight(deps, start_after, limit)?)
         }
         TotalPoints {} => to_binary(&query_total_weight(deps)?),

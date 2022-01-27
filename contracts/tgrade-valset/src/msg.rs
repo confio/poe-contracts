@@ -18,11 +18,11 @@ pub struct InstantiateMsg {
     pub admin: Option<String>,
     /// Address of a cw4 contract with the raw membership used to feed the validator set
     pub membership: String,
-    /// Minimum weight needed by an address in `membership` to be considered for the validator set.
-    /// 0-weight members are always filtered out.
+    /// Minimum points needed by an address in `membership` to be considered for the validator set.
+    /// 0-point members are always filtered out.
     /// TODO: if we allow sub-1 scaling factors, determine if this is pre-/post- scaling
-    /// (use weight for cw4, power for Tendermint)
-    pub min_weight: u64,
+    /// (use points for cw4, power for Tendermint)
+    pub min_points: u64,
     /// The maximum number of validators that can be included in the Tendermint validator set.
     /// If there are more validators than slots, we select the top N by membership weight
     /// descending. (In case of ties at the last slot, select by "first" Tendermint pubkey,
@@ -151,7 +151,7 @@ impl InstantiateMsg {
         if self.epoch_length == 0 {
             return Err(ContractError::InvalidEpoch {});
         }
-        if self.min_weight == 0 {
+        if self.min_points == 0 {
             return Err(ContractError::InvalidMinWeight {});
         }
         if self.max_validators == 0 {
@@ -228,7 +228,7 @@ pub enum ExecuteMsg {
     },
     /// Alter config values
     UpdateConfig {
-        min_weight: Option<u64>,
+        min_points: Option<u64>,
         max_validators: Option<u32>,
     },
     /// Links info.sender (operator) to this Tendermint consensus key.
@@ -405,7 +405,7 @@ pub struct ListValidatorSlashingResponse {
 pub enum DistributionMsg {
     /// Message sent to `distribution_contract` with funds which are part of the reward to be split
     /// between engaged operators
-    DistributeFunds {},
+    DistributeRewards {},
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
@@ -423,7 +423,7 @@ pub enum RewardsDistribution {
         remove: Vec<String>,
         add: Vec<Member>,
     },
-    DistributeFunds {},
+    DistributeRewards {},
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
@@ -435,7 +435,7 @@ pub struct InstantiateResponse {
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
 pub struct MigrateMsg {
-    pub min_weight: Option<u64>,
+    pub min_points: Option<u64>,
     pub max_validators: Option<u32>,
 }
 
@@ -458,7 +458,7 @@ mod test {
         let proper = InstantiateMsg {
             admin: None,
             membership: "contract-addr".into(),
-            min_weight: 5,
+            min_points: 5,
             max_validators: 20,
             epoch_length: 5000,
             epoch_reward: coin(7777, "foobar"),
@@ -485,7 +485,7 @@ mod test {
 
         // fails on 0 min weight
         let mut invalid = proper.clone();
-        invalid.min_weight = 0;
+        invalid.min_points = 0;
         let err = invalid.validate().unwrap_err();
         assert_eq!(err, ContractError::InvalidMinWeight {});
 

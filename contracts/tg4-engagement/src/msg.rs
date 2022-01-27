@@ -85,7 +85,7 @@ pub enum QueryMsg {
         limit: Option<u32>,
     },
     /// Returns MemberListResponse, sorted by weight descending
-    ListMembersByWeight {
+    ListMembersByPoints {
         start_after: Option<Member>,
         limit: Option<u32>,
     },

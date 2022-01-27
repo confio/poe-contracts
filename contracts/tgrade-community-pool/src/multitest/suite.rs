@@ -237,7 +237,7 @@ impl Suite {
         self.app.execute_contract(
             self.owner.clone(),
             self.contract.clone(),
-            &ExecuteMsg::DistributeFunds {},
+            &ExecuteMsg::DistributeRewards {},
             &[coin(amount, self.group_token.clone())],
         )
     }

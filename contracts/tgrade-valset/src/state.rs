@@ -12,17 +12,17 @@ use tg_bindings::{Ed25519Pubkey, Pubkey};
 pub struct Config {
     /// address of a tg4 contract with the raw membership used to feed the validator set
     pub membership: Tg4Contract,
-    /// minimum weight needed by an address in `membership` to be considered for the validator set.
-    /// 0-weight members are always filtered out.
+    /// minimum points needed by an address in `membership` to be considered for the validator set.
+    /// 0-point members are always filtered out.
     /// TODO: if we allow sub-1 scaling factors, determine if this is pre-/post- scaling
-    /// (use weight for tg4, power for tendermint)
-    pub min_weight: u64,
+    /// (use points for tg4, power for tendermint)
+    pub min_points: u64,
     /// The maximum number of validators that can be included in the Tendermint validator set.
     /// If there are more validators than slots, we select the top N by membership weight
     /// descending. (In case of ties at the last slot, select by "first" tendermint pubkey
     /// lexicographically sorted).
     pub max_validators: u32,
-    /// A scaling factor to multiply tg4-engagement weights to produce the tendermint validator power
+    /// A scaling factor to multiply tg4-engagement points to produce the tendermint validator power
     /// (TODO: should we allow this to reduce weight? Like 1/1000?)
     pub scaling: Option<u32>,
     /// Total reward paid out each epoch. This will be split among all validators during the last

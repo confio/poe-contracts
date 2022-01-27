@@ -65,7 +65,7 @@ pub fn instantiate(
 
     let cfg = Config {
         membership,
-        min_weight: msg.min_weight,
+        min_points: msg.min_points,
         max_validators: msg.max_validators,
         scaling: msg.scaling,
         epoch_reward: msg.epoch_reward,
@@ -153,7 +153,7 @@ pub fn execute(
             admin.map(|admin| api.addr_validate(&admin)).transpose()?,
         )?),
         ExecuteMsg::UpdateConfig {
-            min_weight,
+            min_points: min_weight,
             max_validators,
         } => execute_update_config(deps, info, min_weight, max_validators),
 
@@ -183,7 +183,7 @@ fn execute_update_config(
 
     CONFIG.update::<_, StdError>(deps.storage, |mut cfg| {
         if let Some(min_weight) = min_weight {
-            cfg.min_weight = min_weight;
+            cfg.min_points = min_weight;
         }
         if let Some(max_validators) = max_validators {
             cfg.max_validators = max_validators;
@@ -693,7 +693,7 @@ fn calculate_validators(
 ) -> Result<(Vec<ValidatorInfo>, Vec<Addr>), ContractError> {
     let cfg = CONFIG.load(deps.storage)?;
 
-    let min_weight = max(cfg.min_weight, 1);
+    let min_weight = max(cfg.min_points, 1);
     let scaling: u64 = cfg.scaling.unwrap_or(1).into();
 
     // get all validators from the contract, filtered
@@ -828,8 +828,8 @@ pub fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> Result<Response, Co
     ensure_from_older_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
 
     CONFIG.update::<_, StdError>(deps.storage, |mut cfg| {
-        if let Some(min_weight) = msg.min_weight {
-            cfg.min_weight = min_weight;
+        if let Some(min_weight) = msg.min_points {
+            cfg.min_points = min_weight;
         }
         if let Some(max_validators) = msg.max_validators {
             cfg.max_validators = max_validators;
