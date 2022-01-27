@@ -450,9 +450,9 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
         } => to_binary(&query_member(deps, addr, height)?),
         ListMembers { start_after, limit } => to_binary(&list_members(deps, start_after, limit)?),
         ListMembersByPoints { start_after, limit } => {
-            to_binary(&list_members_by_weight(deps, start_after, limit)?)
+            to_binary(&list_members_by_points(deps, start_after, limit)?)
         }
-        TotalPoints {} => to_binary(&query_total_weight(deps)?),
+        TotalPoints {} => to_binary(&query_total_points(deps)?),
         Claims {
             address,
             limit,
@@ -489,13 +489,10 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     }
 }
 
-fn query_total_weight(deps: Deps) -> StdResult<TotalPointsResponse> {
-    let weight = TOTAL.load(deps.storage)?;
+fn query_total_points(deps: Deps) -> StdResult<TotalPointsResponse> {
+    let points = TOTAL.load(deps.storage)?;
     let denom = CONFIG.load(deps.storage)?.denom;
-    Ok(TotalPointsResponse {
-        points: weight,
-        denom,
-    })
+    Ok(TotalPointsResponse { points, denom })
 }
 
 pub fn query_staked(deps: Deps, addr: String) -> StdResult<StakedResponse> {
@@ -534,10 +531,10 @@ fn list_members(
         .range(deps.storage, start, None, Order::Ascending)
         .take(limit)
         .map(|item| {
-            let (addr, weight) = item?;
+            let (addr, points) = item?;
             Ok(Member {
                 addr: addr.into(),
-                points: weight,
+                points,
             })
         })
         .collect();
@@ -545,7 +542,7 @@ fn list_members(
     Ok(MemberListResponse { members: members? })
 }
 
-fn list_members_by_weight(
+fn list_members_by_points(
     deps: Deps,
     start_after: Option<Member>,
     limit: Option<u32>,
@@ -555,14 +552,14 @@ fn list_members_by_weight(
 
     let members: StdResult<Vec<_>> = members()
         .idx
-        .weight
+        .points
         .range(deps.storage, None, start, Order::Descending)
         .take(limit)
         .map(|item| {
-            let (addr, weight) = item?;
+            let (addr, points) = item?;
             Ok(Member {
                 addr: addr.into(),
-                points: weight,
+                points,
             })
         })
         .collect();
@@ -669,7 +666,7 @@ mod tests {
         let res = ADMIN.query_admin(deps.as_ref()).unwrap();
         assert_eq!(Some(INIT_ADMIN.into()), res.admin);
 
-        let res = query_total_weight(deps.as_ref()).unwrap();
+        let res = query_total_points(deps.as_ref()).unwrap();
         assert_eq!(0, res.points);
         assert_eq!("stake".to_owned(), res.denom);
 
@@ -859,7 +856,7 @@ mod tests {
 
         bond(deps.as_mut(), 11_000, 6_500, 5_000, 1);
 
-        let members = list_members_by_weight(deps.as_ref(), None, None)
+        let members = list_members_by_points(deps.as_ref(), None, None)
             .unwrap()
             .members;
         assert_eq!(members.len(), 3);
@@ -883,7 +880,7 @@ mod tests {
         );
 
         // Test pagination / limits
-        let members = list_members_by_weight(deps.as_ref(), None, Some(1))
+        let members = list_members_by_points(deps.as_ref(), None, Some(1))
             .unwrap()
             .members;
         assert_eq!(members.len(), 1);
@@ -899,7 +896,7 @@ mod tests {
         // Next page
         let last = members.last().unwrap();
         let start_after = Some(last.clone());
-        let members = list_members_by_weight(deps.as_ref(), start_after, None)
+        let members = list_members_by_points(deps.as_ref(), start_after, None)
             .unwrap()
             .members;
         assert_eq!(members.len(), 2);
@@ -921,7 +918,7 @@ mod tests {
         // Assert there's no more
         let last = members.last().unwrap();
         let start_after = Some(last.clone());
-        let members = list_members_by_weight(deps.as_ref(), start_after, Some(1))
+        let members = list_members_by_points(deps.as_ref(), start_after, Some(1))
             .unwrap()
             .members;
         assert_eq!(members.len(), 0);

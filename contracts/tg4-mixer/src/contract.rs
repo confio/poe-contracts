@@ -353,9 +353,9 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
         } => to_binary(&query_member(deps, addr, height)?),
         ListMembers { start_after, limit } => to_binary(&list_members(deps, start_after, limit)?),
         ListMembersByPoints { start_after, limit } => {
-            to_binary(&list_members_by_weight(deps, start_after, limit)?)
+            to_binary(&list_members_by_points(deps, start_after, limit)?)
         }
-        TotalPoints {} => to_binary(&query_total_weight(deps)?),
+        TotalPoints {} => to_binary(&query_total_points(deps)?),
         Groups {} => to_binary(&query_groups(deps)?),
         Hooks {} => {
             let hooks = HOOKS.list_hooks(deps.storage)?;
@@ -370,7 +370,7 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
             engagement,
             poe_function,
         } => {
-            let reward = query_reward_function(deps, stake.u64(), engagement.u64(), poe_function)
+            let reward = query_mixer_function(deps, stake.u64(), engagement.u64(), poe_function)
                 .map_err(|err| StdError::generic_err(err.to_string()))?;
             to_binary(&MixerFunctionResponse { points: reward })
         }
@@ -382,9 +382,9 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     }
 }
 
-fn query_total_weight(deps: Deps) -> StdResult<TotalPointsResponse> {
-    let weight = TOTAL.load(deps.storage)?;
-    Ok(TotalPointsResponse { points: weight })
+fn query_total_points(deps: Deps) -> StdResult<TotalPointsResponse> {
+    let points = TOTAL.load(deps.storage)?;
+    Ok(TotalPointsResponse { points })
 }
 
 fn query_groups(deps: Deps) -> StdResult<GroupsResponse> {
@@ -397,11 +397,11 @@ fn query_groups(deps: Deps) -> StdResult<GroupsResponse> {
 
 fn query_member(deps: Deps, addr: String, height: Option<u64>) -> StdResult<MemberResponse> {
     let addr = deps.api.addr_validate(&addr)?;
-    let weight = match height {
+    let points = match height {
         Some(h) => members().may_load_at_height(deps.storage, &addr, h),
         None => members().may_load(deps.storage, &addr),
     }?;
-    Ok(MemberResponse { points: weight })
+    Ok(MemberResponse { points })
 }
 
 // settings for pagination
@@ -421,10 +421,10 @@ fn list_members(
         .range(deps.storage, start, None, Order::Ascending)
         .take(limit)
         .map(|item| {
-            let (addr, weight) = item?;
+            let (addr, points) = item?;
             Ok(Member {
                 addr: addr.into(),
-                points: weight,
+                points,
             })
         })
         .collect();
@@ -432,7 +432,7 @@ fn list_members(
     Ok(MemberListResponse { members: members? })
 }
 
-fn list_members_by_weight(
+fn list_members_by_points(
     deps: Deps,
     start_after: Option<Member>,
     limit: Option<u32>,
@@ -441,14 +441,14 @@ fn list_members_by_weight(
     let start = start_after.map(|m| Bound::exclusive((m.points, m.addr).joined_key()));
     let members: StdResult<Vec<_>> = members()
         .idx
-        .weight
+        .points
         .range(deps.storage, None, start, Order::Descending)
         .take(limit)
         .map(|item| {
-            let (addr, weight) = item?;
+            let (addr, points) = item?;
             Ok(Member {
                 addr: addr.into(),
-                points: weight,
+                points,
             })
         })
         .collect();
@@ -456,7 +456,7 @@ fn list_members_by_weight(
     Ok(MemberListResponse { members: members? })
 }
 
-pub fn query_reward_function(
+pub fn query_mixer_function(
     deps: Deps,
     stake: u64,
     engagement: u64,

@@ -138,8 +138,10 @@ pub fn execute(
         AddPoints { addr, points } => execute_add_points(deps, env, info, addr, points),
         AddHook { addr } => execute_add_hook(deps, info, addr),
         RemoveHook { addr } => execute_remove_hook(deps, info, addr),
-        DistributeRewards { sender } => execute_distribute_tokens(deps, env, info, sender),
-        WithdrawRewards { owner, receiver } => execute_withdraw_tokens(deps, info, owner, receiver),
+        DistributeRewards { sender } => execute_distribute_rewards(deps, env, info, sender),
+        WithdrawRewards { owner, receiver } => {
+            execute_withdraw_rewards(deps, info, owner, receiver)
+        }
         DelegateWithdrawal { delegated } => execute_delegate_withdrawal(deps, info, delegated),
         AddSlasher { addr } => execute_add_slasher(deps, info, addr),
         RemoveSlasher { addr } => execute_remove_slasher(deps, info, addr),
@@ -251,7 +253,7 @@ pub fn execute_update_members(
     Ok(res)
 }
 
-pub fn execute_distribute_tokens(
+pub fn execute_distribute_rewards(
     deps: DepsMut,
     env: Env,
     info: MessageInfo,
@@ -307,7 +309,7 @@ pub fn execute_distribute_tokens(
     Ok(resp)
 }
 
-pub fn execute_withdraw_tokens(
+pub fn execute_withdraw_rewards(
     deps: DepsMut,
     info: MessageInfo,
     owner: Option<String>,
@@ -327,7 +329,7 @@ pub fn execute_withdraw_tokens(
         ));
     }
 
-    let token = withdrawable_funds(deps.as_ref(), &owner, &distribution, &adjustment)?;
+    let token = withdrawable_rewards(deps.as_ref(), &owner, &distribution, &adjustment)?;
     let receiver = receiver
         .map(|receiver| deps.api.addr_validate(&receiver))
         .transpose()?
@@ -490,8 +492,8 @@ pub fn execute_slash(
     Ok(res)
 }
 
-/// Calculates withdrawable funds from distribution and adjustment info.
-pub fn withdrawable_funds(
+/// Calculates withdrawable_rewards from distribution and adjustment info.
+pub fn withdrawable_rewards(
     deps: Deps,
     owner: &Addr,
     distribution: &Distribution,
@@ -700,9 +702,9 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
         } => to_binary(&query_member(deps, addr, height)?),
         ListMembers { start_after, limit } => to_binary(&list_members(deps, start_after, limit)?),
         ListMembersByPoints { start_after, limit } => {
-            to_binary(&list_members_by_weight(deps, start_after, limit)?)
+            to_binary(&list_members_by_points(deps, start_after, limit)?)
         }
-        TotalPoints {} => to_binary(&query_total_weight(deps)?),
+        TotalPoints {} => to_binary(&query_total_points(deps)?),
         Admin {} => to_binary(&ADMIN.query_admin(deps)?),
         Hooks {} => {
             let hooks = HOOKS.list_hooks(deps.storage)?;
@@ -712,9 +714,9 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
             let preauths = PREAUTH_HOOKS.get_auth(deps.storage)?;
             to_binary(&PreauthResponse { preauths })
         }
-        WithdrawableRewards { owner } => to_binary(&query_withdrawable_funds(deps, owner)?),
-        DistributedRewards {} => to_binary(&query_distributed_total(deps)?),
-        UndistributedRewards {} => to_binary(&query_undistributed_funds(deps, env)?),
+        WithdrawableRewards { owner } => to_binary(&query_withdrawable_rewards(deps, owner)?),
+        DistributedRewards {} => to_binary(&query_distributed_rewards(deps)?),
+        UndistributedRewards {} => to_binary(&query_undistributed_rewards(deps, env)?),
         Delegated { owner } => to_binary(&query_delegated(deps, owner)?),
         Halflife {} => to_binary(&query_halflife(deps)?),
         IsSlasher { addr } => {
@@ -730,21 +732,21 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
     }
 }
 
-fn query_total_weight(deps: Deps) -> StdResult<TotalPointsResponse> {
-    let weight = TOTAL.load(deps.storage)?;
-    Ok(TotalPointsResponse { points: weight })
+fn query_total_points(deps: Deps) -> StdResult<TotalPointsResponse> {
+    let points = TOTAL.load(deps.storage)?;
+    Ok(TotalPointsResponse { points })
 }
 
 fn query_member(deps: Deps, addr: String, height: Option<u64>) -> StdResult<MemberResponse> {
     let addr = deps.api.addr_validate(&addr)?;
-    let weight = match height {
+    let points = match height {
         Some(h) => members().may_load_at_height(deps.storage, &addr, h),
         None => members().may_load(deps.storage, &addr),
     }?;
-    Ok(MemberResponse { points: weight })
+    Ok(MemberResponse { points })
 }
 
-pub fn query_withdrawable_funds(deps: Deps, owner: String) -> StdResult<RewardsResponse> {
+pub fn query_withdrawable_rewards(deps: Deps, owner: String) -> StdResult<RewardsResponse> {
     // Not checking address, as if it is ivnalid it is guaranteed not to appear in maps, so
     // `withdrawable_funds` would return error itself.
     let owner = Addr::unchecked(&owner);
@@ -757,11 +759,11 @@ pub fn query_withdrawable_funds(deps: Deps, owner: String) -> StdResult<RewardsR
         });
     };
 
-    let token = withdrawable_funds(deps, &owner, &distribution, &adjustment)?;
+    let token = withdrawable_rewards(deps, &owner, &distribution, &adjustment)?;
     Ok(RewardsResponse { rewards: token })
 }
 
-pub fn query_undistributed_funds(deps: Deps, env: Env) -> StdResult<RewardsResponse> {
+pub fn query_undistributed_rewards(deps: Deps, env: Env) -> StdResult<RewardsResponse> {
     let distribution = DISTRIBUTION.load(deps.storage)?;
     let balance = deps
         .querier
@@ -776,7 +778,7 @@ pub fn query_undistributed_funds(deps: Deps, env: Env) -> StdResult<RewardsRespo
     })
 }
 
-pub fn query_distributed_total(deps: Deps) -> StdResult<RewardsResponse> {
+pub fn query_distributed_rewards(deps: Deps) -> StdResult<RewardsResponse> {
     let distribution = DISTRIBUTION.load(deps.storage)?;
     Ok(RewardsResponse {
         rewards: coin(distribution.distributed_total.into(), &distribution.denom),
@@ -840,7 +842,7 @@ fn list_members(
     Ok(MemberListResponse { members: members? })
 }
 
-fn list_members_by_weight(
+fn list_members_by_points(
     deps: Deps,
     start_after: Option<Member>,
     limit: Option<u32>,
@@ -849,7 +851,7 @@ fn list_members_by_weight(
     let start = start_after.map(|m| Bound::exclusive((m.points, m.addr.as_str()).joined_key()));
     let members: StdResult<Vec<_>> = members()
         .idx
-        .weight
+        .points
         .range(deps.storage, None, start, Order::Descending)
         .take(limit)
         .map(|item| {
@@ -928,7 +930,7 @@ mod tests {
         let res = ADMIN.query_admin(deps.as_ref()).unwrap();
         assert_eq!(Some(INIT_ADMIN.into()), res.admin);
 
-        let res = query_total_weight(deps.as_ref()).unwrap();
+        let res = query_total_points(deps.as_ref()).unwrap();
         assert_eq!(17, res.points);
 
         let preauths = PREAUTH_HOOKS.get_auth(&deps.storage).unwrap();
@@ -1040,7 +1042,7 @@ mod tests {
         let mut deps = mock_dependencies();
         do_instantiate(deps.as_mut());
 
-        let members = list_members_by_weight(deps.as_ref(), None, None)
+        let members = list_members_by_points(deps.as_ref(), None, None)
             .unwrap()
             .members;
         assert_eq!(members.len(), 2);
@@ -1060,7 +1062,7 @@ mod tests {
         );
 
         // Test pagination / limits
-        let members = list_members_by_weight(deps.as_ref(), None, Some(1))
+        let members = list_members_by_points(deps.as_ref(), None, Some(1))
             .unwrap()
             .members;
         assert_eq!(members.len(), 1);
@@ -1075,7 +1077,7 @@ mod tests {
 
         // Next page
         let start_after = Some(members[0].clone());
-        let members = list_members_by_weight(deps.as_ref(), start_after, None)
+        let members = list_members_by_points(deps.as_ref(), start_after, None)
             .unwrap()
             .members;
         assert_eq!(members.len(), 1);
@@ -1090,7 +1092,7 @@ mod tests {
 
         // Assert there's no more
         let start_after = Some(members[0].clone());
-        let members = list_members_by_weight(deps.as_ref(), start_after, Some(1))
+        let members = list_members_by_points(deps.as_ref(), start_after, Some(1))
             .unwrap()
             .members;
         assert_eq!(members.len(), 0);
@@ -1197,7 +1199,7 @@ mod tests {
             let members = list_members(deps.as_ref(), None, None).unwrap();
             assert_eq!(count, members.members.len());
 
-            let total = query_total_weight(deps.as_ref()).unwrap();
+            let total = query_total_points(deps.as_ref()).unwrap();
             assert_eq!(sum, total.points); // 17 - 11 + 15 = 21
         }
     }

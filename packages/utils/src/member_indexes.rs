@@ -13,12 +13,12 @@ pub const TOTAL: Item<u64> = Item::new(TOTAL_KEY);
 
 pub struct MemberIndexes<'a> {
     // Weights (multi-)index (deserializing the (hidden) pk to Addr)
-    pub weight: MultiIndex<'a, u64, u64, Addr>,
+    pub points: MultiIndex<'a, u64, u64, Addr>,
 }
 
 impl<'a> IndexList<u64> for MemberIndexes<'a> {
     fn get_indexes(&'_ self) -> Box<dyn Iterator<Item = &'_ dyn Index<u64>> + '_> {
-        let v: Vec<&dyn Index<u64>> = vec![&self.weight];
+        let v: Vec<&dyn Index<u64>> = vec![&self.points];
         Box::new(v.into_iter())
     }
 }
@@ -29,7 +29,7 @@ impl<'a> IndexList<u64> for MemberIndexes<'a> {
 /// The weight index is not snapshotted; only the current weights are indexed at any given time.
 pub fn members<'a>() -> IndexedSnapshotMap<'a, &'a Addr, u64, MemberIndexes<'a>> {
     let indexes = MemberIndexes {
-        weight: MultiIndex::new(|&w| w, tg4::MEMBERS_KEY, "members__weight"),
+        points: MultiIndex::new(|&w| w, tg4::MEMBERS_KEY, "members__points"),
     };
     IndexedSnapshotMap::new(
         tg4::MEMBERS_KEY,
