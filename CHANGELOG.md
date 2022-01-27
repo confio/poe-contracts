@@ -1,9 +1,29 @@
 # Changelog
 
-
 ## [Unreleased](https://github.com/confio/poe-contracts/tree/HEAD)
 
 [Full Changelog](https://github.com/confio/poe-contracts/compare/v0.5.4...HEAD)
+
+**Closed issues:**
+
+- Fix wasm-build [\#41](https://github.com/confio/poe-contracts/issues/41)
+- valset: better error message when jail lock not expired [\#34](https://github.com/confio/poe-contracts/issues/34)
+- valset: limit active\_valset query and add pagination [\#33](https://github.com/confio/poe-contracts/issues/33)
+- valset: update max\_validators [\#28](https://github.com/confio/poe-contracts/issues/28)
+- valset: mark "active" validators in ValidatorInfo [\#23](https://github.com/confio/poe-contracts/issues/23)
+- Fix JailMsg inconsistencies [\#20](https://github.com/confio/poe-contracts/issues/20)
+
+**Merged pull requests:**
+
+- Validator set query pagination [\#51](https://github.com/confio/poe-contracts/pull/51) ([maurolacy](https://github.com/maurolacy))
+- Fix tg4-engagement docs / comments [\#47](https://github.com/confio/poe-contracts/pull/47) ([maurolacy](https://github.com/maurolacy))
+- valset: Add a feature to update `min_weight` and `max_validators` [\#45](https://github.com/confio/poe-contracts/pull/45) ([uint](https://github.com/uint))
+- Update rust to v0.44.0 in CI [\#43](https://github.com/confio/poe-contracts/pull/43) ([maurolacy](https://github.com/maurolacy))
+- Valset: Fix JailMsg inconsistencies [\#39](https://github.com/confio/poe-contracts/pull/39) ([ueco-jb](https://github.com/ueco-jb))
+- Valset: better unjail error message when jail lock didn't expire [\#38](https://github.com/confio/poe-contracts/pull/38) ([ueco-jb](https://github.com/ueco-jb))
+- Store information about operators' validator status [\#37](https://github.com/confio/poe-contracts/pull/37) ([uint](https://github.com/uint))
+- Fix tag consolidation for matching CHANGELOG entries [\#32](https://github.com/confio/poe-contracts/pull/32) ([maurolacy](https://github.com/maurolacy))
+- Open Text Proposals [\#27](https://github.com/confio/poe-contracts/pull/27) ([uint](https://github.com/uint))
 
 ## [v0.5.4](https://github.com/confio/poe-contracts/tree/v0.5.4) (2022-01-20)
 
