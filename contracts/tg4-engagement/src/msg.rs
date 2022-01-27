@@ -39,17 +39,17 @@ pub enum ExecuteMsg {
     AddHook { addr: String },
     /// Remove a hook. Must be called by Admin
     RemoveHook { addr: String },
-    /// Distributes funds sent with this message, and all funds transferred since last call of this
-    /// to members, proportionally to their weights. Funds are not immediately send to members, but
+    /// Distributes rewards sent with this message, and all rewards transferred since last call of this
+    /// to members, proportionally to their weights. Rewards are not immediately send to members, but
     /// assigned to them for later withdrawal (see: `ExecuteMsg::WithdrawFunds`)
-    DistributeFunds {
-        /// Original source of funds, informational. If present overwrites "sender" field on
+    DistributeRewards {
+        /// Original source of rewards, informational. If present overwrites "sender" field on
         /// propagated event.
         sender: Option<String>,
     },
-    /// Withdraws funds which were previously distributed and assigned to sender.
-    WithdrawFunds {
-        /// Account which funds assigned too should be withdrawn, `sender` by default. `sender` has
+    /// Withdraws rewards which were previously distributed and assigned to sender.
+    WithdrawRewards {
+        /// Account which rewards assigned too should be withdrawn, `sender` by default. `sender` has
         /// to be eligible for withdrawal from `owner` address to perform this call (`owner` has to
         /// call `DelegateWithdrawal { delegated: sender }` before)
         owner: Option<String>,
@@ -77,8 +77,8 @@ pub enum ExecuteMsg {
 pub enum QueryMsg {
     /// Return AdminResponse
     Admin {},
-    /// Return TotalWeightResponse
-    TotalWeight {},
+    /// Return TotalPointsResponse
+    TotalPoints {},
     /// Returns MemberListResponse
     ListMembers {
         start_after: Option<String>,
@@ -98,16 +98,16 @@ pub enum QueryMsg {
     Hooks {},
     /// Return the current number of preauths. Returns PreauthResponse.
     Preauths {},
-    /// Return how much funds are assigned for withdrawal to given address. Returns
-    /// `FundsResponse`.
-    WithdrawableFunds { owner: String },
-    /// Return how much funds were distributed in total by this contract. Returns
-    /// `FundsResponse`.
-    DistributedFunds {},
+    /// Return how much rewards are assigned for withdrawal to given address. Returns
+    /// `RewardsResponse`.
+    WithdrawableRewards { owner: String },
+    /// Return how much rewards were distributed in total by this contract. Returns
+    /// `RewardsResponse`.
+    DistributedRewards {},
     /// Return how much funds were send to this contract since last `ExecuteMsg::DistribtueFunds`,
-    /// and wait for distribution. Returns `FundsResponse`.
-    UndistributedFunds {},
-    /// Returns address allowed for withdrawal funds assigned to owner. Returns `DelegatedResponse`
+    /// and wait for distribution. Returns `RewardsResponse`.
+    UndistributedRewards {},
+    /// Returns address allowed for withdrawal funds assigned to owner. Returns `DelegateResponse`
     Delegated { owner: String },
     /// Returns information about the halflife, including the duration in seconds, the last
     /// and the next occurence.
@@ -151,8 +151,8 @@ pub struct PreauthResponse {
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
-pub struct FundsResponse {
-    pub funds: Coin,
+pub struct RewardsResponse {
+    pub rewards: Coin,
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
@@ -189,7 +189,7 @@ mod tests {
 
     #[test]
     fn deserialize_json_to_sudo_msg() {
-        let message = r#"{"update_member": {"addr": "xxx", "weight": 123}}"#;
+        let message = r#"{"update_member": {"addr": "xxx", "points": 123}}"#;
         assert_eq!(
             SudoMsg::UpdateMember(Member {
                 addr: "xxx".to_string(),

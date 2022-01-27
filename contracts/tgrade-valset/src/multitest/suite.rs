@@ -602,7 +602,7 @@ impl Suite {
             self.app.execute_contract(
                 Addr::unchecked(executor),
                 contract.clone(),
-                &tg4_engagement::msg::ExecuteMsg::WithdrawFunds {
+                &tg4_engagement::msg::ExecuteMsg::WithdrawRewards {
                     owner: None,
                     receiver: None,
                 },
@@ -620,7 +620,7 @@ impl Suite {
         self.app.execute_contract(
             Addr::unchecked(executor),
             self.rewards_contract.clone(),
-            &tg4_engagement::msg::ExecuteMsg::WithdrawFunds {
+            &tg4_engagement::msg::ExecuteMsg::WithdrawRewards {
                 owner: None,
                 receiver: None,
             },

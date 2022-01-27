@@ -131,7 +131,7 @@ pub fn execute_withdraw_engagement_rewards(
     let group_contract = VOTING_CONFIG.load(deps.storage)?.group_contract;
 
     let msg = group_contract.encode_raw_msg(to_binary(
-        &tg4_engagement::msg::ExecuteMsg::WithdrawFunds {
+        &tg4_engagement::msg::ExecuteMsg::WithdrawRewards {
             owner: None,
             receiver: None,
         },

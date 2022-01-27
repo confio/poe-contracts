@@ -204,7 +204,7 @@ impl Suite {
         self.app.execute_contract(
             self.owner.clone(),
             self.group_contract.clone(),
-            &tg4_engagement::ExecuteMsg::DistributeFunds { sender: None },
+            &tg4_engagement::ExecuteMsg::DistributeRewards { sender: None },
             &[coin(amount, self.group_token.clone())],
         )
     }

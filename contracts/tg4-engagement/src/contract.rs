@@ -14,12 +14,12 @@ use tg4::{
 
 use crate::error::ContractError;
 use crate::msg::{
-    DelegatedResponse, ExecuteMsg, FundsResponse, HalflifeInfo, HalflifeResponse, InstantiateMsg,
-    PreauthResponse, QueryMsg, SudoMsg,
+    DelegatedResponse, ExecuteMsg, HalflifeInfo, HalflifeResponse, InstantiateMsg, PreauthResponse,
+    QueryMsg, RewardsResponse, SudoMsg,
 };
 use crate::state::{
-    Distribution, Halflife, WithdrawAdjustment, DISTRIBUTION, HALFLIFE, POINTS_SHIFT,
-    PREAUTH_SLASHING, SLASHERS, WITHDRAW_ADJUSTMENT,
+    Distribution, Halflife, WithdrawAdjustment, DISTRIBUTION, HALFLIFE, PREAUTH_SLASHING,
+    SHARES_SHIFT, SLASHERS, WITHDRAW_ADJUSTMENT,
 };
 use tg_bindings::{request_privileges, Privilege, PrivilegeChangeMsg, TgradeMsg};
 use tg_utils::{
@@ -89,8 +89,8 @@ pub fn create(
 
     let distribution = Distribution {
         denom,
-        points_per_weight: Uint128::zero(),
-        points_leftover: 0,
+        shares_per_point: Uint128::zero(),
+        shares_leftover: 0,
         distributed_total: Uint128::zero(),
         withdrawable_total: Uint128::zero(),
     };
@@ -104,8 +104,8 @@ pub fn create(
         members().save(deps.storage, &member_addr, &member.points, height)?;
 
         let adjustment = WithdrawAdjustment {
-            points_correction: 0i128.into(),
-            withdrawn_funds: Uint128::zero(),
+            shares_correction: 0i128.into(),
+            withdrawn_rewards: Uint128::zero(),
             delegated: member_addr.clone(),
         };
         WITHDRAW_ADJUSTMENT.save(deps.storage, &member_addr, &adjustment)?;
@@ -138,8 +138,8 @@ pub fn execute(
         AddPoints { addr, points } => execute_add_points(deps, env, info, addr, points),
         AddHook { addr } => execute_add_hook(deps, info, addr),
         RemoveHook { addr } => execute_remove_hook(deps, info, addr),
-        DistributeFunds { sender } => execute_distribute_tokens(deps, env, info, sender),
-        WithdrawFunds { owner, receiver } => execute_withdraw_tokens(deps, info, owner, receiver),
+        DistributeRewards { sender } => execute_distribute_tokens(deps, env, info, sender),
+        WithdrawRewards { owner, receiver } => execute_withdraw_tokens(deps, info, owner, receiver),
         DelegateWithdrawal { delegated } => execute_delegate_withdrawal(deps, info, delegated),
         AddSlasher { addr } => execute_add_slasher(deps, info, addr),
         RemoveSlasher { addr } => execute_remove_slasher(deps, info, addr),
@@ -283,16 +283,16 @@ pub fn execute_distribute_tokens(
         return Ok(Response::new());
     }
 
-    let leftover: u128 = distribution.points_leftover.into();
-    let points = (amount << POINTS_SHIFT) + leftover;
+    let leftover: u128 = distribution.shares_leftover.into();
+    let points = (amount << SHARES_SHIFT) + leftover;
     let points_per_share = points / total;
-    distribution.points_leftover = (points % total) as u64;
+    distribution.shares_leftover = (points % total) as u64;
 
     // Everything goes back to 128-bits/16-bytes
     // Full amount is added here to total withdrawable, as it should not be considered on its own
     // on future distributions - even if because of calculation offsets it is not fully
     // distributed, the error is handled by leftover.
-    distribution.points_per_weight += Uint128::from(points_per_share);
+    distribution.shares_per_point += Uint128::from(points_per_share);
     distribution.distributed_total += Uint128::from(amount);
     distribution.withdrawable_total += Uint128::from(amount);
 
@@ -338,7 +338,7 @@ pub fn execute_withdraw_tokens(
         return Ok(Response::new());
     }
 
-    adjustment.withdrawn_funds += token.amount;
+    adjustment.withdrawn_rewards += token.amount;
     WITHDRAW_ADJUSTMENT.save(deps.storage, &owner, &adjustment)?;
     distribution.withdrawable_total -= token.amount;
     DISTRIBUTION.save(deps.storage, &distribution)?;
@@ -368,8 +368,8 @@ pub fn execute_delegate_withdrawal(
     WITHDRAW_ADJUSTMENT.update(deps.storage, &info.sender, |data| -> StdResult<_> {
         Ok(data.map_or_else(
             || WithdrawAdjustment {
-                points_correction: 0.into(),
-                withdrawn_funds: Uint128::zero(),
+                shares_correction: 0.into(),
+                withdrawn_rewards: Uint128::zero(),
                 delegated: delegated.clone(),
             },
             |mut data| {
@@ -454,7 +454,7 @@ pub fn execute_slash(
 
     validate_portion(portion)?;
 
-    let ppw: u128 = DISTRIBUTION.load(deps.storage)?.points_per_weight.into();
+    let ppw: u128 = DISTRIBUTION.load(deps.storage)?.shares_per_point.into();
 
     let mut diff = 0i128;
 
@@ -497,16 +497,16 @@ pub fn withdrawable_funds(
     distribution: &Distribution,
     adjustment: &WithdrawAdjustment,
 ) -> StdResult<Coin> {
-    let ppw: u128 = distribution.points_per_weight.into();
+    let ppw: u128 = distribution.shares_per_point.into();
     let weight: u128 = members()
         .may_load(deps.storage, owner)?
         .unwrap_or_default()
         .into();
-    let correction: i128 = adjustment.points_correction.into();
-    let withdrawn: u128 = adjustment.withdrawn_funds.into();
+    let correction: i128 = adjustment.shares_correction.into();
+    let withdrawn: u128 = adjustment.withdrawn_rewards.into();
     let points = (ppw * weight) as i128;
     let points = points + correction;
-    let amount = points as u128 >> POINTS_SHIFT;
+    let amount = points as u128 >> SHARES_SHIFT;
     let amount = amount - withdrawn;
 
     Ok(coin(amount, &distribution.denom))
@@ -541,7 +541,7 @@ pub fn update_members(
     let mut total = TOTAL.load(deps.storage)?;
     let mut diffs: Vec<MemberDiff> = vec![];
 
-    let ppw: u128 = DISTRIBUTION.load(deps.storage)?.points_per_weight.into();
+    let ppw: u128 = DISTRIBUTION.load(deps.storage)?.shares_per_point.into();
 
     // add all new members and update total
     for add in to_add.into_iter() {
@@ -591,13 +591,13 @@ pub fn apply_points_correction(
         let mut old = old.unwrap_or_else(|| {
             // This should never happen, but better this than panic
             WithdrawAdjustment {
-                points_correction: 0.into(),
-                withdrawn_funds: Uint128::zero(),
+                shares_correction: 0.into(),
+                withdrawn_rewards: Uint128::zero(),
                 delegated: addr.clone(),
             }
         });
-        let points_correction: i128 = old.points_correction.into();
-        old.points_correction = (points_correction - points_per_weight as i128 * diff).into();
+        let points_correction: i128 = old.shares_correction.into();
+        old.shares_correction = (points_correction - points_per_weight as i128 * diff).into();
         Ok(old)
     })?;
     Ok(())
@@ -635,7 +635,7 @@ fn end_block(mut deps: DepsMut, env: Env) -> Result<Response, ContractError> {
         return Ok(resp);
     }
 
-    let ppw: u128 = DISTRIBUTION.load(deps.storage)?.points_per_weight.into();
+    let ppw: u128 = DISTRIBUTION.load(deps.storage)?.shares_per_point.into();
 
     let mut reduction = 0;
 
@@ -702,7 +702,7 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
         ListMembersByWeight { start_after, limit } => {
             to_binary(&list_members_by_weight(deps, start_after, limit)?)
         }
-        TotalWeight {} => to_binary(&query_total_weight(deps)?),
+        TotalPoints {} => to_binary(&query_total_weight(deps)?),
         Admin {} => to_binary(&ADMIN.query_admin(deps)?),
         Hooks {} => {
             let hooks = HOOKS.list_hooks(deps.storage)?;
@@ -712,9 +712,9 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
             let preauths = PREAUTH_HOOKS.get_auth(deps.storage)?;
             to_binary(&PreauthResponse { preauths })
         }
-        WithdrawableFunds { owner } => to_binary(&query_withdrawable_funds(deps, owner)?),
-        DistributedFunds {} => to_binary(&query_distributed_total(deps)?),
-        UndistributedFunds {} => to_binary(&query_undistributed_funds(deps, env)?),
+        WithdrawableRewards { owner } => to_binary(&query_withdrawable_funds(deps, owner)?),
+        DistributedRewards {} => to_binary(&query_distributed_total(deps)?),
+        UndistributedRewards {} => to_binary(&query_undistributed_funds(deps, env)?),
         Delegated { owner } => to_binary(&query_delegated(deps, owner)?),
         Halflife {} => to_binary(&query_halflife(deps)?),
         IsSlasher { addr } => {
@@ -744,7 +744,7 @@ fn query_member(deps: Deps, addr: String, height: Option<u64>) -> StdResult<Memb
     Ok(MemberResponse { points: weight })
 }
 
-pub fn query_withdrawable_funds(deps: Deps, owner: String) -> StdResult<FundsResponse> {
+pub fn query_withdrawable_funds(deps: Deps, owner: String) -> StdResult<RewardsResponse> {
     // Not checking address, as if it is ivnalid it is guaranteed not to appear in maps, so
     // `withdrawable_funds` would return error itself.
     let owner = Addr::unchecked(&owner);
@@ -752,34 +752,34 @@ pub fn query_withdrawable_funds(deps: Deps, owner: String) -> StdResult<FundsRes
     let adjustment = if let Some(adj) = WITHDRAW_ADJUSTMENT.may_load(deps.storage, &owner)? {
         adj
     } else {
-        return Ok(FundsResponse {
-            funds: coin(0, distribution.denom),
+        return Ok(RewardsResponse {
+            rewards: coin(0, distribution.denom),
         });
     };
 
     let token = withdrawable_funds(deps, &owner, &distribution, &adjustment)?;
-    Ok(FundsResponse { funds: token })
+    Ok(RewardsResponse { rewards: token })
 }
 
-pub fn query_undistributed_funds(deps: Deps, env: Env) -> StdResult<FundsResponse> {
+pub fn query_undistributed_funds(deps: Deps, env: Env) -> StdResult<RewardsResponse> {
     let distribution = DISTRIBUTION.load(deps.storage)?;
     let balance = deps
         .querier
         .query_balance(env.contract.address, distribution.denom.clone())?
         .amount;
 
-    Ok(FundsResponse {
-        funds: coin(
+    Ok(RewardsResponse {
+        rewards: coin(
             (balance - distribution.withdrawable_total).into(),
             &distribution.denom,
         ),
     })
 }
 
-pub fn query_distributed_total(deps: Deps) -> StdResult<FundsResponse> {
+pub fn query_distributed_total(deps: Deps) -> StdResult<RewardsResponse> {
     let distribution = DISTRIBUTION.load(deps.storage)?;
-    Ok(FundsResponse {
-        funds: coin(distribution.distributed_total.into(), &distribution.denom),
+    Ok(RewardsResponse {
+        rewards: coin(distribution.distributed_total.into(), &distribution.denom),
     })
 }
 
@@ -940,8 +940,8 @@ mod tests {
             res,
             Distribution {
                 denom: "usdc".to_owned(),
-                points_per_weight: Uint128::zero(),
-                points_leftover: 0,
+                shares_per_point: Uint128::zero(),
+                shares_leftover: 0,
                 distributed_total: Uint128::zero(),
                 withdrawable_total: Uint128::zero(),
             }
@@ -959,8 +959,8 @@ mod tests {
         assert_eq!(
             res,
             WithdrawAdjustment {
-                points_correction: Int128::zero(),
-                withdrawn_funds: Uint128::zero(),
+                shares_correction: Int128::zero(),
+                withdrawn_rewards: Uint128::zero(),
                 delegated: Addr::unchecked("USER1"),
             }
         );
