@@ -5,8 +5,8 @@ use std::convert::TryInto;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    to_binary, Addr, Binary, BlockInfo, Decimal, Deps, DepsMut, Empty, Env, MessageInfo, Order,
-    Reply, StdResult, Timestamp, WasmMsg,
+    to_binary, Addr, Binary, BlockInfo, Decimal, Deps, DepsMut, Env, MessageInfo, Order, Reply,
+    StdError, StdResult, Timestamp, WasmMsg,
 };
 
 use cw2::set_contract_version;
@@ -24,7 +24,7 @@ use tg_utils::{ensure_from_older_version, JailingDuration, SlashMsg, ADMIN};
 use crate::error::ContractError;
 use crate::msg::{
     EpochResponse, ExecuteMsg, InstantiateMsg, InstantiateResponse, JailingPeriod,
-    ListActiveValidatorsResponse, ListValidatorResponse, ListValidatorSlashingResponse,
+    ListActiveValidatorsResponse, ListValidatorResponse, ListValidatorSlashingResponse, MigrateMsg,
     OperatorResponse, QueryMsg, RewardsDistribution, RewardsInstantiateMsg, ValidatorMetadata,
     ValidatorResponse,
 };
@@ -151,6 +151,11 @@ pub fn execute(
             info,
             admin.map(|admin| api.addr_validate(&admin)).transpose()?,
         )?),
+        ExecuteMsg::UpdateConfig {
+            min_weight,
+            max_validators,
+        } => execute_update_config(deps, info, min_weight, max_validators),
+
         ExecuteMsg::RegisterValidatorKey { pubkey, metadata } => {
             execute_register_validator_key(deps, env, info, pubkey, metadata)
         }
@@ -161,6 +166,31 @@ pub fn execute(
         ExecuteMsg::Unjail { operator } => execute_unjail(deps, env, info, operator),
         ExecuteMsg::Slash { addr, portion } => execute_slash(deps, env, info, addr, portion),
     }
+}
+
+fn execute_update_config(
+    deps: DepsMut,
+    info: MessageInfo,
+    min_weight: Option<u64>,
+    max_validators: Option<u32>,
+) -> Result<Response, ContractError> {
+    ADMIN.assert_admin(deps.as_ref(), &info.sender)?;
+
+    CONFIG.update::<_, StdError>(deps.storage, |mut cfg| {
+        if let Some(min_weight) = min_weight {
+            cfg.min_weight = min_weight;
+        }
+        if let Some(max_validators) = max_validators {
+            cfg.max_validators = max_validators;
+        }
+        Ok(cfg)
+    })?;
+
+    let res = Response::new()
+        .add_attribute("action", "update_config")
+        .add_attribute("operator", &info.sender);
+
+    Ok(res)
 }
 
 fn execute_register_validator_key(
@@ -722,8 +752,19 @@ fn calculate_diff(
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn migrate(deps: DepsMut, _env: Env, _msg: Empty) -> Result<Response, ContractError> {
+pub fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> Result<Response, ContractError> {
     ensure_from_older_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
+
+    CONFIG.update::<_, StdError>(deps.storage, |mut cfg| {
+        if let Some(min_weight) = msg.min_weight {
+            cfg.min_weight = min_weight;
+        }
+        if let Some(max_validators) = msg.max_validators {
+            cfg.max_validators = max_validators;
+        }
+        Ok(cfg)
+    })?;
+
     Ok(Response::new())
 }
 
