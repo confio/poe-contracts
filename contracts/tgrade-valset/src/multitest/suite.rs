@@ -259,7 +259,7 @@ impl SuiteBuilder {
                     admin.clone(),
                     &tg4_stake::msg::InstantiateMsg {
                         denom,
-                        tokens_per_weight,
+                        tokens_per_point: tokens_per_weight,
                         min_bond: Uint128::zero(),
                         unbonding_period: 0,
                         admin: Some(admin.to_string()),

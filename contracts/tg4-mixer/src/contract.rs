@@ -23,8 +23,8 @@ use tg4::{
 use crate::error::ContractError;
 use crate::functions::PoEFunction;
 use crate::msg::{
-    ExecuteMsg, GroupsResponse, InstantiateMsg, PoEFunctionType, PreauthResponse, QueryMsg,
-    RewardFunctionResponse,
+    ExecuteMsg, GroupsResponse, InstantiateMsg, MixerFunctionResponse, PoEFunctionType,
+    PreauthResponse, QueryMsg,
 };
 use crate::state::{Groups, GROUPS, POE_FUNCTION_TYPE};
 
@@ -109,7 +109,7 @@ fn initialize_members(
             // like calling `list_members` on the right side as well
             let other = groups.right.is_member(&deps.querier, &addr)?;
             if let Some(right) = other {
-                let weight = poe_function.rewards(member.points, right)?;
+                let weight = poe_function.mix(member.points, right)?;
                 total += weight;
                 members().save(deps.storage, &addr, &weight, height)?;
             }
@@ -199,7 +199,7 @@ pub fn update_members(
         let member_addr = deps.api.addr_validate(&change.key)?;
         let new_weight = match change.new {
             Some(x) => match query_group.is_member(&deps.querier, &member_addr)? {
-                Some(y) => Some(poe_function.rewards(x, y)?),
+                Some(y) => Some(poe_function.mix(x, y)?),
                 None => None,
             },
             None => None,
@@ -352,10 +352,10 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
             at_height: height,
         } => to_binary(&query_member(deps, addr, height)?),
         ListMembers { start_after, limit } => to_binary(&list_members(deps, start_after, limit)?),
-        ListMembersByWeight { start_after, limit } => {
+        ListMembersByPoints { start_after, limit } => {
             to_binary(&list_members_by_weight(deps, start_after, limit)?)
         }
-        TotalWeight {} => to_binary(&query_total_weight(deps)?),
+        TotalPoints {} => to_binary(&query_total_weight(deps)?),
         Groups {} => to_binary(&query_groups(deps)?),
         Hooks {} => {
             let hooks = HOOKS.list_hooks(deps.storage)?;
@@ -365,14 +365,14 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
             let preauths_hooks = PREAUTH_HOOKS.get_auth(deps.storage)?;
             to_binary(&PreauthResponse { preauths_hooks })
         }
-        RewardFunction {
+        MixerFunction {
             stake,
             engagement,
             poe_function,
         } => {
             let reward = query_reward_function(deps, stake.u64(), engagement.u64(), poe_function)
                 .map_err(|err| StdError::generic_err(err.to_string()))?;
-            to_binary(&RewardFunctionResponse { reward })
+            to_binary(&MixerFunctionResponse { points: reward })
         }
         IsSlasher { addr } => {
             let addr = deps.api.addr_validate(&addr)?;
@@ -468,7 +468,7 @@ pub fn query_reward_function(
     }
     .to_poe_fn()?;
 
-    poe_function.rewards(stake, engagement)
+    poe_function.mix(stake, engagement)
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
@@ -551,7 +551,7 @@ mod tests {
         let group_id = app.store_code(contract_staking());
         let msg = tg4_stake::msg::InstantiateMsg {
             denom: STAKE_DENOM.to_owned(),
-            tokens_per_weight: Uint128::new(1),
+            tokens_per_point: Uint128::new(1),
             min_bond: Uint128::new(100),
             unbonding_period: 3600,
             admin: admin.clone(),

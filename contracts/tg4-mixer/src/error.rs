@@ -26,14 +26,14 @@ pub enum ContractError {
     #[error("Contract {0} doesn't fulfill the tg4 interface")]
     NotTg4(String),
 
-    #[error("Overflow when multiplying group weights - the product must be less than 10^18")]
-    WeightOverflow {},
+    #[error("Overflow when multiplying group points - the product must be less than 10^18")]
+    PointsOverflow {},
 
     #[error("Overflow when computing: {0}")]
     ComputationOverflow(&'static str),
 
-    #[error("Overflow when computing rewards - the result cannot be represented as u64")]
-    RewardOverflow {},
+    #[error("Overflow when mixing input points - the result cannot be represented as u64")]
+    MixerOverflow {},
 
     #[error("The parameter '{0}' is out of range: {1}")]
     ParameterRange(&'static str, String),

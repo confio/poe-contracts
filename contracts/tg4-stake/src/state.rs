@@ -15,7 +15,7 @@ pub fn claims() -> Claims<'static> {
 pub struct Config {
     /// denom of the token to stake
     pub denom: String,
-    pub tokens_per_weight: Uint128,
+    pub tokens_per_point: Uint128,
     pub min_bond: Uint128,
     /// time in seconds
     pub unbonding_period: Duration,

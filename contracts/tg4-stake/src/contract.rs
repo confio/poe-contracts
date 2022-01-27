@@ -20,7 +20,7 @@ use tg_utils::{
 use crate::error::ContractError;
 use crate::msg::{
     ClaimsResponse, ExecuteMsg, InstantiateMsg, PreauthResponse, QueryMsg, StakedResponse,
-    TotalWeightResponse, UnbondingPeriodResponse,
+    TotalPointsResponse, UnbondingPeriodResponse,
 };
 use crate::state::{claims, Config, CONFIG, STAKE};
 
@@ -56,7 +56,7 @@ pub fn instantiate(
 
     let config = Config {
         denom: msg.denom,
-        tokens_per_weight: msg.tokens_per_weight,
+        tokens_per_point: msg.tokens_per_point,
         min_bond,
         unbonding_period: Duration::new(msg.unbonding_period),
         auto_return_limit: msg.auto_return_limit,
@@ -349,7 +349,7 @@ fn calc_weight(stake: Uint128, cfg: &Config) -> Option<u64> {
     if stake < cfg.min_bond {
         None
     } else {
-        let w = stake.u128() / (cfg.tokens_per_weight.u128());
+        let w = stake.u128() / (cfg.tokens_per_point.u128());
         Some(w as u64)
     }
 }
@@ -449,10 +449,10 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
             at_height: height,
         } => to_binary(&query_member(deps, addr, height)?),
         ListMembers { start_after, limit } => to_binary(&list_members(deps, start_after, limit)?),
-        ListMembersByWeight { start_after, limit } => {
+        ListMembersByPoints { start_after, limit } => {
             to_binary(&list_members_by_weight(deps, start_after, limit)?)
         }
-        TotalWeight {} => to_binary(&query_total_weight(deps)?),
+        TotalPoints {} => to_binary(&query_total_weight(deps)?),
         Claims {
             address,
             limit,
@@ -489,10 +489,13 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     }
 }
 
-fn query_total_weight(deps: Deps) -> StdResult<TotalWeightResponse> {
+fn query_total_weight(deps: Deps) -> StdResult<TotalPointsResponse> {
     let weight = TOTAL.load(deps.storage)?;
     let denom = CONFIG.load(deps.storage)?.denom;
-    Ok(TotalWeightResponse { weight, denom })
+    Ok(TotalPointsResponse {
+        points: weight,
+        denom,
+    })
 }
 
 pub fn query_staked(deps: Deps, addr: String) -> StdResult<StakedResponse> {
@@ -609,7 +612,7 @@ mod tests {
     ) {
         let msg = InstantiateMsg {
             denom: "stake".to_owned(),
-            tokens_per_weight,
+            tokens_per_point: tokens_per_weight,
             min_bond,
             unbonding_period,
             admin: Some(INIT_ADMIN.into()),
@@ -667,7 +670,7 @@ mod tests {
         assert_eq!(Some(INIT_ADMIN.into()), res.admin);
 
         let res = query_total_weight(deps.as_ref()).unwrap();
-        assert_eq!(0, res.weight);
+        assert_eq!(0, res.points);
         assert_eq!("stake".to_owned(), res.denom);
 
         let raw = query(deps.as_ref(), mock_env(), QueryMsg::Configuration {}).unwrap();
@@ -676,7 +679,7 @@ mod tests {
             res,
             Config {
                 denom: "stake".to_owned(),
-                tokens_per_weight: TOKENS_PER_WEIGHT,
+                tokens_per_point: TOKENS_PER_WEIGHT,
                 min_bond: MIN_BOND,
                 unbonding_period: Duration::new(UNBONDING_DURATION),
                 auto_return_limit: 0,
@@ -733,9 +736,9 @@ mod tests {
             let members: MemberListResponse = from_slice(&raw).unwrap();
             assert_eq!(count, members.members.len());
 
-            let raw = query(deps, mock_env(), QueryMsg::TotalWeight {}).unwrap();
-            let total: TotalWeightResponse = from_slice(&raw).unwrap();
-            assert_eq!(sum, total.weight); // 17 - 11 + 15 = 21
+            let raw = query(deps, mock_env(), QueryMsg::TotalPoints {}).unwrap();
+            let total: TotalPointsResponse = from_slice(&raw).unwrap();
+            assert_eq!(sum, total.points); // 17 - 11 + 15 = 21
         }
     }
 
