@@ -480,9 +480,12 @@ fn list_active_validators(
     let limit = limit
         .unwrap_or(DEFAULT_LIMIT)
         .min(MAX_LIMIT)
+        // Limit must be smaller then vector length, otherwise get() is out of bounds
         .min(validators.len() as u32) as usize;
     let start_after = maybe_addr(deps.api, start_after)?;
 
+    // If pagination index is given, try to find him
+    // If not, start from beginning
     let validator = if let Some(start_after) = start_after {
         validators
             .iter()
@@ -491,6 +494,7 @@ fn list_active_validators(
         Some(0)
     };
 
+    // If validator passed as an index was not found, return empty vector
     let validators = if let Some(validator) = validator {
         validators.get(validator..validator + limit)
     } else {
