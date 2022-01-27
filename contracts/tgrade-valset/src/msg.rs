@@ -317,6 +317,7 @@ pub struct OperatorResponse {
     pub pubkey: Pubkey,
     pub metadata: ValidatorMetadata,
     pub jailed_until: Option<JailingPeriod>,
+    pub active_validator: bool,
 }
 
 impl OperatorResponse {
@@ -330,6 +331,7 @@ impl OperatorResponse {
             pubkey: info.pubkey.into(),
             metadata: info.metadata,
             jailed_until: jailed_until.into(),
+            active_validator: info.active_validator,
         }
     }
 }
