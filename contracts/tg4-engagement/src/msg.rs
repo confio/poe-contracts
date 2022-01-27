@@ -51,17 +51,17 @@ pub enum ExecuteMsg {
     WithdrawFunds {
         /// Account which funds assigned too should be withdrawn, `sender` by default. `sender` has
         /// to be eligible for withdrawal from `owner` address to perform this call (`owner` has to
-        /// call `DelegateWithdrawal { delegated: seder }` before)
+        /// call `DelegateWithdrawal { delegated: sender }` before)
         owner: Option<String>,
-        /// Address where to transfer funds. If not present, funds would be send to `sender`.
+        /// Address where to transfer funds. If not present, funds would be sent to `sender`.
         receiver: Option<String>,
     },
     /// Sets given address as allowed for senders funds withdrawal. Funds still can be withdrawn by
-    /// sender himself, but additional account is allowed to perform it as well. There can be only
-    /// one account delegated for withdrawal for any owner at single time.
+    /// sender himself, but this additional account is allowed to perform it as well. There can be only
+    /// one account delegated for withdrawal for any owner at any single time.
     DelegateWithdrawal {
-        /// Account delegated for withdrawal. To disallow current withdrawal, best is to set it to
-        /// own address.
+        /// Account delegated for withdrawal. To disallow current withdrawal, the best is to set it
+        /// to own address.
         delegated: String,
     },
     /// Adds slasher for contract if there are enough `slasher_preauths` left
@@ -107,7 +107,7 @@ pub enum QueryMsg {
     /// Return how much funds were send to this contract since last `ExecuteMsg::DistribtueFunds`,
     /// and wait for distribution. Returns `FundsResponse`.
     UndistributedFunds {},
-    /// Returns address allowed for withdrawal funds assigned to owner. Returns `DelegateResponse`
+    /// Returns address allowed for withdrawal funds assigned to owner. Returns `DelegatedResponse`
     Delegated { owner: String },
     /// Returns information about the halflife, including the duration in seconds, the last
     /// and the next occurence.
