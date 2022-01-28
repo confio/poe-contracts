@@ -3,6 +3,7 @@ mod proposals;
 mod suite;
 
 use crate::error::ContractError;
+use crate::msg::ValidatorProposal;
 use suite::{get_proposal_id, SuiteBuilder};
 
 use cosmwasm_std::Decimal;
@@ -68,6 +69,48 @@ fn migrate_contract() {
     assert_eq!(res, hack2);
     let res = suite.query_beneficiary(hackatom_contract).unwrap();
     assert_eq!(res, new_beneficiary.to_owned());
+}
+
+#[test]
+fn empty_string_as_encoded_migrate_msg_is_not_allowed() {
+    let members = vec!["owner", "voter1"];
+
+    let rules = RulesBuilder::new()
+        .with_threshold(Decimal::percent(50))
+        .build();
+
+    let mut suite = SuiteBuilder::new()
+        .with_group_member(members[0], 2)
+        .with_group_member(members[1], 1)
+        .with_voting_rules(rules)
+        .build();
+
+    let validator_contract = suite.contract.clone();
+    let owner = suite.owner.clone();
+
+    let hack1 = suite.app.store_code(hackatom::contract());
+    let hack2 = suite.app.store_code(hackatom::contract());
+    let hackatom_contract =
+        suite.instantiate_hackatom_contract(validator_contract, hack1, "beneficiary");
+
+    // create proposal with completely empty migrate_msg field
+    let err = suite
+        .propose(
+            owner.as_str(),
+            "proposal title",
+            "proposal description",
+            ValidatorProposal::MigrateContract {
+                contract: hackatom_contract.to_string(),
+                code_id: hack2,
+                migrate_msg: [].into(),
+            },
+        )
+        .unwrap_err();
+
+    assert_eq!(
+        ContractError::MigrateMsgCannotBeEmptyString {},
+        err.downcast().unwrap()
+    );
 }
 
 #[test]

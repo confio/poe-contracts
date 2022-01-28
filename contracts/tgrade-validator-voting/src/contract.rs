@@ -56,8 +56,16 @@ pub fn execute(
         } => {
             // Migrate contract needs confirming that sender (proposing member) is an admin
             // of target contract
-            if let ValidatorProposal::MigrateContract { ref contract, .. } = proposal {
+            if let ValidatorProposal::MigrateContract {
+                ref contract,
+                ref migrate_msg,
+                ..
+            } = proposal
+            {
                 confirm_admin_in_contract(deps.as_ref(), &env, contract.clone())?;
+                if migrate_msg.is_empty() {
+                    return Err(ContractError::MigrateMsgCannotBeEmptyString {});
+                }
             };
             execute_propose(deps, env, info, title, description, proposal)
                 .map_err(ContractError::from)

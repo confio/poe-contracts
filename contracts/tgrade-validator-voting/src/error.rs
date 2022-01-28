@@ -20,6 +20,9 @@ pub enum ContractError {
 
     #[error("Unauthorized: {0}")]
     Unauthorized(String),
+
+    #[error("Migrate message cannot be an empty string")]
+    MigrateMsgCannotBeEmptyString {},
 }
 
 impl From<tg_voting_contract::ContractError> for ContractError {
