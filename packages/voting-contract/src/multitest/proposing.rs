@@ -36,6 +36,7 @@ fn proposal_creation() {
             id: 1,
             title: "best proposal".to_string(),
             description: "it's just the best".to_string(),
+            created_by: "alice".to_owned(),
             proposal: Proposal::Text {},
             status: Status::Open,
             expires: expected_expiration,

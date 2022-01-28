@@ -74,6 +74,7 @@ where
     let mut prop = Proposal {
         title,
         description,
+        created_by: info.sender.to_string(),
         start_height: env.block.height,
         expires,
         proposal,
@@ -234,6 +235,7 @@ where
         title: prop.title,
         description: prop.description,
         proposal: prop.proposal,
+        created_by: prop.created_by,
         status,
         expires: prop.expires,
         rules,
@@ -253,6 +255,7 @@ fn map_proposal<P>(
         title: prop.title,
         description: prop.description,
         proposal: prop.proposal,
+        created_by: prop.created_by,
         status,
         expires: prop.expires,
         rules: prop.rules,

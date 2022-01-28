@@ -300,6 +300,7 @@ mod tests {
                 &Proposal {
                     title: "MigrateContract".to_owned(),
                     description: "MigrateContract testing proposal".to_owned(),
+                    created_by: "mock_person".to_owned(),
                     start_height: env.block.height,
                     // Aaaaall the seconds
                     expires: Expiration::at_timestamp(env.block.time.plus_seconds(66666)),
@@ -348,6 +349,7 @@ mod tests {
                 &Proposal {
                     title: "CancelUpgrade".to_owned(),
                     description: "CancelUpgrade testing proposal".to_owned(),
+                    created_by: "mock_person".to_owned(),
                     start_height: env.block.height,
                     expires: Expiration::at_timestamp(env.block.time.plus_seconds(66666)),
                     proposal: ValidatorProposal::CancelUpgrade {},
@@ -393,6 +395,7 @@ mod tests {
                 &Proposal {
                     title: "PinCodes".to_owned(),
                     description: "PinCodes testing proposal".to_owned(),
+                    created_by: "mock_person".to_owned(),
                     start_height: env.block.height,
                     expires: Expiration::at_timestamp(env.block.time.plus_seconds(66666)),
                     proposal: ValidatorProposal::PinCodes(vec![]),
@@ -438,6 +441,7 @@ mod tests {
                 &Proposal {
                     title: "UnpinCodes".to_owned(),
                     description: "UnpinCodes testing proposal".to_owned(),
+                    created_by: "mock_person".to_owned(),
                     start_height: env.block.height,
                     expires: Expiration::at_timestamp(env.block.time.plus_seconds(66666)),
                     proposal: ValidatorProposal::UnpinCodes(vec![]),
@@ -483,6 +487,7 @@ mod tests {
                 &Proposal {
                     title: "UnpinCodes".to_owned(),
                     description: "UnpinCodes testing proposal".to_owned(),
+                    created_by: "mock_person".to_owned(),
                     start_height: env.block.height,
                     expires: Expiration::at_timestamp(env.block.time.plus_seconds(66666)),
                     proposal: ValidatorProposal::UpdateConsensusBlockParams {
@@ -533,6 +538,7 @@ mod tests {
                 &Proposal {
                     title: "UnpinCodes".to_owned(),
                     description: "UnpinCodes testing proposal".to_owned(),
+                    created_by: "mock_person".to_owned(),
                     start_height: env.block.height,
                     expires: Expiration::at_timestamp(env.block.time.plus_seconds(66666)),
                     proposal: ValidatorProposal::UpdateConsensusEvidenceParams {
