@@ -52,7 +52,7 @@ impl Tg4Contract {
     }
 
     pub fn remove_hook<T: Into<String>>(&self, addr: T) -> StdResult<SubMsg> {
-        let msg = Tg4ExecuteMsg::AddHook { addr: addr.into() };
+        let msg = Tg4ExecuteMsg::RemoveHook { addr: addr.into() };
         self.encode_msg(msg)
     }
 
@@ -199,7 +199,7 @@ impl Tg4Contract {
         Ok(res.members)
     }
 
-    /// This will make some queires to ensure that the target contract is tg4-compatible.
+    /// This will make some queries to ensure that the target contract is tg4-compatible.
     /// It returns `true` iff it appears to be compatible.
     pub fn is_tg4(&self, querier: &QuerierWrapper) -> bool {
         self.list_members(querier, None, Some(1)).is_ok()
