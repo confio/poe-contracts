@@ -90,20 +90,10 @@ fn empty_string_as_encoded_migrate_msg_is_not_allowed() {
 
     let hack1 = suite.app.store_code(hackatom::contract());
     let hack2 = suite.app.store_code(hackatom::contract());
-
-    let beneficiary = "beneficiary";
-    // Instantiate hackatom contract with Validator Contract as an admin
     let hackatom_contract =
-        suite.instantiate_hackatom_contract(validator_contract, hack1, beneficiary);
+        suite.instantiate_hackatom_contract(validator_contract, hack1, "beneficiary");
 
-    let res = suite
-        .query_contract_code_id(hackatom_contract.clone())
-        .unwrap();
-    assert_eq!(res, hack1);
-    let res = suite.query_beneficiary(hackatom_contract.clone()).unwrap();
-    assert_eq!(res, beneficiary.to_owned());
-
-    // Propose hackatom migration; "owner" is a sender of message with voting power 2 (66%)
+    // create proposal with completely empty migrate_msg field
     let err = suite
         .propose(
             owner.as_str(),

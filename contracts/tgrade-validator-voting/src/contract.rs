@@ -63,9 +63,7 @@ pub fn execute(
             } = proposal
             {
                 confirm_admin_in_contract(deps.as_ref(), &env, contract.clone())?;
-                dbg!(migrate_msg);
-                dbg!(migrate_msg.to_base64());
-                if migrate_msg.to_base64().is_empty() {
+                if migrate_msg.is_empty() {
                     return Err(ContractError::MigrateMsgCannotBeEmptyString {});
                 }
             };
