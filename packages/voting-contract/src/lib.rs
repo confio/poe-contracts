@@ -117,12 +117,11 @@ where
     // ensure proposal exists and can be voted on
     let mut prop = proposals().load(deps.storage, proposal_id)?;
     prop.update_status(&env.block);
+    proposals::<P>().save(deps.storage, proposal_id, &prop)?;
 
     if prop.status == Status::Rejected {
-        proposals::<P>().save(deps.storage, proposal_id, &prop)?;
         return Err(ContractError::Rejected {});
     } else if prop.status != Status::Open {
-        proposals::<P>().save(deps.storage, proposal_id, &prop)?;
         return Err(ContractError::NotOpen {});
     }
 
@@ -203,16 +202,15 @@ where
     let mut prop = proposals().load(deps.storage, proposal_id)?;
     let previous_status = prop.status;
     prop.update_status(&env.block);
+    proposals::<P>().save(deps.storage, proposal_id, &prop)?;
 
     if [Status::Executed, Status::Passed]
         .iter()
         .any(|x| *x == prop.status)
     {
-        proposals::<P>().save(deps.storage, proposal_id, &prop)?;
         return Err(ContractError::WrongCloseStatus {});
     }
     if prop.status == Status::Open {
-        proposals::<P>().save(deps.storage, proposal_id, &prop)?;
         return Err(ContractError::NotExpired {});
     }
 
@@ -222,12 +220,13 @@ where
     // To differentiate those, we need to compare current status with previous one
     // If that condition is false, then it is first time closing this proposal
     if prop.status == Status::Rejected && previous_status == Status::Rejected {
-        proposals::<P>().save(deps.storage, proposal_id, &prop)?;
         return Err(ContractError::Rejected {});
-    }
-
-    prop.status = Status::Rejected;
-    proposals::<P>().save(deps.storage, proposal_id, &prop)?;
+    } else if prop.status != Status::Rejected {
+        // update_status could already set status to Rejected
+        // set it only if it is not
+        prop.status = Status::Rejected;
+        proposals::<P>().save(deps.storage, proposal_id, &prop)?;
+    };
 
     Ok(Response::new()
         .add_attribute("action", "close")
