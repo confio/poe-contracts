@@ -166,6 +166,9 @@ pub fn execute(
         }
         ExecuteMsg::Unjail { operator } => execute_unjail(deps, env, info, operator),
         ExecuteMsg::Slash { addr, portion } => execute_slash(deps, env, info, addr, portion),
+        ExecuteMsg::SimulateValidatorSet { validators } => {
+            execute_simulate_validators(deps, info, validators)
+        }
     }
 }
 
@@ -365,6 +368,28 @@ fn execute_slash(
     let resp = Response::new().add_submessage(SubMsg::new(slash_msg));
 
     Ok(resp)
+}
+
+fn execute_simulate_validators(
+    deps: DepsMut,
+    _info: MessageInfo,
+    validators: Vec<ValidatorInfo>,
+) -> Result<Response, ContractError> {
+    // Assert admin is not found (contract not instantiated!) for this to be possible
+    let admin_res = ADMIN.get(deps.as_ref());
+    if let Err(err) = admin_res {
+        let not_found = matches!(err, StdError::NotFound { .. });
+        if !not_found {
+            return Err(ContractError::AdminError(AdminError::NotAdmin {}));
+        }
+    } else {
+        return Err(ContractError::AdminError(AdminError::NotAdmin {}));
+    }
+
+    // Store validators
+    VALIDATORS.save(deps.storage, &validators)?;
+
+    Ok(Response::new())
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]

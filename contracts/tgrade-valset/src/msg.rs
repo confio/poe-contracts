@@ -260,6 +260,12 @@ pub enum ExecuteMsg {
         addr: String,
         portion: Decimal,
     },
+
+    /// This will update the validator set with the passed list.
+    /// Used for testing validators storage.
+    SimulateValidatorSet {
+        validators: Vec<ValidatorInfo>,
+    },
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
