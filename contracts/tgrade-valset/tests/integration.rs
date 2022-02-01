@@ -17,7 +17,7 @@
 //!      });
 //! 4. Anywhere you see query(&deps, ...) you must replace it with query(&mut deps, ...)
 
-use cosmwasm_std::{to_binary, Addr, Binary, Response};
+use cosmwasm_std::{to_binary, Addr, Binary, Response, ContractResult, Empty};
 use cosmwasm_vm::testing::{execute, mock_env, mock_info, mock_instance_with_gas_limit};
 use tg_bindings::Pubkey;
 
@@ -91,6 +91,25 @@ fn test_validators_storage() {
     let res: Response = execute(&mut deps, mock_env(), info, msg).unwrap();
 
     assert_eq!(res.messages.len(), 0);
+}
+
+#[test]
+#[should_panic]
+fn check_validators_storage_breaks() {
+    let mut deps = mock_instance_with_gas_limit(WASM, 100_000_000_000_000);
+    assert_eq!(deps.required_features().len(), 2);
+
+    let info = mock_info("creator", &[]);
+
+    // One more validator this size breaks the validator set storages
+    let validators = addrs(NUM_VALIDATORS + 1)
+        .iter()
+        .map(|s| valid_validator(s, VALIDATOR_POWER))
+        .collect::<Vec<ValidatorInfo>>();
+
+    let msg = ExecuteMsg::SimulateValidatorSet { validators };
+
+    let _: ContractResult<Response<Empty>> = execute(&mut deps, mock_env(), info, msg);
 }
 
 /*
