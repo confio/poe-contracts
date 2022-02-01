@@ -33,13 +33,13 @@ tg-bindings = { version = "0.6.0-alpha1", path = "../../packages/bindings" }
 tg-utils = { version = "0.6.0-alpha1", path = "../../packages/utils" }
 cw-controllers = { version = "0.11.0" }
 cw-storage-plus = { version = "0.11.0" }
-cosmwasm-std = { version = "1.0.0-beta" }
+cosmwasm-std = { version = "1.0.0-beta4" }
 schemars = "0.8"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
 thiserror = { version = "1.0.21" }
 
 [dev-dependencies]
-cosmwasm-schema = { version = "1.0.0-beta" }
+cosmwasm-schema = { version = "1.0.0-beta4" }
 cw-multi-test = "0.11.0"
 tg4-engagement = { path = "../tg4-engagement", version = "0.6.0-alpha1" }
 tg4-stake = { path = "../tg4-stake", version = "0.6.0-alpha1" }
@@ -48,3 +48,8 @@ tg-bindings-test = { path = "../../packages/bindings-test", version = "0.6.0-alp
 derivative = "2"
 anyhow = "1"
 assert_matches = "1.5"
+
+# For integration tests
+cosmwasm-std = { version = "1.0.0-beta4", default_features = false }
+cosmwasm-storage = { version = "1.0.0-beta4", default-features = false }
+cosmwasm-vm = { version = "1.0.0-beta4", default-features = false, features = ["iterator", "tgrade"] }
