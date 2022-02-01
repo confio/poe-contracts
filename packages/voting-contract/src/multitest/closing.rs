@@ -8,6 +8,7 @@ use crate::ContractError;
 fn expired_proposals_can_be_closed() {
     let rules = RulesBuilder::new()
         .with_threshold(Decimal::percent(51))
+        .with_quorum(Decimal::percent(35))
         .build();
 
     let mut suite = SuiteBuilder::new()
@@ -39,6 +40,7 @@ fn expired_proposals_can_be_closed() {
 fn active_proposals_cannot_be_closed() {
     let rules = RulesBuilder::new()
         .with_threshold(Decimal::percent(51))
+        .with_quorum(Decimal::percent(35))
         .build();
 
     let mut suite = SuiteBuilder::new()
@@ -81,6 +83,7 @@ fn passed_proposals_cannot_be_closed() {
 fn expired_proposals_cannot_be_closed_twice() {
     let rules = RulesBuilder::new()
         .with_threshold(Decimal::percent(51))
+        .with_quorum(Decimal::percent(60))
         .build();
 
     let mut suite = SuiteBuilder::new()
@@ -100,5 +103,5 @@ fn expired_proposals_cannot_be_closed_twice() {
     suite.close("anybody", proposal_id).unwrap();
     // ...but a closed one can't be closed again
     let err = suite.close("anybody", proposal_id).unwrap_err();
-    assert_eq!(ContractError::WrongCloseStatus {}, err.downcast().unwrap());
+    assert_eq!(ContractError::Rejected {}, err.downcast().unwrap());
 }

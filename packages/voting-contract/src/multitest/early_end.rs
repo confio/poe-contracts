@@ -35,7 +35,6 @@ fn yes_vote_can_pass_proposal_early() {
 fn passed_on_expiration_can_be_executed() {
     let rules = RulesBuilder::new()
         .with_threshold(Decimal::percent(50))
-        .with_quorum(Decimal::percent(20))
         .with_allow_early(true)
         .build();
 

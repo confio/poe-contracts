@@ -349,6 +349,7 @@ fn passing_a_proposal_after_voting_period_works() {
 fn expired_proposals_cannot_be_voted_on() {
     let rules = RulesBuilder::new()
         .with_threshold(Decimal::percent(51))
+        .with_quorum(Decimal::percent(35))
         .build();
 
     let mut suite = SuiteBuilder::new()
@@ -366,5 +367,6 @@ fn expired_proposals_cannot_be_voted_on() {
 
     // Bob can't vote on the expired proposal
     let err = suite.vote("bob", proposal_id, Vote::Yes).unwrap_err();
-    assert_eq!(ContractError::Expired {}, err.downcast().unwrap());
+    // proposal that is open and expired is rejected
+    assert_eq!(ContractError::Rejected {}, err.downcast().unwrap());
 }
