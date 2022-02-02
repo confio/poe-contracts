@@ -80,7 +80,6 @@ pub struct ValidatorInfo {
     /// TODO: better name to specify this is the Tendermint pubkey for consensus?
     pub validator_pubkey: Pubkey,
     pub operator: Addr,
-    pub metadata: ValidatorMetadata,
     /// The voting power in Tendermint sdk
     pub power: u64,
 }
@@ -103,13 +102,13 @@ pub const VALIDATOR_SLASHING: Map<&Addr, Vec<ValidatorSlashing>> = Map::new("val
 /// is not jailed
 pub const JAIL: Map<&Addr, JailingPeriod> = Map::new("jail");
 
-/// This stores the immutable info for an operator. Both their Tendermint key as well as
+/// This stores the info for an operator. Both their Tendermint key as well as
 /// their metadata.
 #[derive(Serialize, Deserialize, Clone, JsonSchema, Debug, PartialEq)]
 pub struct OperatorInfo {
     pub pubkey: Ed25519Pubkey,
     pub metadata: ValidatorMetadata,
-    /// Is this an active validator?
+    /// Is this currently an active validator?
     pub active_validator: bool,
 }
 
