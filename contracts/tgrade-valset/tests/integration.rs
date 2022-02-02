@@ -18,9 +18,13 @@
 //! 4. Anywhere you see query(&deps, ...) you must replace it with query(&mut deps, ...)
 
 use cosmwasm_std::{to_binary, Addr, Binary, ContractResult, Empty, Response};
-use cosmwasm_vm::testing::{execute, mock_env, mock_info, mock_instance_with_gas_limit};
+use cosmwasm_vm::testing::{
+    execute, mock_env, mock_info, mock_instance_with_options, MockApi, MockInstanceOptions,
+    MockQuerier, MockStorage,
+};
 use tg_bindings::Pubkey;
 
+use cosmwasm_vm::{features_from_csv, Instance};
 use tgrade_valset::msg::{ExecuteMsg, ValidatorMetadata};
 use tgrade_valset::state::ValidatorInfo;
 
@@ -37,6 +41,17 @@ fn valid_validator(seed: &str, power: u64) -> ValidatorInfo {
         metadata: mock_metadata(seed),
         power,
     }
+}
+
+fn mock_instance_on_tgrade(wasm: &[u8]) -> Instance<MockApi, MockStorage, MockQuerier> {
+    mock_instance_with_options(
+        wasm,
+        MockInstanceOptions {
+            supported_features: features_from_csv("iterator,tgrade"),
+            gas_limit: 100_000_000_000_000,
+            ..Default::default()
+        },
+    )
 }
 
 const ED25519_PUBKEY_LENGTH: usize = 32;
@@ -65,7 +80,7 @@ const VALIDATOR_POWER: u64 = 1;
 
 #[test]
 fn test_validators_storage() {
-    let mut deps = mock_instance_with_gas_limit(WASM, 100_000_000_000_000);
+    let mut deps = mock_instance_on_tgrade(WASM);
     assert_eq!(deps.required_features().len(), 2);
 
     let info = mock_info("creator", &[]);
@@ -96,7 +111,7 @@ fn test_validators_storage() {
 #[test]
 #[should_panic]
 fn check_validators_storage_breaks() {
-    let mut deps = mock_instance_with_gas_limit(WASM, 100_000_000_000_000);
+    let mut deps = mock_instance_on_tgrade(WASM);
     assert_eq!(deps.required_features().len(), 2);
 
     let info = mock_info("creator", &[]);
