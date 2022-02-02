@@ -30,8 +30,8 @@ pub struct Config {
     /// (epoch_reward.amount * 86_400 * 30 / epoch_length) is reward tokens to mint each month.
     /// Ensure this is sensible in relation to the total token supply.
     pub epoch_reward: Coin,
-    /// Percentage of total accumulated fees which is substracted from tokens minted as a rewards.
-    /// 50% as default. To disable this feature just set it to 0 (which efectivelly means that fees
+    /// Percentage of total accumulated fees which is subtracted from tokens minted as a rewards.
+    /// 50% as default. To disable this feature just set it to 0 (which effectively means that fees
     /// doesn't affect the per epoch reward).
     #[serde(default = "default_fee_percentage")]
     pub fee_percentage: Decimal,
