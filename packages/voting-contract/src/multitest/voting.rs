@@ -368,5 +368,5 @@ fn expired_proposals_cannot_be_voted_on() {
     // Bob can't vote on the expired proposal
     let err = suite.vote("bob", proposal_id, Vote::Yes).unwrap_err();
     // proposal that is open and expired is rejected
-    assert_eq!(ContractError::Rejected {}, err.downcast().unwrap());
+    assert_eq!(ContractError::NotOpen {}, err.downcast().unwrap());
 }

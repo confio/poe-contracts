@@ -103,5 +103,5 @@ fn expired_proposals_cannot_be_closed_twice() {
     suite.close("anybody", proposal_id).unwrap();
     // ...but a closed one can't be closed again
     let err = suite.close("anybody", proposal_id).unwrap_err();
-    assert_eq!(ContractError::Rejected {}, err.downcast().unwrap());
+    assert_eq!(ContractError::NotOpen {}, err.downcast().unwrap());
 }

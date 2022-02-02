@@ -24,9 +24,6 @@ pub enum ContractError {
     #[error("Proposal voting period has expired")]
     Expired {},
 
-    #[error("Proposal is already closed - rejected, because it was open and expired")]
-    Rejected {},
-
     #[error("Proposal must expire before you can close it")]
     NotExpired {},
 
