@@ -17,21 +17,25 @@
 //!      });
 //! 4. Anywhere you see query(&deps, ...) you must replace it with query(&mut deps, ...)
 
+use bech32::{ToBase32, Variant};
+
 use cosmwasm_std::{to_binary, Addr, Binary, ContractResult, Empty, Response};
+use cosmwasm_vm::{features_from_csv, Instance};
 use cosmwasm_vm::testing::{
     execute, mock_env, mock_info, mock_instance_with_options, MockApi, MockInstanceOptions,
     MockQuerier, MockStorage,
 };
 use tg_bindings::Pubkey;
 
-use cosmwasm_vm::{features_from_csv, Instance};
 use tgrade_valset::msg::ExecuteMsg;
 use tgrade_valset::state::ValidatorInfo;
 
 // Copied from test_helpers
 // returns a list of addresses that are set in the tg4-stake contract
 fn addrs(count: u32) -> Vec<String> {
-    (1..=count).map(|x| format!("operator-{:03}", x)).collect()
+    (1..=count)
+        .map(|x| bech32::encode("tgrade", format!("operator-{:03}", x).to_base32(), Variant::Bech32).unwrap())
+        .collect()
 }
 
 fn valid_validator(seed: &str, power: u64) -> ValidatorInfo {
@@ -66,7 +70,7 @@ fn mock_pubkey(base: &[u8]) -> Pubkey {
 static WASM: &[u8] =
     include_bytes!("../../../target/wasm32-unknown-unknown/release/tgrade_valset.wasm");
 
-const NUM_VALIDATORS: u32 = 1128;
+const NUM_VALIDATORS: u32 = 956;
 const VALIDATOR_POWER: u64 = 1;
 
 #[test]
