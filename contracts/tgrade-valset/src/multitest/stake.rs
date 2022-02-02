@@ -109,7 +109,6 @@ fn simulate_validators() {
     let expected: Vec<_> = vec![ValidatorInfo {
         operator: op1_addr.clone(),
         validator_pubkey: valid_operator(op1_addr.as_ref()).validator_pubkey,
-        metadata: valid_operator(op1_addr.as_ref()).metadata,
         power: min_weight,
     }];
     assert_eq!(expected, active);
@@ -130,13 +129,11 @@ fn simulate_validators() {
         ValidatorInfo {
             operator: op2_addr.clone(),
             validator_pubkey: valid_operator(op2_addr.as_ref()).validator_pubkey,
-            metadata: valid_operator(op2_addr.as_ref()).metadata,
             power: min_weight * 2,
         },
         ValidatorInfo {
             operator: op1_addr.clone(),
             validator_pubkey: valid_operator(op1_addr.as_ref()).validator_pubkey,
-            metadata: valid_operator(op1_addr.as_ref()).metadata,
             power: min_weight,
         },
     ];
@@ -161,19 +158,16 @@ fn simulate_validators() {
         ValidatorInfo {
             operator: op3_addr.clone(),
             validator_pubkey: valid_operator(op3_addr.as_ref()).validator_pubkey,
-            metadata: valid_operator(op3_addr.as_ref()).metadata,
             power: min_weight * 3 - 1,
         },
         ValidatorInfo {
             operator: op2_addr.clone(),
             validator_pubkey: valid_operator(op2_addr.as_ref()).validator_pubkey,
-            metadata: valid_operator(op2_addr.as_ref()).metadata,
             power: min_weight * 2,
         },
         ValidatorInfo {
             operator: op1_addr.clone(),
             validator_pubkey: valid_operator(op1_addr.as_ref()).validator_pubkey,
-            metadata: valid_operator(op1_addr.as_ref()).metadata,
             power: min_weight,
         },
     ];
@@ -193,13 +187,11 @@ fn simulate_validators() {
         ValidatorInfo {
             operator: op3_addr.clone(),
             validator_pubkey: valid_operator(op3_addr.as_ref()).validator_pubkey,
-            metadata: valid_operator(op3_addr.as_ref()).metadata,
             power: min_weight * 3 - 1,
         },
         ValidatorInfo {
             operator: op2_addr.clone(),
             validator_pubkey: valid_operator(op2_addr.as_ref()).validator_pubkey,
-            metadata: valid_operator(op2_addr.as_ref()).metadata,
             power: min_weight * 2,
         },
     ];
