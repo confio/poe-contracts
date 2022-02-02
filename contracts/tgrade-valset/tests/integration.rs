@@ -112,7 +112,6 @@ fn test_validators_storage() {
 #[should_panic]
 fn check_validators_storage_breaks() {
     let mut deps = mock_instance_on_tgrade(WASM);
-    assert_eq!(deps.required_features().len(), 2);
 
     let info = mock_info("creator", &[]);
 
