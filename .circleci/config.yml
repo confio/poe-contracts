@@ -441,6 +441,11 @@ jobs:
           name: Add clippy component
           command: rustup component add clippy
       - run:
+          name: Create fake wasm files
+          command: |
+            mkdir -p ./target/wasm32-unknown-unknown/release/
+            touch ./target/wasm32-unknown-unknown/release/tgrade_valset.wasm
+      - run:
           name: Clippy linting on workspace
           command: cargo clippy --tests -- -D warnings
 
