@@ -173,7 +173,7 @@ impl RulesBuilder {
     pub fn new() -> Self {
         Self {
             voting_period: 14,
-            quorum: Decimal::percent(1),
+            quorum: Decimal::percent(20),
             threshold: Decimal::percent(50),
             allow_end_early: true,
         }
