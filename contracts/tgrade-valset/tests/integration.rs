@@ -25,7 +25,7 @@ use cosmwasm_vm::testing::{
 use tg_bindings::Pubkey;
 
 use cosmwasm_vm::{features_from_csv, Instance};
-use tgrade_valset::msg::{ExecuteMsg, ValidatorMetadata};
+use tgrade_valset::msg::ExecuteMsg;
 use tgrade_valset::state::ValidatorInfo;
 
 // Copied from test_helpers
@@ -38,7 +38,6 @@ fn valid_validator(seed: &str, power: u64) -> ValidatorInfo {
     ValidatorInfo {
         operator: Addr::unchecked(seed),
         validator_pubkey: mock_pubkey(seed.as_bytes()),
-        metadata: mock_metadata(seed),
         power,
     }
 }
@@ -62,14 +61,6 @@ fn mock_pubkey(base: &[u8]) -> Pubkey {
     let mut raw = base.repeat(copies);
     raw.truncate(ED25519_PUBKEY_LENGTH);
     Pubkey::Ed25519(Binary(raw))
-}
-
-fn mock_metadata(seed: &str) -> ValidatorMetadata {
-    ValidatorMetadata {
-        moniker: seed.into(),
-        details: Some(format!("I'm really {}", seed)),
-        ..ValidatorMetadata::default()
-    }
 }
 
 static WASM: &[u8] =
