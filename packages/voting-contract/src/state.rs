@@ -66,8 +66,9 @@ impl<P> Proposal<P> {
 
     /// update_status sets the status of the proposal to current_status.
     /// (designed for handler logic)
-    pub fn update_status(&mut self, block: &BlockInfo) {
+    pub fn update_status(&mut self, block: &BlockInfo) -> Status {
         self.status = self.current_status(block);
+        self.status
     }
 
     // returns true iff this proposal is sure to pass (even before expiration if no future

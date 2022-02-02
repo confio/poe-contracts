@@ -116,9 +116,8 @@ where
 {
     // ensure proposal exists and can be voted on
     let mut prop = proposals().load(deps.storage, proposal_id)?;
-    prop.update_status(&env.block);
 
-    if prop.status != Status::Open {
+    if prop.update_status(&env.block) != Status::Open {
         return Err(ContractError::NotOpen {});
     }
 
@@ -210,7 +209,7 @@ where
     {
         return Err(ContractError::WrongCloseStatus {});
     }
-    if prop.status == Status::Open {
+    if !prop.expires.is_expired(&env.block) {
         return Err(ContractError::NotExpired {});
     }
 
