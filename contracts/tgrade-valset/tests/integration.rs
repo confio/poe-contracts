@@ -66,7 +66,7 @@ fn mock_pubkey(base: &[u8]) -> Pubkey {
 static WASM: &[u8] =
     include_bytes!("../../../target/wasm32-unknown-unknown/release/tgrade_valset.wasm");
 
-const NUM_VALIDATORS: u32 = 534;
+const NUM_VALIDATORS: u32 = 1128;
 const VALIDATOR_POWER: u64 = 1;
 
 #[test]
