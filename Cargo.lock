@@ -1688,7 +1688,6 @@ dependencies = [
  "bech32",
  "cosmwasm-schema",
  "cosmwasm-std",
- "cosmwasm-storage",
  "cosmwasm-vm",
  "cw-controllers",
  "cw-multi-test",
