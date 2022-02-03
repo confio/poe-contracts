@@ -30,8 +30,8 @@ pub struct Config {
     /// (epoch_reward.amount * 86_400 * 30 / epoch_length) is reward tokens to mint each month.
     /// Ensure this is sensible in relation to the total token supply.
     pub epoch_reward: Coin,
-    /// Percentage of total accumulated fees which is substracted from tokens minted as a rewards.
-    /// 50% as default. To disable this feature just set it to 0 (which efectivelly means that fees
+    /// Percentage of total accumulated fees which is subtracted from tokens minted as a rewards.
+    /// 50% as default. To disable this feature just set it to 0 (which effectively means that fees
     /// doesn't affect the per epoch reward).
     #[serde(default = "default_fee_percentage")]
     pub fee_percentage: Decimal,
@@ -80,7 +80,6 @@ pub struct ValidatorInfo {
     /// TODO: better name to specify this is the Tendermint pubkey for consensus?
     pub validator_pubkey: Pubkey,
     pub operator: Addr,
-    pub metadata: ValidatorMetadata,
     /// The voting power in Tendermint sdk
     pub power: u64,
 }
@@ -103,13 +102,13 @@ pub const VALIDATOR_SLASHING: Map<&Addr, Vec<ValidatorSlashing>> = Map::new("val
 /// is not jailed
 pub const JAIL: Map<&Addr, JailingPeriod> = Map::new("jail");
 
-/// This stores the immutable info for an operator. Both their Tendermint key as well as
+/// This stores the info for an operator. Both their Tendermint key as well as
 /// their metadata.
 #[derive(Serialize, Deserialize, Clone, JsonSchema, Debug, PartialEq)]
 pub struct OperatorInfo {
     pub pubkey: Ed25519Pubkey,
     pub metadata: ValidatorMetadata,
-    /// Is this an active validator?
+    /// Is this currently an active validator?
     pub active_validator: bool,
 }
 

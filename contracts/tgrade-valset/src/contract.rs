@@ -166,6 +166,9 @@ pub fn execute(
         }
         ExecuteMsg::Unjail { operator } => execute_unjail(deps, env, info, operator),
         ExecuteMsg::Slash { addr, portion } => execute_slash(deps, env, info, addr, portion),
+        ExecuteMsg::SimulateValidatorSet { validators } => {
+            execute_simulate_validators(deps, info, validators)
+        }
     }
 }
 
@@ -365,6 +368,28 @@ fn execute_slash(
     let resp = Response::new().add_submessage(SubMsg::new(slash_msg));
 
     Ok(resp)
+}
+
+fn execute_simulate_validators(
+    deps: DepsMut,
+    _info: MessageInfo,
+    validators: Vec<ValidatorInfo>,
+) -> Result<Response, ContractError> {
+    // Assert admin is not found (contract not instantiated!) for this to be possible
+    let admin_res = ADMIN.get(deps.as_ref());
+    if let Err(err) = admin_res {
+        let not_found = matches!(err, StdError::NotFound { .. });
+        if !not_found {
+            return Err(ContractError::AdminError(AdminError::NotAdmin {}));
+        }
+    } else {
+        return Err(ContractError::AdminError(AdminError::NotAdmin {}));
+    }
+
+    // Store validators
+    VALIDATORS.save(deps.storage, &validators)?;
+
+    Ok(Response::new())
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
@@ -700,7 +725,7 @@ fn calculate_validators(
                     Err(err) => return Some(Err(err)),
                     // address not jailed, proceed
                     Ok(None) => (),
-                    // address jailed, but period axpired and auto unjailing enabled, add to
+                    // address jailed, but period expired and auto unjailing enabled, add to
                     // auto_unjail list
                     Ok(Some(expires)) if cfg.auto_unjail && expires.is_expired(&env.block) => {
                         auto_unjail.push(m_addr.clone())
@@ -713,7 +738,6 @@ fn calculate_validators(
                     Ok(ValidatorInfo {
                         operator: m_addr,
                         validator_pubkey: op.pubkey.into(),
-                        metadata: op.metadata,
                         power: m.weight * scaling,
                     })
                 })
@@ -990,25 +1014,11 @@ mod test {
             ValidatorInfo {
                 operator: Addr::unchecked("op1"),
                 validator_pubkey: Pubkey::Ed25519(b"pubkey1".into()),
-                metadata: ValidatorMetadata {
-                    moniker: "moniker1".to_owned(),
-                    identity: None,
-                    website: None,
-                    security_contact: None,
-                    details: None,
-                },
                 power: 1,
             },
             ValidatorInfo {
                 operator: Addr::unchecked("op2"),
                 validator_pubkey: Pubkey::Ed25519(b"pubkey2".into()),
-                metadata: ValidatorMetadata {
-                    moniker: "moniker2".to_owned(),
-                    identity: None,
-                    website: None,
-                    security_contact: None,
-                    details: None,
-                },
                 power: 2,
             },
         ];
@@ -1059,13 +1069,6 @@ mod test {
         cur.push(ValidatorInfo {
             operator: Addr::unchecked("op3"),
             validator_pubkey: Pubkey::Ed25519(b"pubkey3".into()),
-            metadata: ValidatorMetadata {
-                moniker: "moniker3".to_owned(),
-                identity: None,
-                website: None,
-                security_contact: None,
-                details: None,
-            },
             power: 3,
         });
 

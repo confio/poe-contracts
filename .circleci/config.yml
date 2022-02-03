@@ -275,7 +275,7 @@ jobs:
           command: rustc --version; cargo --version; rustup --version; rustup target list --installed
       - restore_cache:
           keys:
-            - cargocache-v2-bindings:1.54.0-{{ checksum "~/project/Cargo.lock" }}
+            - cargocache-v2-bindings:1.58.1-{{ checksum "~/project/Cargo.lock" }}
       - run:
           name: Build library for native target
           command: cargo build --locked
@@ -289,7 +289,7 @@ jobs:
           paths:
             - /usr/local/cargo/registry
             - target
-          key: cargocache-v2-bindings:1.54.0-{{ checksum "~/project/Cargo.lock" }}
+          key: cargocache-v2-bindings:1.58.1-{{ checksum "~/project/Cargo.lock" }}
 
   package_bindings_test:
     docker:
@@ -303,7 +303,7 @@ jobs:
           command: rustc --version; cargo --version; rustup --version; rustup target list --installed
       - restore_cache:
           keys:
-            - cargocache-v2-bindings-test:1.54.0-{{ checksum "~/project/Cargo.lock" }}
+            - cargocache-v2-bindings-test:1.58.1-{{ checksum "~/project/Cargo.lock" }}
       - run:
           name: Build library for native target
           command: cargo build --locked
@@ -314,7 +314,7 @@ jobs:
           paths:
             - /usr/local/cargo/registry
             - target
-          key: cargocache-v2-bindings-test:1.54.0-{{ checksum "~/project/Cargo.lock" }}
+          key: cargocache-v2-bindings-test:1.58.1-{{ checksum "~/project/Cargo.lock" }}
 
   package_utils:
     docker:
@@ -328,7 +328,7 @@ jobs:
           command: rustc --version; cargo --version; rustup --version; rustup target list --installed
       - restore_cache:
           keys:
-            - cargocache-v2-utils:1.54.0-{{ checksum "~/project/Cargo.lock" }}
+            - cargocache-v2-utils:1.58.1-{{ checksum "~/project/Cargo.lock" }}
       - run:
           name: Build library for native target
           command: cargo build --locked
@@ -339,7 +339,7 @@ jobs:
           paths:
             - /usr/local/cargo/registry
             - target
-          key: cargocache-v2-utils:1.54.0-{{ checksum "~/project/Cargo.lock" }}
+          key: cargocache-v2-utils:1.58.1-{{ checksum "~/project/Cargo.lock" }}
 
 
   package_tg4:
@@ -354,7 +354,7 @@ jobs:
           command: rustc --version; cargo --version; rustup --version; rustup target list --installed
       - restore_cache:
           keys:
-            - cargocache-v2-tg4:1.54.0-{{ checksum "~/project/Cargo.lock" }}
+            - cargocache-v2-tg4:1.58.1-{{ checksum "~/project/Cargo.lock" }}
       - run:
           name: Build library for native target
           command: cargo build --locked
@@ -368,7 +368,7 @@ jobs:
           paths:
             - /usr/local/cargo/registry
             - target
-          key: cargocache-v2-tg4:1.54.0-{{ checksum "~/project/Cargo.lock" }}
+          key: cargocache-v2-tg4:1.58.1-{{ checksum "~/project/Cargo.lock" }}
 
   package_voting_contract:
     docker:
@@ -382,7 +382,7 @@ jobs:
           command: rustc --version; cargo --version; rustup --version; rustup target list --installed
       - restore_cache:
           keys:
-            - cargocache-v2-tg4:1.54.0-{{ checksum "~/project/Cargo.lock" }}
+            - cargocache-v2-tg4:1.58.1-{{ checksum "~/project/Cargo.lock" }}
       - run:
           name: Build library for native target
           command: cargo build --locked
@@ -396,7 +396,7 @@ jobs:
           paths:
             - /usr/local/cargo/registry
             - target
-          key: cargocache-v2-tg4:1.54.0-{{ checksum "~/project/Cargo.lock" }}
+          key: cargocache-v2-tg4:1.58.1-{{ checksum "~/project/Cargo.lock" }}
 
   package_test_utils:
     docker:
@@ -410,7 +410,7 @@ jobs:
           command: rustc --version; cargo --version; rustup --version; rustup target list --installed
       - restore_cache:
           keys:
-            - cargocache-v2-tg4:1.54.0-{{ checksum "~/project/Cargo.lock" }}
+            - cargocache-v2-tg4:1.58.1-{{ checksum "~/project/Cargo.lock" }}
       - run:
           name: Build library for native target
           command: cargo build --locked
@@ -421,7 +421,7 @@ jobs:
           paths:
             - /usr/local/cargo/registry
             - target
-          key: cargocache-v2-tg4:1.54.0-{{ checksum "~/project/Cargo.lock" }}
+          key: cargocache-v2-tg4:1.58.1-{{ checksum "~/project/Cargo.lock" }}
 
   lint:
     docker:
@@ -440,6 +440,11 @@ jobs:
       - run:
           name: Add clippy component
           command: rustup component add clippy
+      - run:
+          name: Create fake wasm files
+          command: |
+            mkdir -p ./target/wasm32-unknown-unknown/release/
+            touch ./target/wasm32-unknown-unknown/release/tgrade_valset.wasm
       - run:
           name: Clippy linting on workspace
           command: cargo clippy --tests -- -D warnings

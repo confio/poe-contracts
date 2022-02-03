@@ -41,7 +41,6 @@ pub fn valid_validator(seed: &str, power: u64) -> ValidatorInfo {
     ValidatorInfo {
         operator: Addr::unchecked(seed),
         validator_pubkey: mock_pubkey(seed.as_bytes()),
-        metadata: mock_metadata(seed),
         power,
     }
 }
