@@ -116,11 +116,9 @@ where
 {
     // ensure proposal exists and can be voted on
     let mut prop = proposals().load(deps.storage, proposal_id)?;
-    if prop.status != Status::Open {
+
+    if prop.current_status(&env.block) != Status::Open {
         return Err(ContractError::NotOpen {});
-    }
-    if prop.expires.is_expired(&env.block) {
-        return Err(ContractError::Expired {});
     }
 
     // use a snapshot of "start of proposal"
@@ -197,8 +195,15 @@ where
 {
     // anyone can trigger this if the vote passed
 
-    let mut prop = proposals::<P>().load(deps.storage, proposal_id)?;
-    if [Status::Executed, Status::Rejected, Status::Passed]
+    let mut prop = proposals().load(deps.storage, proposal_id)?;
+
+    if prop.status == Status::Rejected {
+        return Err(ContractError::NotOpen {});
+    }
+
+    prop.update_status(&env.block);
+
+    if [Status::Executed, Status::Passed]
         .iter()
         .any(|x| *x == prop.status)
     {
@@ -208,7 +213,6 @@ where
         return Err(ContractError::NotExpired {});
     }
 
-    // set it to failed
     prop.status = Status::Rejected;
     proposals::<P>().save(deps.storage, proposal_id, &prop)?;
 
