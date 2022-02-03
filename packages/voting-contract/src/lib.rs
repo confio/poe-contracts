@@ -117,7 +117,7 @@ where
     // ensure proposal exists and can be voted on
     let mut prop = proposals().load(deps.storage, proposal_id)?;
 
-    if prop.update_status(&env.block) != Status::Open {
+    if prop.current_status(&env.block) != Status::Open {
         return Err(ContractError::NotOpen {});
     }
 
