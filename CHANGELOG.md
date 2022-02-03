@@ -2,7 +2,11 @@
 
 ## [Unreleased](https://github.com/confio/poe-contracts/tree/HEAD)
 
-[Full Changelog](https://github.com/confio/poe-contracts/compare/v0.6.0-alpha1...HEAD)
+[Full Changelog](https://github.com/confio/poe-contracts/compare/v0.6.0-beta1...HEAD)
+
+## [v0.6.0-alpha1](https://github.com/confio/poe-contracts/tree/v0.6.0-beta1) (2022-02-03)
+
+[Full Changelog](https://github.com/confio/poe-contracts/compare/v0.6.0-alpha1...v0.6.0-beta1)
 
 **Breaking changes:**
 
