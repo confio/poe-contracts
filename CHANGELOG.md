@@ -29,6 +29,9 @@
 **Breaking changes:**
 
 - \[voting-contract\] Record proposal creator [\#31](https://github.com/confio/poe-contracts/issues/31)
+- Validator set query pagination [\#51](https://github.com/confio/poe-contracts/pull/51) ([maurolacy](https://github.com/maurolacy))
+- valset: Add a feature to update `min_weight` and `max_validators` [\#45](https://github.com/confio/poe-contracts/pull/45) ([uint](https://github.com/uint))
+- Store information about operators' validator status [\#37](https://github.com/confio/poe-contracts/pull/37) ([uint](https://github.com/uint))
 
 **Closed issues:**
 
@@ -41,14 +44,11 @@
 - 0.6.0-alpha1 release [\#56](https://github.com/confio/poe-contracts/pull/56) ([uint](https://github.com/uint))
 - Voting contract: save info about creator of proposal [\#54](https://github.com/confio/poe-contracts/pull/54) ([ueco-jb](https://github.com/ueco-jb))
 - Fix `remove_hook` helper [\#53](https://github.com/confio/poe-contracts/pull/53) ([maurolacy](https://github.com/maurolacy))
-- Validator set query pagination [\#51](https://github.com/confio/poe-contracts/pull/51) ([maurolacy](https://github.com/maurolacy))
 - ValidatorVoting - make sure proposal migrate msg is not empty [\#48](https://github.com/confio/poe-contracts/pull/48) ([ueco-jb](https://github.com/ueco-jb))
 - Fix tg4-engagement docs / comments [\#47](https://github.com/confio/poe-contracts/pull/47) ([maurolacy](https://github.com/maurolacy))
-- valset: Add a feature to update `min_weight` and `max_validators` [\#45](https://github.com/confio/poe-contracts/pull/45) ([uint](https://github.com/uint))
 - Update rust to v1.54.0 in CI [\#43](https://github.com/confio/poe-contracts/pull/43) ([maurolacy](https://github.com/maurolacy))
 - Valset: Fix JailMsg inconsistencies [\#39](https://github.com/confio/poe-contracts/pull/39) ([ueco-jb](https://github.com/ueco-jb))
 - Valset: better unjail error message when jail lock didn't expire [\#38](https://github.com/confio/poe-contracts/pull/38) ([ueco-jb](https://github.com/ueco-jb))
-- Store information about operators' validator status [\#37](https://github.com/confio/poe-contracts/pull/37) ([uint](https://github.com/uint))
 - Fix tag consolidation for matching CHANGELOG entries [\#32](https://github.com/confio/poe-contracts/pull/32) ([maurolacy](https://github.com/maurolacy))
 - Open Text Proposals [\#27](https://github.com/confio/poe-contracts/pull/27) ([uint](https://github.com/uint))
 
