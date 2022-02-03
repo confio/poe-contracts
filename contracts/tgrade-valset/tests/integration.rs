@@ -20,11 +20,11 @@
 use bech32::{ToBase32, Variant};
 
 use cosmwasm_std::{to_binary, Addr, Binary, ContractResult, Empty, Response};
-use cosmwasm_vm::{features_from_csv, Instance};
 use cosmwasm_vm::testing::{
     execute, mock_env, mock_info, mock_instance_with_options, MockApi, MockInstanceOptions,
     MockQuerier, MockStorage,
 };
+use cosmwasm_vm::{features_from_csv, Instance};
 use tg_bindings::Pubkey;
 
 use tgrade_valset::msg::ExecuteMsg;
@@ -34,7 +34,14 @@ use tgrade_valset::state::ValidatorInfo;
 // returns a list of addresses that are set in the tg4-stake contract
 fn addrs(count: u32) -> Vec<String> {
     (1..=count)
-        .map(|x| bech32::encode("tgrade", format!("operator-{:03}", x).to_base32(), Variant::Bech32).unwrap())
+        .map(|x| {
+            bech32::encode(
+                "tgrade",
+                format!("operator-{:03}", x).to_base32(),
+                Variant::Bech32,
+            )
+            .unwrap()
+        })
         .collect()
 }
 
