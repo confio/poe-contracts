@@ -1,6 +1,5 @@
 #!/bin/bash
 
-
 ORIGINAL_OPTS=$*
 OPTS=$(getopt -l "help,since-tag:,full,token:" -o "hft" -- "$@") || exit 1
 

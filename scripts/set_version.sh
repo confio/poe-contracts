@@ -1,6 +1,6 @@
 #!/bin/bash
 set -o errexit -o nounset -o pipefail
-command -v shellcheck > /dev/null && shellcheck "$0"
+command -v shellcheck >/dev/null && shellcheck "$0"
 
 function print_usage() {
   echo "Usage: $0 NEW_VERSION"
