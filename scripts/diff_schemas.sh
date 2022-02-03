@@ -18,12 +18,20 @@ function generate_schemas() {
   done
 }
 
+TOOL="diff"
+if [ "$1" = "-j" ]
+then
+  TOOL="jsondiff"
+  shift
+fi
+
 LEFT_TAG="$1"
 [ -z "$LEFT_TAG" ] && LEFT_TAG=$(git tag --sort=creatordate | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+' | tail -1)
 
 if [ "$LEFT_TAG" = "-h" ] || [ "$LEFT_TAG" = "--help" ]
 then
-  echo "Usage: $0 [LEFT_TAG] [RIGHT_TAG]"
+  echo "Usage: $0 [-j] [LEFT_TAG] [RIGHT_TAG]"
+  echo "-j: Use jsondiff (default: Use diff)"
   echo "Left tag default: Most recent version tag."
   echo "Right tag default: Current branch."
   exit 1
@@ -70,9 +78,21 @@ done
 # Compare them
 for SL in */*/"schema-$LEFT_TAG"
 do
-  echo "$SL":
-  SR=$(dirname "$SL")"/schema-$RIGHT_TAG"
-  diff -u "$SL" "$SR"
+  PARENT=$(dirname "$SL")
+  echo "$PARENT":
+  SR="$PARENT/schema-$RIGHT_TAG"
+  if [ "$TOOL" = "diff" ]
+  then
+    diff -u "$SL" "$SR"
+  else
+    for JL in "$SL"/*.json
+    do
+      BASE=$(basename "$JL")
+      JR="$SR/$BASE"
+      echo "$BASE:"
+      jsondiff -s compact "$JL" "$JR" | jq '.' | { grep -v '^{}' || true; }
+    done
+  fi
 done >"$RESULTS"
 
 # Return to current branch
