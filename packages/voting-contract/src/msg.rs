@@ -9,6 +9,7 @@ pub struct ProposalCreationResponse {
 }
 
 // TODO: Remove all underneath when cw-plus equivalent is updated about proposal_id field
+// https://github.com/CosmWasm/cw-plus/issues/647
 /// Returns the vote (opinion as well as weight counted) as well as
 /// the address of the voter who submitted it
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]

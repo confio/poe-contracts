@@ -352,7 +352,6 @@ fn list_votes_by_voter() {
         .with_rules(rules)
         .build();
 
-    // Create 3 proposals
     let response = suite.propose("alice", "proposal", "proposal").unwrap();
     let proposal_id: u64 = get_proposal_id(&response).unwrap();
     suite.vote("bob", proposal_id, Vote::No).unwrap();
@@ -403,7 +402,6 @@ fn list_votes_by_voter_with_pagination() {
         .with_rules(rules)
         .build();
 
-    // Create 3 proposals
     let response = suite.propose("alice", "proposal", "proposal").unwrap();
     let proposal_id: u64 = get_proposal_id(&response).unwrap();
     suite.vote("bob", proposal_id, Vote::No).unwrap();
