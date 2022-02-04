@@ -1,7 +1,7 @@
 use crate::{
-    execute_text, list_proposals, list_text_proposals, list_voters, list_votes, propose,
-    query_group_contract, query_proposal, query_rules, query_vote, query_voter, reverse_proposals,
-    state::VotingRules, ContractError, Response,
+    execute_text, list_proposals, list_text_proposals, list_voters, list_votes,
+    list_votes_by_voter, propose, query_group_contract, query_proposal, query_rules, query_vote,
+    query_voter, reverse_proposals, state::VotingRules, ContractError, Response,
 };
 use cosmwasm_std::{from_slice, to_binary};
 use cw3::Vote;
@@ -64,6 +64,12 @@ pub enum QueryMsg {
     ListVotes {
         proposal_id: u64,
         start_after: Option<String>,
+        limit: usize,
+    },
+    /// Returns VoteListResponse
+    ListVotesByVoter {
+        voter: String,
+        start_after: Option<u64>,
         limit: usize,
     },
     /// Returns VoterResponse
@@ -153,6 +159,11 @@ impl Contract<TgradeMsg> for VotingContract {
                 start_after,
                 limit,
             } => to_binary(&list_votes(deps, proposal_id, start_after, limit)?),
+            ListVotesByVoter {
+                voter,
+                start_after,
+                limit,
+            } => to_binary(&list_votes_by_voter(deps, voter, start_after, limit)?),
             Voter { address } => to_binary(&query_voter(deps, address)?),
             GroupContract {} => to_binary(&query_group_contract(deps)?),
             ListTextProposals { start_after, limit } => {

@@ -5,9 +5,7 @@ use super::contracts::{
 };
 use anyhow::Result as AnyResult;
 use cosmwasm_std::{Addr, StdResult};
-use cw3::{
-    Vote, VoteInfo, VoteListResponse, VoteResponse, VoterDetail, VoterListResponse, VoterResponse,
-};
+use cw3::{Vote, VoterDetail, VoterListResponse, VoterResponse};
 use cw_multi_test::{AppResponse, Executor};
 use derivative::Derivative;
 
@@ -15,6 +13,7 @@ use tg4::Member;
 use tg_bindings_test::TgradeApp;
 
 use crate::{
+    msg::{VoteInfo, VoteListResponse, VoteResponse},
     state::{
         ProposalInfo, ProposalListResponse, ProposalResponse, RulesBuilder,
         TextProposalListResponse, VotingRules,
@@ -297,6 +296,23 @@ impl Suite {
             self.voting.clone(),
             &voting::QueryMsg::ListVotes {
                 proposal_id,
+                start_after: start_after.into(),
+                limit: limit.into().unwrap_or(10),
+            },
+        )?;
+        Ok(votes.votes)
+    }
+
+    pub fn list_votes_by_voter(
+        &self,
+        voter: &str,
+        start_after: impl Into<Option<u64>>,
+        limit: impl Into<Option<usize>>,
+    ) -> StdResult<Vec<VoteInfo>> {
+        let votes: VoteListResponse = self.app.wrap().query_wasm_smart(
+            self.voting.clone(),
+            &voting::QueryMsg::ListVotesByVoter {
+                voter: voter.to_owned(),
                 start_after: start_after.into(),
                 limit: limit.into().unwrap_or(10),
             },

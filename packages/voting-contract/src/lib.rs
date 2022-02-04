@@ -137,7 +137,13 @@ where
             vote,
         }),
     })?;
-
+    BALLOTS_BY_VOTER.update(deps.storage, (&info.sender, proposal_id), |bal| match bal {
+        Some(_) => Err(ContractError::AlreadyVoted {}),
+        None => Ok(Ballot {
+            weight: vote_power,
+            vote,
+        }),
+    })?;
     // update vote tally
     prop.votes.add_vote(vote, vote_power);
     prop.update_status(&env.block);

@@ -1,8 +1,9 @@
 use cosmwasm_std::Decimal;
-use cw3::{Status, Vote, VoteInfo};
+use cw3::{Status, Vote};
 use tg_utils::Expiration;
 
 use super::contracts::voting::Proposal;
+use crate::msg::VoteInfo;
 use crate::multitest::suite::{get_proposal_id, SuiteBuilder};
 use crate::state::{ProposalInfo, ProposalResponse, RulesBuilder, Votes};
 
@@ -152,6 +153,7 @@ fn query_individual_votes() {
     assert_eq!(
         vote,
         Some(VoteInfo {
+            proposal_id,
             voter: "alice".to_string(),
             vote: Vote::Yes,
             weight: 1
@@ -163,6 +165,7 @@ fn query_individual_votes() {
     assert_eq!(
         vote,
         Some(VoteInfo {
+            proposal_id,
             voter: "bob".to_owned(),
             vote: Vote::No,
             weight: 2
@@ -255,11 +258,13 @@ fn list_votes() {
         votes,
         [
             VoteInfo {
+                proposal_id,
                 voter: "alice".to_string(),
                 vote: Vote::Yes,
                 weight: 1
             },
             VoteInfo {
+                proposal_id,
                 voter: "bob".to_string(),
                 vote: Vote::No,
                 weight: 2
@@ -295,16 +300,19 @@ fn list_votes_pagination() {
         votes,
         [
             VoteInfo {
+                proposal_id,
                 voter: "alice".to_string(),
                 vote: Vote::Yes,
                 weight: 1
             },
             VoteInfo {
+                proposal_id,
                 voter: "bob".to_string(),
                 vote: Vote::No,
                 weight: 2
             },
             VoteInfo {
+                proposal_id,
                 voter: "carol".to_string(),
                 vote: Vote::Abstain,
                 weight: 3
@@ -317,17 +325,147 @@ fn list_votes_pagination() {
         votes,
         [
             VoteInfo {
+                proposal_id,
                 voter: "carol".to_string(),
                 vote: Vote::Abstain,
                 weight: 3
             },
             VoteInfo {
+                proposal_id,
                 voter: "dave".to_string(),
                 vote: Vote::Veto,
                 weight: 4
             },
         ]
     );
+}
+
+#[test]
+fn list_votes_by_voter() {
+    let rules = RulesBuilder::new()
+        .with_threshold(Decimal::percent(51))
+        .build();
+
+    let mut suite = SuiteBuilder::new()
+        .with_member("alice", 1)
+        .with_member("bob", 2)
+        .with_rules(rules)
+        .build();
+
+    // Create 3 proposals
+    let response = suite.propose("alice", "proposal", "proposal").unwrap();
+    let proposal_id: u64 = get_proposal_id(&response).unwrap();
+    suite.vote("bob", proposal_id, Vote::No).unwrap();
+
+    let response = suite.propose("alice", "proposal2", "proposal2").unwrap();
+    let proposal_id2: u64 = get_proposal_id(&response).unwrap();
+    suite.vote("bob", proposal_id2, Vote::Yes).unwrap();
+
+    let response = suite.propose("alice", "proposal3", "proposal3").unwrap();
+    let proposal_id3: u64 = get_proposal_id(&response).unwrap();
+    suite.vote("bob", proposal_id3, Vote::Abstain).unwrap();
+
+    let votes = suite.list_votes_by_voter("bob", None, None).unwrap();
+    assert_eq!(
+        votes,
+        [
+            VoteInfo {
+                proposal_id,
+                voter: "bob".to_string(),
+                vote: Vote::No,
+                weight: 2
+            },
+            VoteInfo {
+                proposal_id: proposal_id2,
+                voter: "bob".to_string(),
+                vote: Vote::Yes,
+                weight: 2
+            },
+            VoteInfo {
+                proposal_id: proposal_id3,
+                voter: "bob".to_string(),
+                vote: Vote::Abstain,
+                weight: 2
+            }
+        ]
+    );
+}
+
+#[test]
+fn list_votes_by_voter_with_pagination() {
+    let rules = RulesBuilder::new()
+        .with_threshold(Decimal::percent(51))
+        .build();
+
+    let mut suite = SuiteBuilder::new()
+        .with_member("alice", 1)
+        .with_member("bob", 2)
+        .with_rules(rules)
+        .build();
+
+    // Create 3 proposals
+    let response = suite.propose("alice", "proposal", "proposal").unwrap();
+    let proposal_id: u64 = get_proposal_id(&response).unwrap();
+    suite.vote("bob", proposal_id, Vote::No).unwrap();
+
+    let response = suite.propose("alice", "proposal2", "proposal2").unwrap();
+    let proposal_id2: u64 = get_proposal_id(&response).unwrap();
+    suite.vote("bob", proposal_id2, Vote::Yes).unwrap();
+
+    let response = suite.propose("alice", "proposal3", "proposal3").unwrap();
+    let proposal_id3: u64 = get_proposal_id(&response).unwrap();
+    suite.vote("bob", proposal_id3, Vote::Abstain).unwrap();
+
+    let response = suite.propose("alice", "proposal4", "proposal4").unwrap();
+    let proposal_id4: u64 = get_proposal_id(&response).unwrap();
+    suite.vote("bob", proposal_id4, Vote::Yes).unwrap();
+
+    let votes = suite.list_votes_by_voter("bob", None, 2).unwrap();
+    assert_eq!(
+        votes,
+        [
+            VoteInfo {
+                proposal_id,
+                voter: "bob".to_string(),
+                vote: Vote::No,
+                weight: 2
+            },
+            VoteInfo {
+                proposal_id: proposal_id2,
+                voter: "bob".to_string(),
+                vote: Vote::Yes,
+                weight: 2
+            },
+        ]
+    );
+    let votes = suite.list_votes_by_voter("bob", 2, 1).unwrap();
+    assert_eq!(
+        votes,
+        [VoteInfo {
+            proposal_id: proposal_id3,
+            voter: "bob".to_string(),
+            vote: Vote::Abstain,
+            weight: 2
+        },]
+    );
+    let votes = suite.list_votes_by_voter("bob", 2, None).unwrap();
+    assert_eq!(
+        votes,
+        [
+            VoteInfo {
+                proposal_id: proposal_id3,
+                voter: "bob".to_string(),
+                vote: Vote::Abstain,
+                weight: 2
+            },
+            VoteInfo {
+                proposal_id: proposal_id4,
+                voter: "bob".to_string(),
+                vote: Vote::Yes,
+                weight: 2
+            },
+        ]
+    )
 }
 
 #[test]
