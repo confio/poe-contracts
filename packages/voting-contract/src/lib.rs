@@ -4,21 +4,21 @@ pub mod msg;
 mod multitest;
 pub mod state;
 
-pub use error::ContractError;
-
-use cosmwasm_std::{Addr, BlockInfo, Deps, DepsMut, Env, MessageInfo, Order, StdResult, Storage};
-use cw3::{
-    Status, Vote, VoteInfo, VoteListResponse, VoteResponse, VoterDetail, VoterListResponse,
-    VoterResponse,
-};
-use cw_storage_plus::Bound;
-use cw_utils::maybe_addr;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
+
+pub use error::ContractError;
+use msg::{VoteInfo, VoteListResponse, VoteResponse};
 use state::{
     next_id, proposals, Ballot, Config, Proposal, ProposalListResponse, ProposalResponse,
-    TextProposalListResponse, Votes, VotingRules, BALLOTS, CONFIG, TEXT_PROPOSALS,
+    TextProposalListResponse, Votes, VotingRules, BALLOTS, BALLOTS_BY_VOTER, CONFIG,
+    TEXT_PROPOSALS,
 };
+
+use cosmwasm_std::{Addr, BlockInfo, Deps, DepsMut, Env, MessageInfo, Order, StdResult, Storage};
+use cw3::{Status, Vote, VoterDetail, VoterListResponse, VoterResponse};
+use cw_storage_plus::Bound;
+use cw_utils::maybe_addr;
 use tg4::Tg4Contract;
 use tg_bindings::TgradeMsg;
 use tg_utils::Expiration;
@@ -93,6 +93,7 @@ where
         vote: Vote::Yes,
     };
     BALLOTS.save(deps.storage, (id, &info.sender), &ballot)?;
+    BALLOTS_BY_VOTER.save(deps.storage, (&info.sender, id), &ballot)?;
 
     let resp = msg::ProposalCreationResponse { proposal_id: id };
 
@@ -325,6 +326,7 @@ pub fn query_vote(deps: Deps, proposal_id: u64, voter: String) -> StdResult<Vote
     let voter_addr = deps.api.addr_validate(&voter)?;
     let prop = BALLOTS.may_load(deps.storage, (proposal_id, &voter_addr))?;
     let vote = prop.map(|b| VoteInfo {
+        proposal_id,
         voter,
         vote: b.vote,
         weight: b.weight,
@@ -348,7 +350,35 @@ pub fn list_votes(
         .map(|item| {
             let (voter, ballot) = item?;
             Ok(VoteInfo {
+                proposal_id,
                 voter: voter.into(),
+                vote: ballot.vote,
+                weight: ballot.weight,
+            })
+        })
+        .collect();
+
+    Ok(VoteListResponse { votes: votes? })
+}
+
+pub fn list_votes_by_voter(
+    deps: Deps,
+    voter: String,
+    start_after: Option<u64>,
+    limit: usize,
+) -> StdResult<VoteListResponse> {
+    let start = start_after.map(Bound::exclusive_int);
+    let voter_addr = deps.api.addr_validate(&voter)?;
+
+    let votes: StdResult<Vec<_>> = BALLOTS_BY_VOTER
+        .prefix(&voter_addr)
+        .range(deps.storage, start, None, Order::Ascending)
+        .take(limit)
+        .map(|item| {
+            let (proposal_id, ballot) = item?;
+            Ok(VoteInfo {
+                proposal_id,
+                voter: voter.clone(),
                 vote: ballot.vote,
                 weight: ballot.weight,
             })
