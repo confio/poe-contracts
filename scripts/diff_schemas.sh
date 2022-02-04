@@ -4,7 +4,7 @@
 # Falls back to the current branch for right.
 # Requires a pristine repo for safety.
 
-set -o errexit -o pipefail
+set -o errexit
 command -v shellcheck >/dev/null && shellcheck "$0"
 
 function generate_schemas() {
