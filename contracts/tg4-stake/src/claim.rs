@@ -10,8 +10,8 @@ use cw_storage_plus::{Bound, Index, IndexList, IndexedMap, MultiIndex, PrimaryKe
 use tg_utils::Expiration;
 
 // settings for pagination
-const MAX_LIMIT: u32 = 30;
-const DEFAULT_LIMIT: u32 = 10;
+const MAX_LIMIT: u32 = 100;
+const DEFAULT_LIMIT: u32 = 30;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct Claim {

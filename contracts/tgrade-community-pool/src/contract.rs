@@ -145,8 +145,8 @@ pub fn execute_withdraw_engagement_rewards(
 
 fn align_limit(limit: Option<u32>) -> usize {
     // settings for pagination
-    const MAX_LIMIT: u32 = 30;
-    const DEFAULT_LIMIT: u32 = 10;
+    const MAX_LIMIT: u32 = 100;
+    const DEFAULT_LIMIT: u32 = 30;
 
     limit.unwrap_or(DEFAULT_LIMIT).min(MAX_LIMIT) as _
 }
