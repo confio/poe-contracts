@@ -114,7 +114,7 @@ impl Tg4Contract {
                 if value.is_empty() {
                     Ok(None)
                 } else {
-                    from_slice(&value)
+                    Ok(from_slice::<(u64, u64)>(&value)?.0.into())
                 }
             }
         }
