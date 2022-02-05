@@ -320,24 +320,28 @@ fn update_membership(
     // update their membership weight
     let new = calc_weight(new_stake, cfg);
     let old = members().may_load(storage, &sender)?;
+    let (old_weight, start_height) = match old {
+        Some((w, h)) => (Some(w), h),
+        None => (None, height),
+    };
 
     // short-circuit if no change
-    if new == old {
+    if new == old_weight {
         return Ok(vec![]);
     }
     // otherwise, record change of weight
     match new.as_ref() {
-        Some(w) => members().save(storage, &sender, w, height),
+        Some(&w) => members().save(storage, &sender, &(w, start_height), height),
         None => members().remove(storage, &sender, height),
     }?;
 
     // update total
     TOTAL.update(storage, |total| -> StdResult<_> {
-        Ok(total + new.unwrap_or_default() - old.unwrap_or_default())
+        Ok(total + new.unwrap_or_default() - old_weight.unwrap_or_default())
     })?;
 
     // alert the hooks
-    let diff = MemberDiff::new(sender, old, new);
+    let diff = MemberDiff::new(sender, old_weight, new);
     HOOKS.prepare_hooks(storage, |h| {
         MemberChangedHookMsg::one(diff.clone())
             .into_cosmos_msg(h)
@@ -510,7 +514,8 @@ fn query_member(deps: Deps, addr: String, height: Option<u64>) -> StdResult<Memb
     let weight = match height {
         Some(h) => members().may_load_at_height(deps.storage, &addr, h),
         None => members().may_load(deps.storage, &addr),
-    }?;
+    }?
+    .map(|(weight, _start_height)| weight);
     Ok(MemberResponse { points: weight })
 }
 
@@ -531,7 +536,7 @@ fn list_members(
         .range(deps.storage, start, None, Order::Ascending)
         .take(limit)
         .map(|item| {
-            let (addr, points) = item?;
+            let (addr, (points, _)) = item?;
             Ok(Member {
                 addr: addr.into(),
                 points,
@@ -556,7 +561,7 @@ fn list_members_by_points(
         .range(deps.storage, None, start, Order::Descending)
         .take(limit)
         .map(|item| {
-            let (addr, points) = item?;
+            let (addr, (points, _)) = item?;
             Ok(Member {
                 addr: addr.into(),
                 points,
@@ -983,8 +988,8 @@ mod tests {
 
         // get member votes from raw key
         let member2_raw = deps.storage.get(&member_key(USER2)).unwrap();
-        let member2: u64 = from_slice(&member2_raw).unwrap();
-        assert_eq!(6, member2);
+        let member2: (u64, u64) = from_slice(&member2_raw).unwrap();
+        assert_eq!(6, member2.0);
 
         // and execute misses
         let member3_raw = deps.storage.get(&member_key(USER3));

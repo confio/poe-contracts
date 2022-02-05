@@ -111,7 +111,7 @@ fn initialize_members(
             if let Some(right) = other {
                 let weight = poe_function.mix(member.points, right)?;
                 total += weight;
-                members().save(deps.storage, &addr, &weight, height)?;
+                members().save(deps.storage, &addr, &(weight, height), height)?;
             }
         }
         // and get the next page
@@ -208,13 +208,18 @@ pub fn update_members(
 
         // update the total with changes.
         // to calculate this, we need to load the old weight before saving the new weight
-        let prev_weight = mems.may_load(deps.storage, &member_addr)?;
+        let (prev_weight, start_height) = match mems.may_load(deps.storage, &member_addr)? {
+            Some((weight, start_height)) => (Some(weight), start_height),
+            None => (None, height),
+        };
         total -= prev_weight.unwrap_or_default();
         total += new_weight.unwrap_or_default();
 
         // store the new value
         match new_weight {
-            Some(weight) => mems.save(deps.storage, &member_addr, &weight, height)?,
+            Some(weight) => {
+                mems.save(deps.storage, &member_addr, &(weight, start_height), height)?
+            }
             None => mems.remove(deps.storage, &member_addr, height)?,
         };
 
@@ -400,7 +405,8 @@ fn query_member(deps: Deps, addr: String, height: Option<u64>) -> StdResult<Memb
     let points = match height {
         Some(h) => members().may_load_at_height(deps.storage, &addr, h),
         None => members().may_load(deps.storage, &addr),
-    }?;
+    }?
+    .map(|(points, _)| points);
     Ok(MemberResponse { points })
 }
 
@@ -421,7 +427,7 @@ fn list_members(
         .range(deps.storage, start, None, Order::Ascending)
         .take(limit)
         .map(|item| {
-            let (addr, points) = item?;
+            let (addr, (points, _)) = item?;
             Ok(Member {
                 addr: addr.into(),
                 points,
@@ -445,7 +451,7 @@ fn list_members_by_points(
         .range(deps.storage, None, start, Order::Descending)
         .take(limit)
         .map(|item| {
-            let (addr, points) = item?;
+            let (addr, (points, _)) = item?;
             Ok(Member {
                 addr: addr.into(),
                 points,
