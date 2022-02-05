@@ -101,7 +101,7 @@ pub fn create(
     for member in members_list.into_iter() {
         total += member.weight;
         let member_addr = deps.api.addr_validate(&member.addr)?;
-        members().save(deps.storage, &member_addr, &member.weight, height)?;
+        members().save(deps.storage, &member_addr, &(member.weight, height), height)?;
 
         let adjustment = WithdrawAdjustment {
             points_correction: 0i128.into(),
@@ -463,17 +463,17 @@ pub fn execute_slash(
         &addr,
         env.block.height,
         |old| -> StdResult<_> {
-            let old = match old {
-                Some(old) => Uint128::new(old as _),
-                None => Uint128::zero(),
+            let (old_weight, start_height) = match old {
+                Some((old_weight, start_height)) => (Uint128::new(old_weight as _), start_height),
+                None => (Uint128::zero(), 0), // unreachable
             };
 
-            let slash = old * portion;
-            let new = old - slash;
+            let slash = old_weight * portion;
+            let new = old_weight - slash;
 
             diff = -(slash.u128() as i128);
 
-            Ok(new.u128() as _)
+            Ok((new.u128() as _, start_height))
         },
     )?;
     apply_points_correction(deps.branch(), &addr, ppw, diff)?;
@@ -501,6 +501,7 @@ pub fn withdrawable_funds(
     let weight: u128 = members()
         .may_load(deps.storage, owner)?
         .unwrap_or_default()
+        .0
         .into();
     let correction: i128 = adjustment.points_correction.into();
     let withdrawn: u128 = adjustment.withdrawn_funds.into();
@@ -550,13 +551,17 @@ pub fn update_members(
         let mut diff = 0;
         let mut insert_funds = false;
         members().update(deps.storage, &add_addr, height, |old| -> StdResult<_> {
-            diffs.push(MemberDiff::new(add.addr, old, Some(add.weight)));
+            let (old_weight, start_height) = match old {
+                Some((weight, start_height)) => (Some(weight), start_height),
+                None => (None, height),
+            };
+            diffs.push(MemberDiff::new(add.addr, old_weight, Some(add.weight)));
             insert_funds = old.is_none();
-            let old = old.unwrap_or_default();
-            total -= old;
+            let old_weight = old_weight.unwrap_or_default();
+            total -= old_weight;
             total += add.weight;
-            diff = add.weight as i128 - old as i128;
-            Ok(add.weight)
+            diff = add.weight as i128 - old_weight as i128;
+            Ok((add.weight, start_height))
         })?;
         apply_points_correction(deps.branch(), &add_addr, ppw, diff)?;
     }
@@ -565,7 +570,7 @@ pub fn update_members(
         let remove_addr = deps.api.addr_validate(&remove)?;
         let old = members().may_load(deps.storage, &remove_addr)?;
         // Only process this if they were actually in the list before
-        if let Some(weight) = old {
+        if let Some((weight, _)) = old {
             diffs.push(MemberDiff::new(remove, Some(weight), None));
             total -= weight;
             members().remove(deps.storage, &remove_addr, height)?;
@@ -643,28 +648,31 @@ fn end_block(mut deps: DepsMut, env: Env) -> Result<Response, ContractError> {
         .range(deps.storage, None, None, Order::Ascending)
         .filter_map(|item| {
             (move || -> StdResult<Option<_>> {
-                let (addr, weight) = item?;
+                let (addr, (weight, start_height)) = item?;
                 if weight <= 1 {
                     return Ok(None);
                 }
-                Ok(Some(Member {
-                    addr: addr.into(),
-                    weight,
-                }))
+                Ok(Some((
+                    Member {
+                        addr: addr.into(),
+                        weight,
+                    },
+                    start_height,
+                )))
             })()
             .transpose()
         })
         .collect::<StdResult<_>>()?;
 
-    for member in members_to_update {
+    for (member, start_height) in members_to_update {
         let diff = weight_reduction(member.weight);
         reduction += diff;
         let addr = Addr::unchecked(member.addr);
         members().replace(
             deps.storage,
             &addr,
-            Some(&(member.weight - diff)),
-            Some(&member.weight),
+            Some(&(member.weight - diff, start_height)),
+            Some(&(member.weight, start_height)),
             env.block.height,
         )?;
         apply_points_correction(deps.branch(), &addr, ppw, -(diff as i128))?;
@@ -740,7 +748,8 @@ fn query_member(deps: Deps, addr: String, height: Option<u64>) -> StdResult<Memb
     let weight = match height {
         Some(h) => members().may_load_at_height(deps.storage, &addr, h),
         None => members().may_load(deps.storage, &addr),
-    }?;
+    }?
+    .map(|(weight, _start_addr)| weight);
     Ok(MemberResponse { weight })
 }
 
@@ -829,7 +838,7 @@ fn list_members(
         .range(deps.storage, start, None, Order::Ascending)
         .take(limit)
         .map(|item| {
-            let (addr, weight) = item?;
+            let (addr, (weight, _)) = item?;
             Ok(Member {
                 addr: addr.into(),
                 weight,
@@ -846,14 +855,15 @@ fn list_members_by_weight(
     limit: Option<u32>,
 ) -> StdResult<MemberListResponse> {
     let limit = limit.unwrap_or(DEFAULT_LIMIT).min(MAX_LIMIT) as usize;
-    let start = start_after.map(|m| Bound::exclusive((m.weight, m.addr.as_str()).joined_key()));
+    // FIXME: Wrong bound now! (use type-safe bounds)
+    let start = start_after.map(|m| Bound::exclusive((m.weight, 0, m.addr.as_str()).joined_key()));
     let members: StdResult<Vec<_>> = members()
         .idx
         .weight
         .range(deps.storage, None, start, Order::Descending)
         .take(limit)
         .map(|item| {
-            let (addr, weight) = item?;
+            let (addr, (weight, _)) = item?;
             Ok(Member {
                 addr: addr.into(),
                 weight,
@@ -1515,8 +1525,8 @@ mod tests {
 
         // get member votes from raw key
         let member2_raw = deps.storage.get(&member_key(USER2)).unwrap();
-        let member2: u64 = from_slice(&member2_raw).unwrap();
-        assert_eq!(6, member2);
+        let member2: (u64, u64) = from_slice(&member2_raw).unwrap();
+        assert_eq!(6, member2.0);
 
         // and execute misses
         let member3_raw = deps.storage.get(&member_key(USER3));
