@@ -11,6 +11,7 @@ fn member(addr: &str, weight: u64) -> Member {
     Member {
         addr: addr.to_owned(),
         weight,
+        start_height: 0, // FIXME?
     }
 }
 

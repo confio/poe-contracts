@@ -61,6 +61,7 @@ impl SuiteBuilder {
         self.group_members.push(Member {
             addr: addr.to_owned(),
             weight,
+            start_height: 0, // FIXME?
         });
         self
     }

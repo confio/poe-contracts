@@ -189,11 +189,12 @@ mod tests {
 
     #[test]
     fn deserialize_json_to_sudo_msg() {
-        let message = r#"{"update_member": {"addr": "xxx", "weight": 123}}"#;
+        let message = r#"{"update_member": {"addr": "xxx", "weight": 123, "start_height": 456}}"#;
         assert_eq!(
             SudoMsg::UpdateMember(Member {
                 addr: "xxx".to_string(),
-                weight: 123
+                weight: 123,
+                start_height: 456
             }),
             cosmwasm_std::from_slice::<SudoMsg>(message.as_bytes()).unwrap()
         );

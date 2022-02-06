@@ -26,6 +26,7 @@ pub fn expected_members(members: Vec<(&str, u64)>) -> Vec<Member> {
         .map(|(addr, weight)| Member {
             addr: addr.to_owned(),
             weight,
+            start_height: 0, // FIXME?
         })
         .collect()
 }
@@ -46,6 +47,7 @@ impl SuiteBuilder {
         self.members.push(Member {
             addr: addr.to_owned(),
             weight,
+            start_height: 0, // FIXME?
         });
         self
     }
@@ -212,6 +214,7 @@ impl Suite {
             .map(|(addr, weight)| Member {
                 addr: (*addr).to_owned(),
                 weight: *weight,
+                start_height: 0, // FIXME?
             })
             .collect();
 

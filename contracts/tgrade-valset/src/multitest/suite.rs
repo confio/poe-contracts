@@ -180,6 +180,7 @@ impl SuiteBuilder {
                 .map(|(addr, weight)| Member {
                     addr: (*addr).to_owned(),
                     weight: *weight,
+                    start_height: 0, // FIXME?
                 })
                 .collect(),
             halflife: halflife.into(),
@@ -226,7 +227,11 @@ impl SuiteBuilder {
 
                 let members = members
                     .into_iter()
-                    .map(|(addr, weight)| Member { addr, weight })
+                    .map(|(addr, weight)| Member {
+                        addr,
+                        weight,
+                        start_height: 0,
+                    }) // FIXME?
                     .collect();
 
                 app.instantiate_contract(
