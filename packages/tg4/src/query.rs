@@ -40,6 +40,7 @@ pub struct AdminResponse {
 pub struct Member {
     pub addr: String,
     pub weight: u64,
+    pub start_height: u64,
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
@@ -50,6 +51,7 @@ pub struct MemberListResponse {
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 pub struct MemberResponse {
     pub weight: Option<u64>,
+    pub start_height: u64,
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
