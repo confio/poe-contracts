@@ -161,9 +161,9 @@ pub fn execute_add_points(
 
     ADMIN.assert_admin(deps.as_ref(), &info.sender)?;
 
-    let old_weight = query_member(deps.as_ref(), addr.clone(), None)?
-        .weight
-        .unwrap_or_default();
+    let old = query_member(deps.as_ref(), addr.clone(), None)?;
+    let old_weight = old.weight.unwrap_or_default();
+    let start_height = old.start_height;
 
     // make the local update
     let diff = update_members(
@@ -172,6 +172,7 @@ pub fn execute_add_points(
         vec![Member {
             addr,
             weight: old_weight + points,
+            start_height,
         }],
         vec![],
     )?;
@@ -652,27 +653,25 @@ fn end_block(mut deps: DepsMut, env: Env) -> Result<Response, ContractError> {
                 if weight <= 1 {
                     return Ok(None);
                 }
-                Ok(Some((
-                    Member {
-                        addr: addr.into(),
-                        weight,
-                    },
+                Ok(Some(Member {
+                    addr: addr.into(),
+                    weight,
                     start_height,
-                )))
+                }))
             })()
             .transpose()
         })
         .collect::<StdResult<_>>()?;
 
-    for (member, start_height) in members_to_update {
+    for member in members_to_update {
         let diff = weight_reduction(member.weight);
         reduction += diff;
         let addr = Addr::unchecked(member.addr);
         members().replace(
             deps.storage,
             &addr,
-            Some(&(member.weight - diff, start_height)),
-            Some(&(member.weight, start_height)),
+            Some(&(member.weight - diff, member.start_height)),
+            Some(&(member.weight, member.start_height)),
             env.block.height,
         )?;
         apply_points_correction(deps.branch(), &addr, ppw, -(diff as i128))?;
@@ -745,12 +744,19 @@ fn query_total_weight(deps: Deps) -> StdResult<TotalWeightResponse> {
 
 fn query_member(deps: Deps, addr: String, height: Option<u64>) -> StdResult<MemberResponse> {
     let addr = deps.api.addr_validate(&addr)?;
-    let weight = match height {
-        Some(h) => members().may_load_at_height(deps.storage, &addr, h),
-        None => members().may_load(deps.storage, &addr),
-    }?
-    .map(|(weight, _start_addr)| weight);
-    Ok(MemberResponse { weight })
+    let (weight, start_height) = match {
+        match height {
+            Some(h) => members().may_load_at_height(deps.storage, &addr, h),
+            None => members().may_load(deps.storage, &addr),
+        }?
+    } {
+        None => (None, 0),
+        Some((weight, start_height)) => (Some(weight), start_height),
+    };
+    Ok(MemberResponse {
+        weight,
+        start_height,
+    })
 }
 
 pub fn query_withdrawable_funds(deps: Deps, owner: String) -> StdResult<FundsResponse> {
@@ -838,10 +844,11 @@ fn list_members(
         .range(deps.storage, start, None, Order::Ascending)
         .take(limit)
         .map(|item| {
-            let (addr, (weight, _)) = item?;
+            let (addr, (weight, start_height)) = item?;
             Ok(Member {
                 addr: addr.into(),
                 weight,
+                start_height,
             })
         })
         .collect();
@@ -863,10 +870,11 @@ fn list_members_by_weight(
         .range(deps.storage, None, start, Order::Descending)
         .take(limit)
         .map(|item| {
-            let (addr, (weight, _)) = item?;
+            let (addr, (weight, start_height)) = item?;
             Ok(Member {
                 addr: addr.into(),
                 weight,
+                start_height,
             })
         })
         .collect();
@@ -914,10 +922,12 @@ mod tests {
                 Member {
                     addr: USER1.into(),
                     weight: USER1_WEIGHT,
+                    start_height: 1,
                 },
                 Member {
                     addr: USER2.into(),
                     weight: USER2_WEIGHT,
+                    start_height: 2,
                 },
             ],
             preauths_hooks: 1,
@@ -1001,11 +1011,13 @@ mod tests {
             vec![
                 Member {
                     addr: USER1.into(),
-                    weight: 11
+                    weight: 11,
+                    start_height: 12345
                 },
                 Member {
                     addr: USER2.into(),
-                    weight: 6
+                    weight: 6,
+                    start_height: 12345
                 },
             ]
         );
@@ -1018,7 +1030,8 @@ mod tests {
             members,
             vec![Member {
                 addr: USER1.into(),
-                weight: 11
+                weight: 11,
+                start_height: 12345
             },]
         );
 
@@ -1033,7 +1046,8 @@ mod tests {
             members,
             vec![Member {
                 addr: USER2.into(),
-                weight: 6
+                weight: 6,
+                start_height: 12345
             },]
         );
 
@@ -1060,11 +1074,13 @@ mod tests {
             vec![
                 Member {
                     addr: USER1.into(),
-                    weight: 11
+                    weight: 11,
+                    start_height: 12345
                 },
                 Member {
                     addr: USER2.into(),
-                    weight: 6
+                    weight: 6,
+                    start_height: 12345
                 }
             ]
         );
@@ -1079,7 +1095,8 @@ mod tests {
             members,
             vec![Member {
                 addr: USER1.into(),
-                weight: 11
+                weight: 11,
+                start_height: 12345
             },]
         );
 
@@ -1094,7 +1111,8 @@ mod tests {
             members,
             vec![Member {
                 addr: USER2.into(),
-                weight: 6
+                weight: 6,
+                start_height: 12345
             },]
         );
 
@@ -1141,10 +1159,12 @@ mod tests {
                 Member {
                     addr: USER1.into(),
                     weight: USER1_WEIGHT,
+                    start_height: 5,
                 },
                 Member {
                     addr: USER2.into(),
                     weight: USER2_WEIGHT,
+                    start_height: 6,
                 },
             ],
             preauths_hooks: 1,
@@ -1221,6 +1241,7 @@ mod tests {
         let add = vec![Member {
             addr: USER3.into(),
             weight: 15,
+            start_height: 7,
         }];
         let remove = vec![USER1.into()];
 
@@ -1262,6 +1283,7 @@ mod tests {
         let add = vec![Member {
             addr: USER1.into(),
             weight: 4,
+            start_height: 8,
         }];
         let remove = vec![USER3.into()];
 
@@ -1284,10 +1306,12 @@ mod tests {
             Member {
                 addr: USER1.into(),
                 weight: 20,
+                start_height: 9,
             },
             Member {
                 addr: USER3.into(),
                 weight: 5,
+                start_height: 10,
             },
         ];
         let remove = vec![USER1.into()];
@@ -1309,6 +1333,7 @@ mod tests {
         let add = Member {
             addr: USER3.into(),
             weight: 15,
+            start_height: 9,
         };
 
         let env = mock_env();
@@ -1344,6 +1369,7 @@ mod tests {
         let add = Member {
             addr: USER2.into(),
             weight: 1,
+            start_height: 10,
         };
 
         let env = mock_env();
@@ -1477,10 +1503,12 @@ mod tests {
             Member {
                 addr: USER1.into(),
                 weight: 20,
+                start_height: 11,
             },
             Member {
                 addr: USER3.into(),
                 weight: 5,
+                start_height: 12,
             },
         ];
         let remove = vec![USER2.into()];

@@ -402,12 +402,19 @@ fn query_groups(deps: Deps) -> StdResult<GroupsResponse> {
 
 fn query_member(deps: Deps, addr: String, height: Option<u64>) -> StdResult<MemberResponse> {
     let addr = deps.api.addr_validate(&addr)?;
-    let weight = match height {
-        Some(h) => members().may_load_at_height(deps.storage, &addr, h),
-        None => members().may_load(deps.storage, &addr),
-    }?
-    .map(|(weight, _start_height)| weight);
-    Ok(MemberResponse { weight })
+    let (weight, start_height) = match {
+        match height {
+            Some(h) => members().may_load_at_height(deps.storage, &addr, h),
+            None => members().may_load(deps.storage, &addr),
+        }?
+    } {
+        None => (None, 0),
+        Some((weight, start_height)) => (Some(weight), start_height),
+    };
+    Ok(MemberResponse {
+        weight,
+        start_height,
+    })
 }
 
 // settings for pagination
@@ -427,10 +434,11 @@ fn list_members(
         .range(deps.storage, start, None, Order::Ascending)
         .take(limit)
         .map(|item| {
-            let (addr, (weight, _start_height)) = item?;
+            let (addr, (weight, start_height)) = item?;
             Ok(Member {
                 addr: addr.into(),
                 weight,
+                start_height,
             })
         })
         .collect();
@@ -452,10 +460,11 @@ fn list_members_by_weight(
         .range(deps.storage, None, start, Order::Descending)
         .take(limit)
         .map(|item| {
-            let (addr, (weight, _start_height)) = item?;
+            let (addr, (weight, start_height)) = item?;
             Ok(Member {
                 addr: addr.into(),
                 weight,
+                start_height,
             })
         })
         .collect();
@@ -506,6 +515,7 @@ mod tests {
         Member {
             addr: addr.into(),
             weight,
+            start_height: 0, // FIXME?
         }
     }
 
@@ -779,10 +789,12 @@ mod tests {
                 Member {
                     addr: VOTER2.into(),
                     weight: 300,
+                    start_height: 1,
                 },
                 Member {
                     addr: VOTER3.into(),
                     weight: 1200,
+                    start_height: 2,
                 },
             ],
         };
@@ -854,10 +866,12 @@ mod tests {
                     Member {
                         addr: VOTER2.to_owned(),
                         weight: 400,
+                        start_height: 3,
                     },
                     Member {
                         addr: VOTER1.to_owned(),
                         weight: 8000,
+                        start_height: 4,
                     },
                 ],
                 remove: vec![VOTER3.to_owned()],

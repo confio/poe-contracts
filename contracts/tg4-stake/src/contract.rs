@@ -511,12 +511,19 @@ pub fn query_staked(deps: Deps, addr: String) -> StdResult<StakedResponse> {
 
 fn query_member(deps: Deps, addr: String, height: Option<u64>) -> StdResult<MemberResponse> {
     let addr = deps.api.addr_validate(&addr)?;
-    let weight = match height {
-        Some(h) => members().may_load_at_height(deps.storage, &addr, h),
-        None => members().may_load(deps.storage, &addr),
-    }?
-    .map(|(weight, _start_height)| weight);
-    Ok(MemberResponse { weight })
+    let (weight, start_height) = match {
+        match height {
+            Some(h) => members().may_load_at_height(deps.storage, &addr, h),
+            None => members().may_load(deps.storage, &addr),
+        }?
+    } {
+        None => (None, 0),
+        Some((weight, start_height)) => (Some(weight), start_height),
+    };
+    Ok(MemberResponse {
+        weight,
+        start_height,
+    })
 }
 
 // settings for pagination
@@ -536,10 +543,11 @@ fn list_members(
         .range(deps.storage, start, None, Order::Ascending)
         .take(limit)
         .map(|item| {
-            let (addr, (weight, _)) = item?;
+            let (addr, (weight, start_height)) = item?;
             Ok(Member {
                 addr: addr.into(),
                 weight,
+                start_height,
             })
         })
         .collect();
@@ -563,10 +571,11 @@ fn list_members_by_weight(
         .range(deps.storage, None, start, Order::Descending)
         .take(limit)
         .map(|item| {
-            let (addr, (weight, _)) = item?;
+            let (addr, (weight, start_height)) = item?;
             Ok(Member {
                 addr: addr.into(),
                 weight,
+                start_height,
             })
         })
         .collect();
@@ -812,11 +821,13 @@ mod tests {
             vec![
                 Member {
                     addr: USER1.into(),
-                    weight: 12
+                    weight: 12,
+                    start_height: 12346
                 },
                 Member {
                     addr: USER2.into(),
-                    weight: 7
+                    weight: 7,
+                    start_height: 12346
                 },
             ]
         );
@@ -829,7 +840,8 @@ mod tests {
             members,
             vec![Member {
                 addr: USER1.into(),
-                weight: 12
+                weight: 12,
+                start_height: 12346
             },]
         );
 
@@ -844,7 +856,8 @@ mod tests {
             members,
             vec![Member {
                 addr: USER2.into(),
-                weight: 7
+                weight: 7,
+                start_height: 12346
             },]
         );
 
@@ -873,15 +886,18 @@ mod tests {
             vec![
                 Member {
                     addr: USER1.into(),
-                    weight: 11
+                    weight: 11,
+                    start_height: 12346
                 },
                 Member {
                     addr: USER2.into(),
-                    weight: 6
+                    weight: 6,
+                    start_height: 12346
                 },
                 Member {
                     addr: USER3.into(),
-                    weight: 5
+                    weight: 5,
+                    start_height: 12346
                 }
             ]
         );
@@ -896,7 +912,8 @@ mod tests {
             members,
             vec![Member {
                 addr: USER1.into(),
-                weight: 11
+                weight: 11,
+                start_height: 12346
             },]
         );
 
@@ -913,11 +930,13 @@ mod tests {
             vec![
                 Member {
                     addr: USER2.into(),
-                    weight: 6
+                    weight: 6,
+                    start_height: 12346
                 },
                 Member {
                     addr: USER3.into(),
-                    weight: 5
+                    weight: 5,
+                    start_height: 12346
                 }
             ]
         );

@@ -786,6 +786,7 @@ fn calculate_diff(
             let member = Member {
                 addr: vi.operator.to_string(),
                 weight: vi.power,
+                start_height: 0, // FIXME?: Currently unused
             };
 
             (update, member)
@@ -1000,6 +1001,7 @@ mod test {
             .map(|(addr, weight)| Member {
                 addr: addr.to_owned(),
                 weight,
+                start_height: 0, // FIXME?
             })
             .collect()
     }
