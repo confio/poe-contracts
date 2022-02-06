@@ -561,9 +561,8 @@ fn list_members_by_weight(
     limit: Option<u32>,
 ) -> StdResult<MemberListResponse> {
     let limit = limit.unwrap_or(DEFAULT_LIMIT).min(MAX_LIMIT) as usize;
-    // FIXME: Wrong bound now!
-    // FIXME: Use type-safe bounds (cw-plus v0.12)
-    let start = start_after.map(|m| Bound::exclusive((m.weight, 0, m.addr.as_str()).joined_key()));
+    let start = start_after
+        .map(|m| Bound::exclusive((m.weight, m.start_height, m.addr.as_str()).joined_key()));
 
     let members: StdResult<Vec<_>> = members()
         .idx
