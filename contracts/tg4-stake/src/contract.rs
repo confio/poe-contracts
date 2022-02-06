@@ -561,8 +561,9 @@ fn list_members_by_weight(
     limit: Option<u32>,
 ) -> StdResult<MemberListResponse> {
     let limit = limit.unwrap_or(DEFAULT_LIMIT).min(MAX_LIMIT) as usize;
-    let start = start_after
-        .map(|m| Bound::exclusive((m.weight, m.start_height, m.addr.as_str()).joined_key()));
+    let start = start_after.map(|m| {
+        Bound::exclusive((m.weight, -(m.start_height as i64), m.addr.as_str()).joined_key())
+    });
 
     let members: StdResult<Vec<_>> = members()
         .idx
