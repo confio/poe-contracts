@@ -97,7 +97,7 @@ fn test_validators_storage() {
 }
 
 #[test]
-#[should_panic]
+#[should_panic(expected = "Region length too big")]
 fn check_validators_storage_breaks() {
     let mut deps = mock_instance_on_tgrade(WASM);
 
