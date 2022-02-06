@@ -1208,6 +1208,60 @@ mod tests {
                 }
             ]
         );
+
+        // Test pagination / limits work
+        let members = list_members_by_weight(deps.as_ref(), None, Some(1))
+            .unwrap()
+            .members;
+        assert_eq!(members.len(), 1);
+        // Assert the set is proper
+        assert_eq!(
+            members,
+            vec![Member {
+                addr: USER1.into(),
+                weight: 11,
+                start_height: 12345
+            },]
+        );
+
+        // Next page
+        let start_after = Some(members[0].clone());
+        let members = list_members_by_weight(deps.as_ref(), start_after, Some(1))
+            .unwrap()
+            .members;
+        assert_eq!(members.len(), 1);
+        // Assert the set is proper
+        assert_eq!(
+            members,
+            vec![Member {
+                addr: USER3.into(),
+                weight: 6,
+                start_height: 12355
+            },]
+        );
+
+        // Next page
+        let start_after = Some(members[0].clone());
+        let members = list_members_by_weight(deps.as_ref(), start_after, Some(1))
+            .unwrap()
+            .members;
+        assert_eq!(members.len(), 1);
+        // Assert the set is proper
+        assert_eq!(
+            members,
+            vec![Member {
+                addr: USER2.into(),
+                weight: 6,
+                start_height: 12365
+            },]
+        );
+
+        // Assert there's no more
+        let start_after = Some(members[0].clone());
+        let members = list_members_by_weight(deps.as_ref(), start_after, Some(1))
+            .unwrap()
+            .members;
+        assert_eq!(members.len(), 0);
     }
 
     #[test]
