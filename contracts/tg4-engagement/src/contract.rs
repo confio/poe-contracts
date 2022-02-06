@@ -1125,6 +1125,92 @@ mod tests {
     }
 
     #[test]
+    fn members_by_weight_tie_breaking() {
+        let mut deps = mock_dependencies();
+        do_instantiate(deps.as_mut());
+
+        // Add an extra member for tie-breaking checks
+        let add = vec![Member {
+            addr: USER3.into(),
+            weight: 6,       // same as USER2
+            start_height: 0, // ignored
+        }];
+        let remove = vec![];
+
+        // Add it ten blocks later
+        let env = mock_env_height(10);
+        let info = mock_info(INIT_ADMIN, &[]);
+        execute_update_members(deps.as_mut(), env.clone(), info.clone(), add, remove).unwrap();
+
+        let members = list_members_by_weight(deps.as_ref(), None, None)
+            .unwrap()
+            .members;
+        assert_eq!(members.len(), 3);
+        // Assert the set is sorted by (descending) weight, breaking ties by (ascending) start_height
+        assert_eq!(
+            members,
+            vec![
+                Member {
+                    addr: USER1.into(),
+                    weight: 11,
+                    start_height: 12345
+                },
+                Member {
+                    addr: USER2.into(),
+                    weight: 6,
+                    start_height: 12345
+                },
+                Member {
+                    addr: USER3.into(),
+                    weight: 6,
+                    start_height: 12355
+                }
+            ]
+        );
+
+        // Now remove USER2
+        let remove = vec![USER2.into()];
+        let add = vec![];
+        execute_update_members(deps.as_mut(), env, info.clone(), add, remove).unwrap();
+
+        // And re-add it, ten blocks later
+        let add = vec![Member {
+            addr: USER2.into(),
+            weight: 6,       // same as USER3
+            start_height: 0, // ignored
+        }];
+        let remove = vec![];
+        let env = mock_env_height(20);
+        execute_update_members(deps.as_mut(), env, info, add, remove).unwrap();
+
+        let members = list_members_by_weight(deps.as_ref(), None, None)
+            .unwrap()
+            .members;
+        assert_eq!(members.len(), 3);
+        // Assert the set is sorted by (descending) weight, breaking ties by (ascending) start_height
+        assert_eq!(
+            members,
+            vec![
+                Member {
+                    addr: USER1.into(),
+                    weight: 11,
+                    start_height: 12345
+                },
+                Member {
+                    addr: USER3.into(),
+                    weight: 6,
+                    start_height: 12355
+                },
+                Member {
+                    addr: USER2.into(),
+                    weight: 6,
+                    start_height: 12365
+                }
+            ]
+        );
+    }
+
+    #[test]
     fn try_halflife_queries() {
         let mut deps = mock_dependencies();
         do_instantiate(deps.as_mut());
