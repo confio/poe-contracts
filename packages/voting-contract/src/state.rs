@@ -267,6 +267,7 @@ pub const PROPOSAL_COUNT: Item<u64> = Item::new("proposal_count");
 
 // multiple-item map
 pub const BALLOTS: Map<(u64, &Addr), Ballot> = Map::new("votes");
+pub const BALLOTS_BY_VOTER: Map<(&Addr, u64), Ballot> = Map::new("votes_by_voter");
 pub fn proposals<'m, P>() -> Map<'m, u64, Proposal<P>> {
     Map::new("proposals")
 }
