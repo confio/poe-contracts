@@ -237,7 +237,7 @@ fn execute_update_metadata(
     metadata.validate()?;
     let moniker = metadata.moniker.clone();
 
-    operators().update(deps.storage, &info.sender, |info| match info {
+    operators().update(deps.storage, &info.sender, |op_info| match op_info {
         Some(mut old) => {
             old.metadata = metadata;
             Ok(old)
