@@ -456,8 +456,8 @@ fn query_validator_key(
 }
 
 // settings for pagination
-const MAX_LIMIT: u32 = 30;
-const DEFAULT_LIMIT: u32 = 10;
+const MAX_LIMIT: u32 = 100;
+const DEFAULT_LIMIT: u32 = 30;
 
 fn list_validator_keys(
     deps: Deps,
