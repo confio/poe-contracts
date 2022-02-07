@@ -47,6 +47,17 @@ pub fn instantiate(
     Ok(Response::default())
 }
 
+fn save_ballot(
+    storage: &mut dyn Storage,
+    proposal_id: u64,
+    sender: &Addr,
+    ballot: Ballot,
+) -> Result<(), ContractError> {
+    BALLOTS.save(storage, (proposal_id, sender), &ballot)?;
+    BALLOTS_BY_VOTER.save(storage, (sender, proposal_id), &ballot)?;
+    Ok(())
+}
+
 pub fn propose<P>(
     deps: DepsMut,
     env: Env,
@@ -88,12 +99,15 @@ where
     proposals().save(deps.storage, id, &prop)?;
 
     // add the first yes vote from voter
-    let ballot = Ballot {
-        weight: vote_power,
-        vote: Vote::Yes,
-    };
-    BALLOTS.save(deps.storage, (id, &info.sender), &ballot)?;
-    BALLOTS_BY_VOTER.save(deps.storage, (&info.sender, id), &ballot)?;
+    save_ballot(
+        deps.storage,
+        id,
+        &info.sender,
+        Ballot {
+            weight: vote_power,
+            vote: Vote::Yes,
+        },
+    )?;
 
     let resp = msg::ProposalCreationResponse { proposal_id: id };
 
@@ -130,20 +144,22 @@ where
             .was_voting_member(&deps.querier, &info.sender, prop.start_height)?;
 
     // cast vote if no vote previously cast
-    BALLOTS.update(deps.storage, (proposal_id, &info.sender), |bal| match bal {
-        Some(_) => Err(ContractError::AlreadyVoted {}),
-        None => Ok(Ballot {
+    if BALLOTS
+        .may_load(deps.storage, (proposal_id, &info.sender))?
+        .is_some()
+    {
+        return Err(ContractError::AlreadyVoted {});
+    }
+    save_ballot(
+        deps.storage,
+        proposal_id,
+        &info.sender,
+        Ballot {
             weight: vote_power,
             vote,
-        }),
-    })?;
-    BALLOTS_BY_VOTER.update(deps.storage, (&info.sender, proposal_id), |bal| match bal {
-        Some(_) => Err(ContractError::AlreadyVoted {}),
-        None => Ok(Ballot {
-            weight: vote_power,
-            vote,
-        }),
-    })?;
+        },
+    )?;
+
     // update vote tally
     prop.votes.add_vote(vote, vote_power);
     prop.update_status(&env.block);
