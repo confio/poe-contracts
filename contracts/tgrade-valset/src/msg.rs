@@ -263,6 +263,7 @@ pub enum ExecuteMsg {
 
     /// This will update the validator set with the passed list.
     /// Used for testing validators storage.
+    #[cfg(debug_assertions)]
     SimulateValidatorSet {
         validators: Vec<ValidatorInfo>,
     },
