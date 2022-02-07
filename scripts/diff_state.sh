@@ -68,7 +68,7 @@ do
   PARENT=$(dirname "$SL")
   echo "$PARENT":
   SR="$PARENT/state-$RIGHT_TAG"
-  diff -u <(sed '/^\s*#\[cfg(test)\]/,$d' "$SL"/state.rs) <(sed '/^\s*#\[cfg(test)\]/,$d' "$SR"/state.rs) | { grep -v '^[+-]\s*\/[\/\*]' || true; }
+  diff -u <(sed -E '{N; /^\s*#\[cfg\(test\)\]\s+mod\s+[a-z_]+\s*\{/,$d}' "$SL"/state.rs) <(sed -E '{N; /^\s*#\[cfg\(test\)\]\s+mod\s+[a-z_]+\s*\{/,$d}' "$SR"/state.rs) | { grep -v '^[+-]\s*\/[\/\*]' || true; }
 done >"$RESULTS"
 
 # Return to current branch
