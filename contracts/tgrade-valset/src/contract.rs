@@ -166,6 +166,7 @@ pub fn execute(
         }
         ExecuteMsg::Unjail { operator } => execute_unjail(deps, env, info, operator),
         ExecuteMsg::Slash { addr, portion } => execute_slash(deps, env, info, addr, portion),
+        #[cfg(features = "integration")]
         ExecuteMsg::SimulateValidatorSet { validators } => {
             execute_simulate_validators(deps, info, validators)
         }
@@ -370,6 +371,7 @@ fn execute_slash(
     Ok(resp)
 }
 
+#[cfg(features = "integration")]
 fn execute_simulate_validators(
     deps: DepsMut,
     _info: MessageInfo,
