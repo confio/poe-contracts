@@ -1,7 +1,7 @@
 use cosmwasm_std::Binary;
 use tg_bindings::Pubkey;
 
-use crate::msg::{JailingPeriod, OperatorResponse, ValidatorMetadata};
+use crate::msg::{JailingPeriod, OperatorResponse, ValidatorMetadata, MAX_METADATA_SIZE};
 use crate::state::ValidatorInfo;
 
 // Converts address to valid public key
@@ -10,20 +10,23 @@ pub fn addr_to_pubkey(addr: &str) -> Pubkey {
     Pubkey::Ed25519(Binary((*addr).as_bytes().to_vec()))
 }
 
-pub fn mock_pubkey(base: &[u8]) -> Pubkey {
-    const ED25519_PUBKEY_LENGTH: usize = 32;
-
-    let copies = (ED25519_PUBKEY_LENGTH / base.len()) + 1;
-    let mut raw = base.repeat(copies);
-    raw.truncate(ED25519_PUBKEY_LENGTH);
-    Pubkey::Ed25519(Binary(raw))
-}
-
-pub fn mock_metadata(seed: &str) -> ValidatorMetadata {
+pub fn invalid_metadata_short(seed: &str) -> ValidatorMetadata {
     ValidatorMetadata {
         moniker: seed.into(),
-        details: Some(format!("I'm really {}", seed)),
-        ..ValidatorMetadata::default()
+        identity: Some(String::new()),
+        website: Some(String::new()),
+        security_contact: Some(String::new()),
+        details: Some(String::new()),
+    }
+}
+
+pub fn invalid_metadata_long(seed: &str) -> ValidatorMetadata {
+    ValidatorMetadata {
+        moniker: seed.into(),
+        identity: Some((0..MAX_METADATA_SIZE + 1).map(|_| "X").collect::<String>()),
+        website: Some((0..MAX_METADATA_SIZE + 1).map(|_| "X").collect::<String>()),
+        security_contact: Some((0..MAX_METADATA_SIZE + 1).map(|_| "X").collect::<String>()),
+        details: Some((0..MAX_METADATA_SIZE + 1).map(|_| "X").collect::<String>()),
     }
 }
 

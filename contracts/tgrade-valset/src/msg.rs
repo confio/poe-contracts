@@ -11,8 +11,6 @@ use crate::error::ContractError;
 use crate::state::{DistributionContract, OperatorInfo, ValidatorInfo, ValidatorSlashing};
 use cosmwasm_std::{Addr, Api, BlockInfo, Coin, Decimal};
 
-const MIN_MONIKER_LENGTH: usize = 3;
-
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 pub struct InstantiateMsg {
     /// Address allowed to jail, meant to be a OC voting contract. If `None`, then jailing is
@@ -281,10 +279,49 @@ pub struct ValidatorMetadata {
     pub details: Option<String>,
 }
 
+const MIN_MONIKER_LENGTH: usize = 3;
+const MIN_METADATA_SIZE: usize = 1;
+pub const MAX_METADATA_SIZE: usize = 256;
+
 impl ValidatorMetadata {
     pub fn validate(&self) -> Result<(), ContractError> {
-        if self.moniker.len() < MIN_MONIKER_LENGTH {
-            return Err(ContractError::InvalidMoniker {});
+        if self.moniker.len() < MIN_MONIKER_LENGTH || self.moniker.len() > MAX_METADATA_SIZE {
+            return Err(ContractError::InvalidMetadata {
+                data: "moniker".to_owned(),
+                min: MIN_MONIKER_LENGTH,
+            });
+        }
+        if let Some(identity) = &self.identity {
+            if identity.is_empty() || identity.len() > MAX_METADATA_SIZE {
+                return Err(ContractError::InvalidMetadata {
+                    data: "identity".to_owned(),
+                    min: MIN_METADATA_SIZE,
+                });
+            }
+        }
+        if let Some(website) = &self.website {
+            if website.is_empty() || website.len() > MAX_METADATA_SIZE {
+                return Err(ContractError::InvalidMetadata {
+                    data: "website".to_owned(),
+                    min: MIN_METADATA_SIZE,
+                });
+            }
+        }
+        if let Some(security_contract) = &self.security_contact {
+            if security_contract.is_empty() || security_contract.len() > MAX_METADATA_SIZE {
+                return Err(ContractError::InvalidMetadata {
+                    data: "security_contract".to_owned(),
+                    min: MIN_METADATA_SIZE,
+                });
+            }
+        }
+        if let Some(details) = &self.details {
+            if details.is_empty() || details.len() > MAX_METADATA_SIZE {
+                return Err(ContractError::InvalidMetadata {
+                    data: "details".to_owned(),
+                    min: MIN_METADATA_SIZE,
+                });
+            }
         }
         Ok(())
     }

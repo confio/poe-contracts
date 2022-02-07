@@ -174,7 +174,13 @@ fn update_metadata() {
     let resp = suite
         .update_metadata(members[0], &invalid_meta)
         .unwrap_err();
-    assert_eq!(ContractError::InvalidMoniker {}, resp.downcast().unwrap());
+    assert_eq!(
+        ContractError::InvalidMetadata {
+            data: "moniker".to_owned(),
+            min: 3
+        },
+        resp.downcast().unwrap()
+    );
 
     // Ensure no metadata changed
     let resp = suite.validator(members[0]).unwrap();
@@ -221,7 +227,13 @@ fn try_to_update_else_metadata() {
     let resp = suite
         .update_metadata(members[0], &invalid_meta)
         .unwrap_err();
-    assert_eq!(ContractError::InvalidMoniker {}, resp.downcast().unwrap());
+    assert_eq!(
+        ContractError::InvalidMetadata {
+            data: "moniker".to_owned(),
+            min: 3
+        },
+        resp.downcast().unwrap()
+    );
 
     // Ensure no metadata changed
     let resp = suite.validator(members[0]).unwrap();
