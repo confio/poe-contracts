@@ -319,3 +319,48 @@ fn register_key_invalid_metadata() {
         resp.downcast().unwrap()
     );
 }
+
+#[test]
+fn update_metadata_invalid_metadata() {
+    let members = vec!["member1"];
+
+    let mut suite = SuiteBuilder::new()
+        .with_engagement(&members_init(&members, &[2, 3, 5, 8, 13, 21]))
+        .with_operators(&members)
+        .with_min_weight(5)
+        .build();
+
+    let meta = ValidatorMetadata {
+        moniker: "example".to_owned(),
+        identity: Some((0..MAX_METADATA_SIZE + 1).map(|_| "X").collect::<String>()),
+        website: Some((0..MAX_METADATA_SIZE + 1).map(|_| "X").collect::<String>()),
+        security_contact: Some((0..MAX_METADATA_SIZE + 1).map(|_| "X").collect::<String>()),
+        details: Some((0..MAX_METADATA_SIZE + 1).map(|_| "X").collect::<String>()),
+    };
+    let resp = suite.update_metadata(members[0], &meta).unwrap_err();
+    assert_eq!(
+        ContractError::InvalidMetadata {
+            data: "identity".to_owned(),
+            min: MIN_METADATA_SIZE,
+            max: MAX_METADATA_SIZE
+        },
+        resp.downcast().unwrap()
+    );
+
+    let meta = ValidatorMetadata {
+        identity: Some(String::new()),
+        website: Some(String::new()),
+        security_contact: Some(String::new()),
+        details: Some(String::new()),
+        ..meta
+    };
+    let resp = suite.update_metadata(members[0], &meta).unwrap_err();
+    assert_eq!(
+        ContractError::InvalidMetadata {
+            data: "identity".to_owned(),
+            min: MIN_METADATA_SIZE,
+            max: MAX_METADATA_SIZE
+        },
+        resp.downcast().unwrap()
+    );
+}
