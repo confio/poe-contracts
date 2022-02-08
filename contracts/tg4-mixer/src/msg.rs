@@ -90,15 +90,15 @@ pub enum ExecuteMsg {
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
 pub enum QueryMsg {
-    /// Return TotalWeightResponse
-    TotalWeight {},
+    /// Return TotalPointsResponse
+    TotalPoints {},
     /// Returns MemberListResponse
     ListMembers {
         start_after: Option<String>,
         limit: Option<u32>,
     },
-    /// Returns MemberListResponse, sorted by weight descending
-    ListMembersByWeight {
+    /// Returns MemberListResponse, sorted by points descending
+    ListMembersByPoints {
         start_after: Option<Member>,
         limit: Option<u32>,
     },
@@ -113,9 +113,9 @@ pub enum QueryMsg {
     Groups {},
     /// Return the current number of preauths. Returns PreauthResponse.
     Preauths {},
-    /// Rewards of a PoE function (used for benchmarking).
-    /// Returns RewardsResponse.
-    RewardFunction {
+    /// Points assigned by a PoE mixer function (used for benchmarking).
+    /// Returns MixerFunctionResponse.
+    MixerFunction {
         stake: Uint64,
         engagement: Uint64,
         poe_function: Option<PoEFunctionType>,
@@ -139,6 +139,6 @@ pub struct PreauthResponse {
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
-pub struct RewardFunctionResponse {
-    pub reward: u64,
+pub struct MixerFunctionResponse {
+    pub points: u64,
 }

@@ -20,7 +20,7 @@ use tg_utils::{
 use crate::error::ContractError;
 use crate::msg::{
     ClaimsResponse, ExecuteMsg, InstantiateMsg, PreauthResponse, QueryMsg, StakedResponse,
-    TotalWeightResponse, UnbondingPeriodResponse,
+    TotalPointsResponse, UnbondingPeriodResponse,
 };
 use crate::state::{claims, Config, CONFIG, STAKE};
 
@@ -56,7 +56,7 @@ pub fn instantiate(
 
     let config = Config {
         denom: msg.denom,
-        tokens_per_weight: msg.tokens_per_weight,
+        tokens_per_point: msg.tokens_per_point,
         min_bond,
         unbonding_period: Duration::new(msg.unbonding_period),
         auto_return_limit: msg.auto_return_limit,
@@ -349,7 +349,7 @@ fn calc_weight(stake: Uint128, cfg: &Config) -> Option<u64> {
     if stake < cfg.min_bond {
         None
     } else {
-        let w = stake.u128() / (cfg.tokens_per_weight.u128());
+        let w = stake.u128() / (cfg.tokens_per_point.u128());
         Some(w as u64)
     }
 }
@@ -449,10 +449,10 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
             at_height: height,
         } => to_binary(&query_member(deps, addr, height)?),
         ListMembers { start_after, limit } => to_binary(&list_members(deps, start_after, limit)?),
-        ListMembersByWeight { start_after, limit } => {
-            to_binary(&list_members_by_weight(deps, start_after, limit)?)
+        ListMembersByPoints { start_after, limit } => {
+            to_binary(&list_members_by_points(deps, start_after, limit)?)
         }
-        TotalWeight {} => to_binary(&query_total_weight(deps)?),
+        TotalPoints {} => to_binary(&query_total_points(deps)?),
         Claims {
             address,
             limit,
@@ -489,10 +489,10 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     }
 }
 
-fn query_total_weight(deps: Deps) -> StdResult<TotalWeightResponse> {
-    let weight = TOTAL.load(deps.storage)?;
+fn query_total_points(deps: Deps) -> StdResult<TotalPointsResponse> {
+    let points = TOTAL.load(deps.storage)?;
     let denom = CONFIG.load(deps.storage)?.denom;
-    Ok(TotalWeightResponse { weight, denom })
+    Ok(TotalPointsResponse { points, denom })
 }
 
 pub fn query_staked(deps: Deps, addr: String) -> StdResult<StakedResponse> {
@@ -511,7 +511,7 @@ fn query_member(deps: Deps, addr: String, height: Option<u64>) -> StdResult<Memb
         Some(h) => members().may_load_at_height(deps.storage, &addr, h),
         None => members().may_load(deps.storage, &addr),
     }?;
-    Ok(MemberResponse { weight })
+    Ok(MemberResponse { points: weight })
 }
 
 // settings for pagination
@@ -531,10 +531,10 @@ fn list_members(
         .range(deps.storage, start, None, Order::Ascending)
         .take(limit)
         .map(|item| {
-            let (addr, weight) = item?;
+            let (addr, points) = item?;
             Ok(Member {
                 addr: addr.into(),
-                weight,
+                points,
             })
         })
         .collect();
@@ -542,24 +542,24 @@ fn list_members(
     Ok(MemberListResponse { members: members? })
 }
 
-fn list_members_by_weight(
+fn list_members_by_points(
     deps: Deps,
     start_after: Option<Member>,
     limit: Option<u32>,
 ) -> StdResult<MemberListResponse> {
     let limit = limit.unwrap_or(DEFAULT_LIMIT).min(MAX_LIMIT) as usize;
-    let start = start_after.map(|m| Bound::exclusive((m.weight, m.addr.as_str()).joined_key()));
+    let start = start_after.map(|m| Bound::exclusive((m.points, m.addr.as_str()).joined_key()));
 
     let members: StdResult<Vec<_>> = members()
         .idx
-        .weight
+        .points
         .range(deps.storage, None, start, Order::Descending)
         .take(limit)
         .map(|item| {
-            let (addr, weight) = item?;
+            let (addr, points) = item?;
             Ok(Member {
                 addr: addr.into(),
-                weight,
+                points,
             })
         })
         .collect();
@@ -609,7 +609,7 @@ mod tests {
     ) {
         let msg = InstantiateMsg {
             denom: "stake".to_owned(),
-            tokens_per_weight,
+            tokens_per_point: tokens_per_weight,
             min_bond,
             unbonding_period,
             admin: Some(INIT_ADMIN.into()),
@@ -666,8 +666,8 @@ mod tests {
         let res = ADMIN.query_admin(deps.as_ref()).unwrap();
         assert_eq!(Some(INIT_ADMIN.into()), res.admin);
 
-        let res = query_total_weight(deps.as_ref()).unwrap();
-        assert_eq!(0, res.weight);
+        let res = query_total_points(deps.as_ref()).unwrap();
+        assert_eq!(0, res.points);
         assert_eq!("stake".to_owned(), res.denom);
 
         let raw = query(deps.as_ref(), mock_env(), QueryMsg::Configuration {}).unwrap();
@@ -676,7 +676,7 @@ mod tests {
             res,
             Config {
                 denom: "stake".to_owned(),
-                tokens_per_weight: TOKENS_PER_WEIGHT,
+                tokens_per_point: TOKENS_PER_WEIGHT,
                 min_bond: MIN_BOND,
                 unbonding_period: Duration::new(UNBONDING_DURATION),
                 auto_return_limit: 0,
@@ -697,7 +697,7 @@ mod tests {
     fn get_member(deps: Deps, addr: String, at_height: Option<u64>) -> Option<u64> {
         let raw = query(deps, mock_env(), QueryMsg::Member { addr, at_height }).unwrap();
         let res: MemberResponse = from_slice(&raw).unwrap();
-        res.weight
+        res.points
     }
 
     // this tests the member queries
@@ -733,9 +733,9 @@ mod tests {
             let members: MemberListResponse = from_slice(&raw).unwrap();
             assert_eq!(count, members.members.len());
 
-            let raw = query(deps, mock_env(), QueryMsg::TotalWeight {}).unwrap();
-            let total: TotalWeightResponse = from_slice(&raw).unwrap();
-            assert_eq!(sum, total.weight); // 17 - 11 + 15 = 21
+            let raw = query(deps, mock_env(), QueryMsg::TotalPoints {}).unwrap();
+            let total: TotalPointsResponse = from_slice(&raw).unwrap();
+            assert_eq!(sum, total.points); // 17 - 11 + 15 = 21
         }
     }
 
@@ -789,13 +789,13 @@ mod tests {
         bond(deps.as_mut(), 12_000, 7_500, 4_000, 1);
 
         let member1 = query_member(deps.as_ref(), USER1.into(), None).unwrap();
-        assert_eq!(member1.weight, Some(12));
+        assert_eq!(member1.points, Some(12));
 
         let member2 = query_member(deps.as_ref(), USER2.into(), None).unwrap();
-        assert_eq!(member2.weight, Some(7));
+        assert_eq!(member2.points, Some(7));
 
         let member3 = query_member(deps.as_ref(), USER3.into(), None).unwrap();
-        assert_eq!(member3.weight, None);
+        assert_eq!(member3.points, None);
 
         let members = list_members(deps.as_ref(), None, None).unwrap().members;
         assert_eq!(members.len(), 2);
@@ -805,11 +805,11 @@ mod tests {
             vec![
                 Member {
                     addr: USER1.into(),
-                    weight: 12
+                    points: 12
                 },
                 Member {
                     addr: USER2.into(),
-                    weight: 7
+                    points: 7
                 },
             ]
         );
@@ -822,7 +822,7 @@ mod tests {
             members,
             vec![Member {
                 addr: USER1.into(),
-                weight: 12
+                points: 12
             },]
         );
 
@@ -837,7 +837,7 @@ mod tests {
             members,
             vec![Member {
                 addr: USER2.into(),
-                weight: 7
+                points: 7
             },]
         );
 
@@ -856,7 +856,7 @@ mod tests {
 
         bond(deps.as_mut(), 11_000, 6_500, 5_000, 1);
 
-        let members = list_members_by_weight(deps.as_ref(), None, None)
+        let members = list_members_by_points(deps.as_ref(), None, None)
             .unwrap()
             .members;
         assert_eq!(members.len(), 3);
@@ -866,21 +866,21 @@ mod tests {
             vec![
                 Member {
                     addr: USER1.into(),
-                    weight: 11
+                    points: 11
                 },
                 Member {
                     addr: USER2.into(),
-                    weight: 6
+                    points: 6
                 },
                 Member {
                     addr: USER3.into(),
-                    weight: 5
+                    points: 5
                 }
             ]
         );
 
         // Test pagination / limits
-        let members = list_members_by_weight(deps.as_ref(), None, Some(1))
+        let members = list_members_by_points(deps.as_ref(), None, Some(1))
             .unwrap()
             .members;
         assert_eq!(members.len(), 1);
@@ -889,14 +889,14 @@ mod tests {
             members,
             vec![Member {
                 addr: USER1.into(),
-                weight: 11
+                points: 11
             },]
         );
 
         // Next page
         let last = members.last().unwrap();
         let start_after = Some(last.clone());
-        let members = list_members_by_weight(deps.as_ref(), start_after, None)
+        let members = list_members_by_points(deps.as_ref(), start_after, None)
             .unwrap()
             .members;
         assert_eq!(members.len(), 2);
@@ -906,11 +906,11 @@ mod tests {
             vec![
                 Member {
                     addr: USER2.into(),
-                    weight: 6
+                    points: 6
                 },
                 Member {
                     addr: USER3.into(),
-                    weight: 5
+                    points: 5
                 }
             ]
         );
@@ -918,7 +918,7 @@ mod tests {
         // Assert there's no more
         let last = members.last().unwrap();
         let start_after = Some(last.clone());
-        let members = list_members_by_weight(deps.as_ref(), start_after, Some(1))
+        let members = list_members_by_points(deps.as_ref(), start_after, Some(1))
             .unwrap()
             .members;
         assert_eq!(members.len(), 0);

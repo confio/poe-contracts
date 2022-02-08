@@ -77,7 +77,7 @@ pub struct SuiteBuilder {
     /// Valset operators, with optionally provided pubkeys
     operators: Vec<(String, Option<Pubkey>)>,
     #[derivative(Default(value = "1"))]
-    min_weight: u64,
+    min_points: u64,
     /// Maximum number of validators for single epoch
     #[derivative(Default(value = "u32::MAX"))]
     max_validators: u32,
@@ -179,7 +179,7 @@ impl SuiteBuilder {
                 .iter()
                 .map(|(addr, weight)| Member {
                     addr: (*addr).to_owned(),
-                    weight: *weight,
+                    points: *weight,
                 })
                 .collect(),
             halflife: halflife.into(),
@@ -199,8 +199,8 @@ impl SuiteBuilder {
         self
     }
 
-    pub fn with_min_weight(mut self, min_weight: u64) -> Self {
-        self.min_weight = min_weight;
+    pub fn with_min_points(mut self, min_points: u64) -> Self {
+        self.min_points = min_points;
         self
     }
 
@@ -226,7 +226,10 @@ impl SuiteBuilder {
 
                 let members = members
                     .into_iter()
-                    .map(|(addr, weight)| Member { addr, weight })
+                    .map(|(addr, weight)| Member {
+                        addr,
+                        points: weight,
+                    })
                     .collect();
 
                 app.instantiate_contract(
@@ -256,7 +259,7 @@ impl SuiteBuilder {
                     admin.clone(),
                     &tg4_stake::msg::InstantiateMsg {
                         denom,
-                        tokens_per_weight,
+                        tokens_per_point: tokens_per_weight,
                         min_bond: Uint128::zero(),
                         unbonding_period: 0,
                         admin: Some(admin.to_string()),
@@ -333,7 +336,7 @@ impl SuiteBuilder {
                 &InstantiateMsg {
                     admin: Some(admin.to_string()),
                     membership: membership.to_string(),
-                    min_weight: self.min_weight,
+                    min_points: self.min_points,
                     max_validators: self.max_validators,
                     epoch_length: self.epoch_length,
                     epoch_reward: self.epoch_reward,
@@ -559,14 +562,14 @@ impl Suite {
     pub fn update_config(
         &mut self,
         executor: &str,
-        min_weight: impl Into<Option<u64>>,
+        min_points: impl Into<Option<u64>>,
         max_validators: impl Into<Option<u32>>,
     ) -> AnyResult<AppResponse> {
         self.app.execute_contract(
             Addr::unchecked(executor),
             self.valset.clone(),
             &ExecuteMsg::UpdateConfig {
-                min_weight: min_weight.into(),
+                min_points: min_points.into(),
                 max_validators: max_validators.into(),
             },
             &[],
@@ -599,7 +602,7 @@ impl Suite {
             self.app.execute_contract(
                 Addr::unchecked(executor),
                 contract.clone(),
-                &tg4_engagement::msg::ExecuteMsg::WithdrawFunds {
+                &tg4_engagement::msg::ExecuteMsg::WithdrawRewards {
                     owner: None,
                     receiver: None,
                 },
@@ -617,7 +620,7 @@ impl Suite {
         self.app.execute_contract(
             Addr::unchecked(executor),
             self.rewards_contract.clone(),
-            &tg4_engagement::msg::ExecuteMsg::WithdrawFunds {
+            &tg4_engagement::msg::ExecuteMsg::WithdrawRewards {
                 owner: None,
                 receiver: None,
             },

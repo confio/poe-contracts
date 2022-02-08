@@ -9,17 +9,17 @@ use cw_storage_plus::{Bound, PrimaryKey};
 use cw_utils::maybe_addr;
 use tg4::{
     HooksResponse, Member, MemberChangedHookMsg, MemberDiff, MemberListResponse, MemberResponse,
-    TotalWeightResponse,
+    TotalPointsResponse,
 };
 
 use crate::error::ContractError;
 use crate::msg::{
-    DelegatedResponse, ExecuteMsg, FundsResponse, HalflifeInfo, HalflifeResponse, InstantiateMsg,
-    PreauthResponse, QueryMsg, SudoMsg,
+    DelegatedResponse, ExecuteMsg, HalflifeInfo, HalflifeResponse, InstantiateMsg, PreauthResponse,
+    QueryMsg, RewardsResponse, SudoMsg,
 };
 use crate::state::{
-    Distribution, Halflife, WithdrawAdjustment, DISTRIBUTION, HALFLIFE, POINTS_SHIFT,
-    PREAUTH_SLASHING, SLASHERS, WITHDRAW_ADJUSTMENT,
+    Distribution, Halflife, WithdrawAdjustment, DISTRIBUTION, HALFLIFE, PREAUTH_SLASHING,
+    SHARES_SHIFT, SLASHERS, WITHDRAW_ADJUSTMENT,
 };
 use tg_bindings::{request_privileges, Privilege, PrivilegeChangeMsg, TgradeMsg};
 use tg_utils::{
@@ -89,8 +89,8 @@ pub fn create(
 
     let distribution = Distribution {
         denom,
-        points_per_weight: Uint128::zero(),
-        points_leftover: 0,
+        shares_per_point: Uint128::zero(),
+        shares_leftover: 0,
         distributed_total: Uint128::zero(),
         withdrawable_total: Uint128::zero(),
     };
@@ -99,13 +99,13 @@ pub fn create(
     let mut total = 0u64;
 
     for member in members_list.into_iter() {
-        total += member.weight;
+        total += member.points;
         let member_addr = deps.api.addr_validate(&member.addr)?;
-        members().save(deps.storage, &member_addr, &member.weight, height)?;
+        members().save(deps.storage, &member_addr, &member.points, height)?;
 
         let adjustment = WithdrawAdjustment {
-            points_correction: 0i128.into(),
-            withdrawn_funds: Uint128::zero(),
+            shares_correction: 0i128.into(),
+            withdrawn_rewards: Uint128::zero(),
             delegated: member_addr.clone(),
         };
         WITHDRAW_ADJUSTMENT.save(deps.storage, &member_addr, &adjustment)?;
@@ -138,8 +138,10 @@ pub fn execute(
         AddPoints { addr, points } => execute_add_points(deps, env, info, addr, points),
         AddHook { addr } => execute_add_hook(deps, info, addr),
         RemoveHook { addr } => execute_remove_hook(deps, info, addr),
-        DistributeFunds { sender } => execute_distribute_tokens(deps, env, info, sender),
-        WithdrawFunds { owner, receiver } => execute_withdraw_tokens(deps, info, owner, receiver),
+        DistributeRewards { sender } => execute_distribute_rewards(deps, env, info, sender),
+        WithdrawRewards { owner, receiver } => {
+            execute_withdraw_rewards(deps, info, owner, receiver)
+        }
         DelegateWithdrawal { delegated } => execute_delegate_withdrawal(deps, info, delegated),
         AddSlasher { addr } => execute_add_slasher(deps, info, addr),
         RemoveSlasher { addr } => execute_remove_slasher(deps, info, addr),
@@ -162,7 +164,7 @@ pub fn execute_add_points(
     ADMIN.assert_admin(deps.as_ref(), &info.sender)?;
 
     let old_weight = query_member(deps.as_ref(), addr.clone(), None)?
-        .weight
+        .points
         .unwrap_or_default();
 
     // make the local update
@@ -171,7 +173,7 @@ pub fn execute_add_points(
         env.block.height,
         vec![Member {
             addr,
-            weight: old_weight + points,
+            points: old_weight + points,
         }],
         vec![],
     )?;
@@ -251,7 +253,7 @@ pub fn execute_update_members(
     Ok(res)
 }
 
-pub fn execute_distribute_tokens(
+pub fn execute_distribute_rewards(
     deps: DepsMut,
     env: Env,
     info: MessageInfo,
@@ -283,16 +285,16 @@ pub fn execute_distribute_tokens(
         return Ok(Response::new());
     }
 
-    let leftover: u128 = distribution.points_leftover.into();
-    let points = (amount << POINTS_SHIFT) + leftover;
+    let leftover: u128 = distribution.shares_leftover.into();
+    let points = (amount << SHARES_SHIFT) + leftover;
     let points_per_share = points / total;
-    distribution.points_leftover = (points % total) as u64;
+    distribution.shares_leftover = (points % total) as u64;
 
     // Everything goes back to 128-bits/16-bytes
     // Full amount is added here to total withdrawable, as it should not be considered on its own
     // on future distributions - even if because of calculation offsets it is not fully
     // distributed, the error is handled by leftover.
-    distribution.points_per_weight += Uint128::from(points_per_share);
+    distribution.shares_per_point += Uint128::from(points_per_share);
     distribution.distributed_total += Uint128::from(amount);
     distribution.withdrawable_total += Uint128::from(amount);
 
@@ -307,7 +309,7 @@ pub fn execute_distribute_tokens(
     Ok(resp)
 }
 
-pub fn execute_withdraw_tokens(
+pub fn execute_withdraw_rewards(
     deps: DepsMut,
     info: MessageInfo,
     owner: Option<String>,
@@ -327,7 +329,7 @@ pub fn execute_withdraw_tokens(
         ));
     }
 
-    let token = withdrawable_funds(deps.as_ref(), &owner, &distribution, &adjustment)?;
+    let token = withdrawable_rewards(deps.as_ref(), &owner, &distribution, &adjustment)?;
     let receiver = receiver
         .map(|receiver| deps.api.addr_validate(&receiver))
         .transpose()?
@@ -338,7 +340,7 @@ pub fn execute_withdraw_tokens(
         return Ok(Response::new());
     }
 
-    adjustment.withdrawn_funds += token.amount;
+    adjustment.withdrawn_rewards += token.amount;
     WITHDRAW_ADJUSTMENT.save(deps.storage, &owner, &adjustment)?;
     distribution.withdrawable_total -= token.amount;
     DISTRIBUTION.save(deps.storage, &distribution)?;
@@ -368,8 +370,8 @@ pub fn execute_delegate_withdrawal(
     WITHDRAW_ADJUSTMENT.update(deps.storage, &info.sender, |data| -> StdResult<_> {
         Ok(data.map_or_else(
             || WithdrawAdjustment {
-                points_correction: 0.into(),
-                withdrawn_funds: Uint128::zero(),
+                shares_correction: 0.into(),
+                withdrawn_rewards: Uint128::zero(),
                 delegated: delegated.clone(),
             },
             |mut data| {
@@ -454,7 +456,7 @@ pub fn execute_slash(
 
     validate_portion(portion)?;
 
-    let ppw: u128 = DISTRIBUTION.load(deps.storage)?.points_per_weight.into();
+    let ppw: u128 = DISTRIBUTION.load(deps.storage)?.shares_per_point.into();
 
     let mut diff = 0i128;
 
@@ -490,23 +492,23 @@ pub fn execute_slash(
     Ok(res)
 }
 
-/// Calculates withdrawable funds from distribution and adjustment info.
-pub fn withdrawable_funds(
+/// Calculates withdrawable_rewards from distribution and adjustment info.
+pub fn withdrawable_rewards(
     deps: Deps,
     owner: &Addr,
     distribution: &Distribution,
     adjustment: &WithdrawAdjustment,
 ) -> StdResult<Coin> {
-    let ppw: u128 = distribution.points_per_weight.into();
+    let ppw: u128 = distribution.shares_per_point.into();
     let weight: u128 = members()
         .may_load(deps.storage, owner)?
         .unwrap_or_default()
         .into();
-    let correction: i128 = adjustment.points_correction.into();
-    let withdrawn: u128 = adjustment.withdrawn_funds.into();
+    let correction: i128 = adjustment.shares_correction.into();
+    let withdrawn: u128 = adjustment.withdrawn_rewards.into();
     let points = (ppw * weight) as i128;
     let points = points + correction;
-    let amount = points as u128 >> POINTS_SHIFT;
+    let amount = points as u128 >> SHARES_SHIFT;
     let amount = amount - withdrawn;
 
     Ok(coin(amount, &distribution.denom))
@@ -520,7 +522,7 @@ pub fn sudo_add_member(
     let mut res = Response::new()
         .add_attribute("action", "sudo_add_member")
         .add_attribute("addr", add.addr.clone())
-        .add_attribute("weight", add.weight.to_string());
+        .add_attribute("weight", add.points.to_string());
 
     // make the local update
     let diff = update_members(deps.branch(), env.block.height, vec![add], vec![])?;
@@ -541,7 +543,7 @@ pub fn update_members(
     let mut total = TOTAL.load(deps.storage)?;
     let mut diffs: Vec<MemberDiff> = vec![];
 
-    let ppw: u128 = DISTRIBUTION.load(deps.storage)?.points_per_weight.into();
+    let ppw: u128 = DISTRIBUTION.load(deps.storage)?.shares_per_point.into();
 
     // add all new members and update total
     for add in to_add.into_iter() {
@@ -550,13 +552,13 @@ pub fn update_members(
         let mut diff = 0;
         let mut insert_funds = false;
         members().update(deps.storage, &add_addr, height, |old| -> StdResult<_> {
-            diffs.push(MemberDiff::new(add.addr, old, Some(add.weight)));
+            diffs.push(MemberDiff::new(add.addr, old, Some(add.points)));
             insert_funds = old.is_none();
             let old = old.unwrap_or_default();
             total -= old;
-            total += add.weight;
-            diff = add.weight as i128 - old as i128;
-            Ok(add.weight)
+            total += add.points;
+            diff = add.points as i128 - old as i128;
+            Ok(add.points)
         })?;
         apply_points_correction(deps.branch(), &add_addr, ppw, diff)?;
     }
@@ -591,13 +593,13 @@ pub fn apply_points_correction(
         let mut old = old.unwrap_or_else(|| {
             // This should never happen, but better this than panic
             WithdrawAdjustment {
-                points_correction: 0.into(),
-                withdrawn_funds: Uint128::zero(),
+                shares_correction: 0.into(),
+                withdrawn_rewards: Uint128::zero(),
                 delegated: addr.clone(),
             }
         });
-        let points_correction: i128 = old.points_correction.into();
-        old.points_correction = (points_correction - points_per_weight as i128 * diff).into();
+        let points_correction: i128 = old.shares_correction.into();
+        old.shares_correction = (points_correction - points_per_weight as i128 * diff).into();
         Ok(old)
     })?;
     Ok(())
@@ -635,7 +637,7 @@ fn end_block(mut deps: DepsMut, env: Env) -> Result<Response, ContractError> {
         return Ok(resp);
     }
 
-    let ppw: u128 = DISTRIBUTION.load(deps.storage)?.points_per_weight.into();
+    let ppw: u128 = DISTRIBUTION.load(deps.storage)?.shares_per_point.into();
 
     let mut reduction = 0;
 
@@ -649,7 +651,7 @@ fn end_block(mut deps: DepsMut, env: Env) -> Result<Response, ContractError> {
                 }
                 Ok(Some(Member {
                     addr: addr.into(),
-                    weight,
+                    points: weight,
                 }))
             })()
             .transpose()
@@ -657,14 +659,14 @@ fn end_block(mut deps: DepsMut, env: Env) -> Result<Response, ContractError> {
         .collect::<StdResult<_>>()?;
 
     for member in members_to_update {
-        let diff = weight_reduction(member.weight);
+        let diff = weight_reduction(member.points);
         reduction += diff;
         let addr = Addr::unchecked(member.addr);
         members().replace(
             deps.storage,
             &addr,
-            Some(&(member.weight - diff)),
-            Some(&member.weight),
+            Some(&(member.points - diff)),
+            Some(&member.points),
             env.block.height,
         )?;
         apply_points_correction(deps.branch(), &addr, ppw, -(diff as i128))?;
@@ -699,10 +701,10 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
             at_height: height,
         } => to_binary(&query_member(deps, addr, height)?),
         ListMembers { start_after, limit } => to_binary(&list_members(deps, start_after, limit)?),
-        ListMembersByWeight { start_after, limit } => {
-            to_binary(&list_members_by_weight(deps, start_after, limit)?)
+        ListMembersByPoints { start_after, limit } => {
+            to_binary(&list_members_by_points(deps, start_after, limit)?)
         }
-        TotalWeight {} => to_binary(&query_total_weight(deps)?),
+        TotalPoints {} => to_binary(&query_total_points(deps)?),
         Admin {} => to_binary(&ADMIN.query_admin(deps)?),
         Hooks {} => {
             let hooks = HOOKS.list_hooks(deps.storage)?;
@@ -712,9 +714,9 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
             let preauths = PREAUTH_HOOKS.get_auth(deps.storage)?;
             to_binary(&PreauthResponse { preauths })
         }
-        WithdrawableFunds { owner } => to_binary(&query_withdrawable_funds(deps, owner)?),
-        DistributedFunds {} => to_binary(&query_distributed_total(deps)?),
-        UndistributedFunds {} => to_binary(&query_undistributed_funds(deps, env)?),
+        WithdrawableRewards { owner } => to_binary(&query_withdrawable_rewards(deps, owner)?),
+        DistributedRewards {} => to_binary(&query_distributed_rewards(deps)?),
+        UndistributedRewards {} => to_binary(&query_undistributed_rewards(deps, env)?),
         Delegated { owner } => to_binary(&query_delegated(deps, owner)?),
         Halflife {} => to_binary(&query_halflife(deps)?),
         IsSlasher { addr } => {
@@ -730,21 +732,21 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
     }
 }
 
-fn query_total_weight(deps: Deps) -> StdResult<TotalWeightResponse> {
-    let weight = TOTAL.load(deps.storage)?;
-    Ok(TotalWeightResponse { weight })
+fn query_total_points(deps: Deps) -> StdResult<TotalPointsResponse> {
+    let points = TOTAL.load(deps.storage)?;
+    Ok(TotalPointsResponse { points })
 }
 
 fn query_member(deps: Deps, addr: String, height: Option<u64>) -> StdResult<MemberResponse> {
     let addr = deps.api.addr_validate(&addr)?;
-    let weight = match height {
+    let points = match height {
         Some(h) => members().may_load_at_height(deps.storage, &addr, h),
         None => members().may_load(deps.storage, &addr),
     }?;
-    Ok(MemberResponse { weight })
+    Ok(MemberResponse { points })
 }
 
-pub fn query_withdrawable_funds(deps: Deps, owner: String) -> StdResult<FundsResponse> {
+pub fn query_withdrawable_rewards(deps: Deps, owner: String) -> StdResult<RewardsResponse> {
     // Not checking address, as if it is ivnalid it is guaranteed not to appear in maps, so
     // `withdrawable_funds` would return error itself.
     let owner = Addr::unchecked(&owner);
@@ -752,34 +754,34 @@ pub fn query_withdrawable_funds(deps: Deps, owner: String) -> StdResult<FundsRes
     let adjustment = if let Some(adj) = WITHDRAW_ADJUSTMENT.may_load(deps.storage, &owner)? {
         adj
     } else {
-        return Ok(FundsResponse {
-            funds: coin(0, distribution.denom),
+        return Ok(RewardsResponse {
+            rewards: coin(0, distribution.denom),
         });
     };
 
-    let token = withdrawable_funds(deps, &owner, &distribution, &adjustment)?;
-    Ok(FundsResponse { funds: token })
+    let token = withdrawable_rewards(deps, &owner, &distribution, &adjustment)?;
+    Ok(RewardsResponse { rewards: token })
 }
 
-pub fn query_undistributed_funds(deps: Deps, env: Env) -> StdResult<FundsResponse> {
+pub fn query_undistributed_rewards(deps: Deps, env: Env) -> StdResult<RewardsResponse> {
     let distribution = DISTRIBUTION.load(deps.storage)?;
     let balance = deps
         .querier
         .query_balance(env.contract.address, distribution.denom.clone())?
         .amount;
 
-    Ok(FundsResponse {
-        funds: coin(
+    Ok(RewardsResponse {
+        rewards: coin(
             (balance - distribution.withdrawable_total).into(),
             &distribution.denom,
         ),
     })
 }
 
-pub fn query_distributed_total(deps: Deps) -> StdResult<FundsResponse> {
+pub fn query_distributed_rewards(deps: Deps) -> StdResult<RewardsResponse> {
     let distribution = DISTRIBUTION.load(deps.storage)?;
-    Ok(FundsResponse {
-        funds: coin(distribution.distributed_total.into(), &distribution.denom),
+    Ok(RewardsResponse {
+        rewards: coin(distribution.distributed_total.into(), &distribution.denom),
     })
 }
 
@@ -832,7 +834,7 @@ fn list_members(
             let (addr, weight) = item?;
             Ok(Member {
                 addr: addr.into(),
-                weight,
+                points: weight,
             })
         })
         .collect();
@@ -840,23 +842,23 @@ fn list_members(
     Ok(MemberListResponse { members: members? })
 }
 
-fn list_members_by_weight(
+fn list_members_by_points(
     deps: Deps,
     start_after: Option<Member>,
     limit: Option<u32>,
 ) -> StdResult<MemberListResponse> {
     let limit = limit.unwrap_or(DEFAULT_LIMIT).min(MAX_LIMIT) as usize;
-    let start = start_after.map(|m| Bound::exclusive((m.weight, m.addr.as_str()).joined_key()));
+    let start = start_after.map(|m| Bound::exclusive((m.points, m.addr.as_str()).joined_key()));
     let members: StdResult<Vec<_>> = members()
         .idx
-        .weight
+        .points
         .range(deps.storage, None, start, Order::Descending)
         .take(limit)
         .map(|item| {
             let (addr, weight) = item?;
             Ok(Member {
                 addr: addr.into(),
-                weight,
+                points: weight,
             })
         })
         .collect();
@@ -903,11 +905,11 @@ mod tests {
             members: vec![
                 Member {
                     addr: USER1.into(),
-                    weight: USER1_WEIGHT,
+                    points: USER1_WEIGHT,
                 },
                 Member {
                     addr: USER2.into(),
-                    weight: USER2_WEIGHT,
+                    points: USER2_WEIGHT,
                 },
             ],
             preauths_hooks: 1,
@@ -928,8 +930,8 @@ mod tests {
         let res = ADMIN.query_admin(deps.as_ref()).unwrap();
         assert_eq!(Some(INIT_ADMIN.into()), res.admin);
 
-        let res = query_total_weight(deps.as_ref()).unwrap();
-        assert_eq!(17, res.weight);
+        let res = query_total_points(deps.as_ref()).unwrap();
+        assert_eq!(17, res.points);
 
         let preauths = PREAUTH_HOOKS.get_auth(&deps.storage).unwrap();
         assert_eq!(1, preauths);
@@ -940,8 +942,8 @@ mod tests {
             res,
             Distribution {
                 denom: "usdc".to_owned(),
-                points_per_weight: Uint128::zero(),
-                points_leftover: 0,
+                shares_per_point: Uint128::zero(),
+                shares_leftover: 0,
                 distributed_total: Uint128::zero(),
                 withdrawable_total: Uint128::zero(),
             }
@@ -959,8 +961,8 @@ mod tests {
         assert_eq!(
             res,
             WithdrawAdjustment {
-                points_correction: Int128::zero(),
-                withdrawn_funds: Uint128::zero(),
+                shares_correction: Int128::zero(),
+                withdrawn_rewards: Uint128::zero(),
                 delegated: Addr::unchecked("USER1"),
             }
         );
@@ -972,13 +974,13 @@ mod tests {
         do_instantiate(deps.as_mut());
 
         let member1 = query_member(deps.as_ref(), USER1.into(), None).unwrap();
-        assert_eq!(member1.weight, Some(11));
+        assert_eq!(member1.points, Some(11));
 
         let member2 = query_member(deps.as_ref(), USER2.into(), None).unwrap();
-        assert_eq!(member2.weight, Some(6));
+        assert_eq!(member2.points, Some(6));
 
         let member3 = query_member(deps.as_ref(), USER3.into(), None).unwrap();
-        assert_eq!(member3.weight, None);
+        assert_eq!(member3.points, None);
 
         let members = list_members(deps.as_ref(), None, None).unwrap();
         assert_eq!(members.members.len(), 2);
@@ -991,11 +993,11 @@ mod tests {
             vec![
                 Member {
                     addr: USER1.into(),
-                    weight: 11
+                    points: 11
                 },
                 Member {
                     addr: USER2.into(),
-                    weight: 6
+                    points: 6
                 },
             ]
         );
@@ -1008,7 +1010,7 @@ mod tests {
             members,
             vec![Member {
                 addr: USER1.into(),
-                weight: 11
+                points: 11
             },]
         );
 
@@ -1023,7 +1025,7 @@ mod tests {
             members,
             vec![Member {
                 addr: USER2.into(),
-                weight: 6
+                points: 6
             },]
         );
 
@@ -1040,7 +1042,7 @@ mod tests {
         let mut deps = mock_dependencies();
         do_instantiate(deps.as_mut());
 
-        let members = list_members_by_weight(deps.as_ref(), None, None)
+        let members = list_members_by_points(deps.as_ref(), None, None)
             .unwrap()
             .members;
         assert_eq!(members.len(), 2);
@@ -1050,17 +1052,17 @@ mod tests {
             vec![
                 Member {
                     addr: USER1.into(),
-                    weight: 11
+                    points: 11
                 },
                 Member {
                     addr: USER2.into(),
-                    weight: 6
+                    points: 6
                 }
             ]
         );
 
         // Test pagination / limits
-        let members = list_members_by_weight(deps.as_ref(), None, Some(1))
+        let members = list_members_by_points(deps.as_ref(), None, Some(1))
             .unwrap()
             .members;
         assert_eq!(members.len(), 1);
@@ -1069,13 +1071,13 @@ mod tests {
             members,
             vec![Member {
                 addr: USER1.into(),
-                weight: 11
+                points: 11
             },]
         );
 
         // Next page
         let start_after = Some(members[0].clone());
-        let members = list_members_by_weight(deps.as_ref(), start_after, None)
+        let members = list_members_by_points(deps.as_ref(), start_after, None)
             .unwrap()
             .members;
         assert_eq!(members.len(), 1);
@@ -1084,13 +1086,13 @@ mod tests {
             members,
             vec![Member {
                 addr: USER2.into(),
-                weight: 6
+                points: 6
             },]
         );
 
         // Assert there's no more
         let start_after = Some(members[0].clone());
-        let members = list_members_by_weight(deps.as_ref(), start_after, Some(1))
+        let members = list_members_by_points(deps.as_ref(), start_after, Some(1))
             .unwrap()
             .members;
         assert_eq!(members.len(), 0);
@@ -1130,11 +1132,11 @@ mod tests {
             members: vec![
                 Member {
                     addr: USER1.into(),
-                    weight: USER1_WEIGHT,
+                    points: USER1_WEIGHT,
                 },
                 Member {
                     addr: USER2.into(),
-                    weight: USER2_WEIGHT,
+                    points: USER2_WEIGHT,
                 },
             ],
             preauths_hooks: 1,
@@ -1178,13 +1180,13 @@ mod tests {
         height: Option<u64>,
     ) {
         let member1 = query_member(deps.as_ref(), USER1.into(), height).unwrap();
-        assert_eq!(member1.weight, user1_weight);
+        assert_eq!(member1.points, user1_weight);
 
         let member2 = query_member(deps.as_ref(), USER2.into(), height).unwrap();
-        assert_eq!(member2.weight, user2_weight);
+        assert_eq!(member2.points, user2_weight);
 
         let member3 = query_member(deps.as_ref(), USER3.into(), height).unwrap();
-        assert_eq!(member3.weight, user3_weight);
+        assert_eq!(member3.points, user3_weight);
 
         // this is only valid if we are not doing a historical query
         if height.is_none() {
@@ -1197,8 +1199,8 @@ mod tests {
             let members = list_members(deps.as_ref(), None, None).unwrap();
             assert_eq!(count, members.members.len());
 
-            let total = query_total_weight(deps.as_ref()).unwrap();
-            assert_eq!(sum, total.weight); // 17 - 11 + 15 = 21
+            let total = query_total_points(deps.as_ref()).unwrap();
+            assert_eq!(sum, total.points); // 17 - 11 + 15 = 21
         }
     }
 
@@ -1210,7 +1212,7 @@ mod tests {
         // add a new one and remove existing one
         let add = vec![Member {
             addr: USER3.into(),
-            weight: 15,
+            points: 15,
         }];
         let remove = vec![USER1.into()];
 
@@ -1251,7 +1253,7 @@ mod tests {
         // add a new one and remove existing one
         let add = vec![Member {
             addr: USER1.into(),
-            weight: 4,
+            points: 4,
         }];
         let remove = vec![USER3.into()];
 
@@ -1273,11 +1275,11 @@ mod tests {
         let add = vec![
             Member {
                 addr: USER1.into(),
-                weight: 20,
+                points: 20,
             },
             Member {
                 addr: USER3.into(),
-                weight: 5,
+                points: 5,
             },
         ];
         let remove = vec![USER1.into()];
@@ -1298,7 +1300,7 @@ mod tests {
         // add a new member
         let add = Member {
             addr: USER3.into(),
-            weight: 15,
+            points: 15,
         };
 
         let env = mock_env();
@@ -1333,7 +1335,7 @@ mod tests {
         // update an existing member
         let add = Member {
             addr: USER2.into(),
-            weight: 1,
+            points: 1,
         };
 
         let env = mock_env();
@@ -1466,11 +1468,11 @@ mod tests {
         let add = vec![
             Member {
                 addr: USER1.into(),
-                weight: 20,
+                points: 20,
             },
             Member {
                 addr: USER3.into(),
-                weight: 5,
+                points: 5,
             },
         ];
         let remove = vec![USER2.into()];
@@ -1595,7 +1597,7 @@ mod tests {
             let new_user = "USER111".to_owned();
             execute_add_points(deps.as_mut(), env, info, new_user.clone(), 10).unwrap();
             let new_member = query_member(deps.as_ref(), new_user, None).unwrap();
-            assert_eq!(new_member.weight, Some(10));
+            assert_eq!(new_member.points, Some(10));
         }
     }
 

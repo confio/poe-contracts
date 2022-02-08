@@ -25,7 +25,7 @@ pub fn expected_members(members: Vec<(&str, u64)>) -> Vec<Member> {
         .into_iter()
         .map(|(addr, weight)| Member {
             addr: addr.to_owned(),
-            weight,
+            points: weight,
         })
         .collect()
 }
@@ -45,7 +45,7 @@ impl SuiteBuilder {
     pub fn with_member(mut self, addr: &str, weight: u64) -> Self {
         self.members.push(Member {
             addr: addr.to_owned(),
-            weight,
+            points: weight,
         });
         self
     }
@@ -162,7 +162,7 @@ impl Suite {
         self.app.execute_contract(
             Addr::unchecked(executor),
             self.contract.clone(),
-            &ExecuteMsg::DistributeFunds {
+            &ExecuteMsg::DistributeRewards {
                 sender: sender.into().map(str::to_owned),
             },
             funds,
@@ -178,7 +178,7 @@ impl Suite {
         self.app.execute_contract(
             Addr::unchecked(executor),
             self.contract.clone(),
-            &ExecuteMsg::WithdrawFunds {
+            &ExecuteMsg::WithdrawRewards {
                 owner: owner.into().map(str::to_owned),
                 receiver: receiver.into().map(str::to_owned),
             },
@@ -211,7 +211,7 @@ impl Suite {
             .iter()
             .map(|(addr, weight)| Member {
                 addr: (*addr).to_owned(),
-                weight: *weight,
+                points: *weight,
             })
             .collect();
 
@@ -283,29 +283,29 @@ impl Suite {
     }
 
     pub fn withdrawable_funds(&self, owner: &str) -> Result<Coin, ContractError> {
-        let resp: FundsResponse = self.app.wrap().query_wasm_smart(
+        let resp: RewardsResponse = self.app.wrap().query_wasm_smart(
             self.contract.clone(),
-            &QueryMsg::WithdrawableFunds {
+            &QueryMsg::WithdrawableRewards {
                 owner: owner.to_owned(),
             },
         )?;
-        Ok(resp.funds)
+        Ok(resp.rewards)
     }
 
     pub fn distributed_funds(&self) -> Result<Coin, ContractError> {
-        let resp: FundsResponse = self
+        let resp: RewardsResponse = self
             .app
             .wrap()
-            .query_wasm_smart(self.contract.clone(), &QueryMsg::DistributedFunds {})?;
-        Ok(resp.funds)
+            .query_wasm_smart(self.contract.clone(), &QueryMsg::DistributedRewards {})?;
+        Ok(resp.rewards)
     }
 
     pub fn undistributed_funds(&self) -> Result<Coin, ContractError> {
-        let resp: FundsResponse = self
+        let resp: RewardsResponse = self
             .app
             .wrap()
-            .query_wasm_smart(self.contract.clone(), &QueryMsg::UndistributedFunds {})?;
-        Ok(resp.funds)
+            .query_wasm_smart(self.contract.clone(), &QueryMsg::UndistributedRewards {})?;
+        Ok(resp.rewards)
     }
 
     pub fn delegated(&self, owner: &str) -> Result<Addr, ContractError> {

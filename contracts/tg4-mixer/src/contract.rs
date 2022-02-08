@@ -17,14 +17,14 @@ use tg_utils::{
 
 use tg4::{
     HooksResponse, Member, MemberChangedHookMsg, MemberDiff, MemberListResponse, MemberResponse,
-    Tg4Contract, TotalWeightResponse,
+    Tg4Contract, TotalPointsResponse,
 };
 
 use crate::error::ContractError;
 use crate::functions::PoEFunction;
 use crate::msg::{
-    ExecuteMsg, GroupsResponse, InstantiateMsg, PoEFunctionType, PreauthResponse, QueryMsg,
-    RewardFunctionResponse,
+    ExecuteMsg, GroupsResponse, InstantiateMsg, MixerFunctionResponse, PoEFunctionType,
+    PreauthResponse, QueryMsg,
 };
 use crate::state::{Groups, GROUPS, POE_FUNCTION_TYPE};
 
@@ -109,7 +109,7 @@ fn initialize_members(
             // like calling `list_members` on the right side as well
             let other = groups.right.is_member(&deps.querier, &addr)?;
             if let Some(right) = other {
-                let weight = poe_function.rewards(member.weight, right)?;
+                let weight = poe_function.mix(member.points, right)?;
                 total += weight;
                 members().save(deps.storage, &addr, &weight, height)?;
             }
@@ -199,7 +199,7 @@ pub fn update_members(
         let member_addr = deps.api.addr_validate(&change.key)?;
         let new_weight = match change.new {
             Some(x) => match query_group.is_member(&deps.querier, &member_addr)? {
-                Some(y) => Some(poe_function.rewards(x, y)?),
+                Some(y) => Some(poe_function.mix(x, y)?),
                 None => None,
             },
             None => None,
@@ -352,10 +352,10 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
             at_height: height,
         } => to_binary(&query_member(deps, addr, height)?),
         ListMembers { start_after, limit } => to_binary(&list_members(deps, start_after, limit)?),
-        ListMembersByWeight { start_after, limit } => {
-            to_binary(&list_members_by_weight(deps, start_after, limit)?)
+        ListMembersByPoints { start_after, limit } => {
+            to_binary(&list_members_by_points(deps, start_after, limit)?)
         }
-        TotalWeight {} => to_binary(&query_total_weight(deps)?),
+        TotalPoints {} => to_binary(&query_total_points(deps)?),
         Groups {} => to_binary(&query_groups(deps)?),
         Hooks {} => {
             let hooks = HOOKS.list_hooks(deps.storage)?;
@@ -365,14 +365,14 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
             let preauths_hooks = PREAUTH_HOOKS.get_auth(deps.storage)?;
             to_binary(&PreauthResponse { preauths_hooks })
         }
-        RewardFunction {
+        MixerFunction {
             stake,
             engagement,
             poe_function,
         } => {
-            let reward = query_reward_function(deps, stake.u64(), engagement.u64(), poe_function)
+            let reward = query_mixer_function(deps, stake.u64(), engagement.u64(), poe_function)
                 .map_err(|err| StdError::generic_err(err.to_string()))?;
-            to_binary(&RewardFunctionResponse { reward })
+            to_binary(&MixerFunctionResponse { points: reward })
         }
         IsSlasher { addr } => {
             let addr = deps.api.addr_validate(&addr)?;
@@ -382,9 +382,9 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     }
 }
 
-fn query_total_weight(deps: Deps) -> StdResult<TotalWeightResponse> {
-    let weight = TOTAL.load(deps.storage)?;
-    Ok(TotalWeightResponse { weight })
+fn query_total_points(deps: Deps) -> StdResult<TotalPointsResponse> {
+    let points = TOTAL.load(deps.storage)?;
+    Ok(TotalPointsResponse { points })
 }
 
 fn query_groups(deps: Deps) -> StdResult<GroupsResponse> {
@@ -397,11 +397,11 @@ fn query_groups(deps: Deps) -> StdResult<GroupsResponse> {
 
 fn query_member(deps: Deps, addr: String, height: Option<u64>) -> StdResult<MemberResponse> {
     let addr = deps.api.addr_validate(&addr)?;
-    let weight = match height {
+    let points = match height {
         Some(h) => members().may_load_at_height(deps.storage, &addr, h),
         None => members().may_load(deps.storage, &addr),
     }?;
-    Ok(MemberResponse { weight })
+    Ok(MemberResponse { points })
 }
 
 // settings for pagination
@@ -421,10 +421,10 @@ fn list_members(
         .range(deps.storage, start, None, Order::Ascending)
         .take(limit)
         .map(|item| {
-            let (addr, weight) = item?;
+            let (addr, points) = item?;
             Ok(Member {
                 addr: addr.into(),
-                weight,
+                points,
             })
         })
         .collect();
@@ -432,23 +432,23 @@ fn list_members(
     Ok(MemberListResponse { members: members? })
 }
 
-fn list_members_by_weight(
+fn list_members_by_points(
     deps: Deps,
     start_after: Option<Member>,
     limit: Option<u32>,
 ) -> StdResult<MemberListResponse> {
     let limit = limit.unwrap_or(DEFAULT_LIMIT).min(MAX_LIMIT) as usize;
-    let start = start_after.map(|m| Bound::exclusive((m.weight, m.addr).joined_key()));
+    let start = start_after.map(|m| Bound::exclusive((m.points, m.addr).joined_key()));
     let members: StdResult<Vec<_>> = members()
         .idx
-        .weight
+        .points
         .range(deps.storage, None, start, Order::Descending)
         .take(limit)
         .map(|item| {
-            let (addr, weight) = item?;
+            let (addr, points) = item?;
             Ok(Member {
                 addr: addr.into(),
-                weight,
+                points,
             })
         })
         .collect();
@@ -456,7 +456,7 @@ fn list_members_by_weight(
     Ok(MemberListResponse { members: members? })
 }
 
-pub fn query_reward_function(
+pub fn query_mixer_function(
     deps: Deps,
     stake: u64,
     engagement: u64,
@@ -468,7 +468,7 @@ pub fn query_reward_function(
     }
     .to_poe_fn()?;
 
-    poe_function.rewards(stake, engagement)
+    poe_function.mix(stake, engagement)
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
@@ -498,7 +498,7 @@ mod tests {
     fn member<T: Into<String>>(addr: T, weight: u64) -> Member {
         Member {
             addr: addr.into(),
-            weight,
+            points: weight,
         }
     }
 
@@ -551,7 +551,7 @@ mod tests {
         let group_id = app.store_code(contract_staking());
         let msg = tg4_stake::msg::InstantiateMsg {
             denom: STAKE_DENOM.to_owned(),
-            tokens_per_weight: Uint128::new(1),
+            tokens_per_point: Uint128::new(1),
             min_bond: Uint128::new(100),
             unbonding_period: 3600,
             admin: admin.clone(),
@@ -573,7 +573,7 @@ mod tests {
         // stake any needed tokens
         for staker in stakers {
             // give them a balance
-            let balance = coins(staker.weight as u128, STAKE_DENOM);
+            let balance = coins(staker.points as u128, STAKE_DENOM);
             let caller = Addr::unchecked(staker.addr);
 
             // they stake to the contract
@@ -649,7 +649,7 @@ mod tests {
                     },
                 )
                 .unwrap();
-            o.weight
+            o.points
         };
 
         assert_eq!(weight(OWNER), owner);
@@ -675,7 +675,7 @@ mod tests {
                     .init_balance(
                         storage,
                         &Addr::unchecked(&staker.addr),
-                        coins(staker.weight as u128, STAKE_DENOM),
+                        coins(staker.points as u128, STAKE_DENOM),
                     )
                     .unwrap();
             }
@@ -716,7 +716,7 @@ mod tests {
                     .init_balance(
                         storage,
                         &Addr::unchecked(&staker.addr),
-                        coins(staker.weight as u128, STAKE_DENOM),
+                        coins(staker.points as u128, STAKE_DENOM),
                     )
                     .unwrap();
             }
@@ -771,11 +771,11 @@ mod tests {
             add: vec![
                 Member {
                     addr: VOTER2.into(),
-                    weight: 300,
+                    points: 300,
                 },
                 Member {
                     addr: VOTER3.into(),
-                    weight: 1200,
+                    points: 1200,
                 },
             ],
         };
@@ -818,7 +818,7 @@ mod tests {
                     .init_balance(
                         storage,
                         &Addr::unchecked(&staker.addr),
-                        coins(staker.weight as u128, STAKE_DENOM),
+                        coins(staker.points as u128, STAKE_DENOM),
                     )
                     .unwrap();
             }
@@ -846,11 +846,11 @@ mod tests {
                 add: vec![
                     Member {
                         addr: VOTER2.to_owned(),
-                        weight: 400,
+                        points: 400,
                     },
                     Member {
                         addr: VOTER1.to_owned(),
-                        weight: 8000,
+                        points: 8000,
                     },
                 ],
                 remove: vec![VOTER3.to_owned()],
@@ -892,7 +892,7 @@ mod tests {
                     .init_balance(
                         storage,
                         &Addr::unchecked(&staker.addr),
-                        coins(staker.weight as u128, STAKE_DENOM),
+                        coins(staker.points as u128, STAKE_DENOM),
                     )
                     .unwrap();
             }

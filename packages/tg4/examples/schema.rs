@@ -5,7 +5,7 @@ use cosmwasm_schema::{export_schema, remove_schemas, schema_for};
 
 pub use tg4::{
     AdminResponse, Member, MemberChangedHookMsg, MemberListResponse, MemberResponse, Tg4ExecuteMsg,
-    Tg4QueryMsg, TotalWeightResponse,
+    Tg4QueryMsg, TotalPointsResponse,
 };
 
 fn main() {
@@ -19,6 +19,6 @@ fn main() {
     export_schema(&schema_for!(AdminResponse), &out_dir);
     export_schema(&schema_for!(MemberListResponse), &out_dir);
     export_schema(&schema_for!(MemberResponse), &out_dir);
-    export_schema(&schema_for!(TotalWeightResponse), &out_dir);
+    export_schema(&schema_for!(TotalPointsResponse), &out_dir);
     export_schema(&schema_for!(MemberChangedHookMsg), &out_dir);
 }

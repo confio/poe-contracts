@@ -5,19 +5,19 @@ use crate::msg::MigrateMsg;
 fn migration_can_alter_cfg() {
     let mut suite = SuiteBuilder::new()
         .with_max_validators(6)
-        .with_min_weight(3)
+        .with_min_points(3)
         .build();
     let admin = suite.admin().to_string();
 
     let cfg = suite.config().unwrap();
     assert_eq!(cfg.max_validators, 6);
-    assert_eq!(cfg.min_weight, 3);
+    assert_eq!(cfg.min_points, 3);
 
     suite
         .migrate(
             &admin,
             &MigrateMsg {
-                min_weight: Some(5),
+                min_points: Some(5),
                 max_validators: Some(10),
             },
         )
@@ -25,5 +25,5 @@ fn migration_can_alter_cfg() {
 
     let cfg = suite.config().unwrap();
     assert_eq!(cfg.max_validators, 10);
-    assert_eq!(cfg.min_weight, 5);
+    assert_eq!(cfg.min_points, 5);
 }

@@ -15,7 +15,7 @@ pub fn std_to_decimal(std_decimal: StdDecimal) -> Decimal {
 pub trait PoEFunction {
     /// Returns the rewards based on the amount of stake and engagement points.
     /// `f(x)` from the README.
-    fn rewards(&self, stake: u64, engagement: u64) -> Result<u64, ContractError>;
+    fn mix(&self, stake: u64, engagement: u64) -> Result<u64, ContractError>;
 }
 
 /// This takes a geometric mean of stake and engagement points using integer math
@@ -29,7 +29,7 @@ impl GeometricMean {
 }
 
 impl PoEFunction for GeometricMean {
-    fn rewards(&self, stake: u64, engagement: u64) -> Result<u64, ContractError> {
+    fn mix(&self, stake: u64, engagement: u64) -> Result<u64, ContractError> {
         let mult = (stake as u128) * (engagement as u128);
         Ok(mult.integer_sqrt() as u64)
     }
@@ -83,14 +83,14 @@ impl Sigmoid {
 }
 
 impl PoEFunction for Sigmoid {
-    fn rewards(&self, stake: u64, engagement: u64) -> Result<u64, ContractError> {
+    fn mix(&self, stake: u64, engagement: u64) -> Result<u64, ContractError> {
         // Cast to i64 because of rust_decimal::Decimal underlying impl
         let left = Decimal::new(stake as i64, 0);
         let right = Decimal::new(engagement as i64, 0);
 
         // Rejects u64 values larger than 2^63, which become negative in Decimal
         if left.is_sign_negative() || right.is_sign_negative() {
-            return Err(ContractError::WeightOverflow {});
+            return Err(ContractError::PointsOverflow {});
         }
 
         // This is the implementation of the PoE whitepaper, Appendix A,
@@ -116,7 +116,7 @@ impl PoEFunction for Sigmoid {
                     .unwrap_or(self.zero))
                 - self.one);
 
-        reward.to_u64().ok_or(ContractError::RewardOverflow {})
+        reward.to_u64().ok_or(ContractError::MixerOverflow {})
     }
 }
 
@@ -163,12 +163,12 @@ impl SigmoidSqrt {
 }
 
 impl PoEFunction for SigmoidSqrt {
-    fn rewards(&self, stake: u64, engagement: u64) -> Result<u64, ContractError> {
+    fn mix(&self, stake: u64, engagement: u64) -> Result<u64, ContractError> {
         // `reward = r_max * (2 / (1 + e^(-s * sqrt(stake * engagement)) ) - 1)`
-        let geometric_mean = self.geometric.rewards(stake, engagement).unwrap();
+        let geometric_mean = self.geometric.mix(stake, engagement).unwrap();
         let geometric_mean = Decimal::new(geometric_mean as i64, 0);
         if geometric_mean.is_sign_negative() {
-            return Err(ContractError::WeightOverflow {});
+            return Err(ContractError::PointsOverflow {});
         }
 
         // Given that `s` is always positive, we replace the underflowed exponential case
@@ -181,7 +181,7 @@ impl PoEFunction for SigmoidSqrt {
                         .unwrap_or(self.zero))
                 - self.one);
 
-        reward.to_u64().ok_or(ContractError::RewardOverflow {})
+        reward.to_u64().ok_or(ContractError::MixerOverflow {})
     }
 }
 
@@ -246,14 +246,14 @@ impl AlgebraicSigmoid {
 }
 
 impl PoEFunction for AlgebraicSigmoid {
-    fn rewards(&self, stake: u64, engagement: u64) -> Result<u64, ContractError> {
+    fn mix(&self, stake: u64, engagement: u64) -> Result<u64, ContractError> {
         // Cast to i64 because of rust_decimal::Decimal underlying impl
         let left = Decimal::new(stake as i64, 0);
         let right = Decimal::new(engagement as i64, 0);
 
         // Rejects u64 values larger than 2^63, which become negative in Decimal
         if left.is_sign_negative() || right.is_sign_negative() {
-            return Err(ContractError::WeightOverflow {});
+            return Err(ContractError::PointsOverflow {});
         }
 
         // x = s * (reward * engagement)^p
@@ -270,14 +270,14 @@ impl PoEFunction for AlgebraicSigmoid {
                 .ok_or(ContractError::ComputationOverflow("mul"))?;
 
         // reward = r_max * x / sqrt(a + x^2)
-        let reward = self.max_rewards * x
+        let points = self.max_rewards * x
             / (self.a
                 + x.checked_powu(2)
                     .ok_or(ContractError::ComputationOverflow("powu"))?)
             .sqrt()
             .ok_or(ContractError::ComputationOverflow("sqrt"))?;
 
-        reward.to_u64().ok_or(ContractError::RewardOverflow {})
+        points.to_u64().ok_or(ContractError::MixerOverflow {})
     }
 }
 
@@ -290,18 +290,18 @@ mod tests {
         let geometric = GeometricMean::new();
 
         // either 0 -> 0
-        assert_eq!(geometric.rewards(0, 123456).unwrap(), 0);
-        assert_eq!(geometric.rewards(7777, 0).unwrap(), 0);
+        assert_eq!(geometric.mix(0, 123456).unwrap(), 0);
+        assert_eq!(geometric.mix(7777, 0).unwrap(), 0);
 
         // basic math checks (no rounding)
-        assert_eq!(geometric.rewards(4, 9).unwrap(), 6);
+        assert_eq!(geometric.mix(4, 9).unwrap(), 6);
 
         // rounding down (sqrt(240) = 15.49...
-        assert_eq!(geometric.rewards(12, 20).unwrap(), 15);
+        assert_eq!(geometric.mix(12, 20).unwrap(), 15);
 
         // not overflow checks
         let very_big = u64::MAX;
-        assert_eq!(geometric.rewards(very_big, very_big).unwrap(), very_big);
+        assert_eq!(geometric.mix(very_big, very_big).unwrap(), very_big);
     }
 
     #[test]
@@ -314,33 +314,33 @@ mod tests {
         .unwrap();
 
         // either 0 -> 0
-        assert_eq!(sigmoid.rewards(0, 123456).unwrap(), 0);
-        assert_eq!(sigmoid.rewards(7777, 0).unwrap(), 0);
+        assert_eq!(sigmoid.mix(0, 123456).unwrap(), 0);
+        assert_eq!(sigmoid.mix(7777, 0).unwrap(), 0);
 
         // Basic math checks (no rounding)
         // Values from PoE paper, Appendix A, "root of engagement" curve
-        assert_eq!(sigmoid.rewards(5, 1000).unwrap(), 4);
-        assert_eq!(sigmoid.rewards(5, 100000).unwrap(), 112);
-        assert_eq!(sigmoid.rewards(1000, 1000).unwrap(), 178);
-        assert_eq!(sigmoid.rewards(1000, 100000).unwrap(), 999);
-        assert_eq!(sigmoid.rewards(100000, 100000).unwrap(), 1000);
+        assert_eq!(sigmoid.mix(5, 1000).unwrap(), 4);
+        assert_eq!(sigmoid.mix(5, 100000).unwrap(), 112);
+        assert_eq!(sigmoid.mix(1000, 1000).unwrap(), 178);
+        assert_eq!(sigmoid.mix(1000, 100000).unwrap(), 999);
+        assert_eq!(sigmoid.mix(100000, 100000).unwrap(), 1000);
 
         // Rounding down (697.8821566)
-        assert_eq!(sigmoid.rewards(100, 100000).unwrap(), 697);
+        assert_eq!(sigmoid.mix(100, 100000).unwrap(), 697);
 
         // Overflow checks
-        let err = sigmoid.rewards(u64::MAX, u64::MAX).unwrap_err();
-        assert_eq!(err, ContractError::WeightOverflow {});
+        let err = sigmoid.mix(u64::MAX, u64::MAX).unwrap_err();
+        assert_eq!(err, ContractError::PointsOverflow {});
 
         // Very big, but positive in the i64 range
         let very_big = i64::MAX as u64;
-        let err = sigmoid.rewards(very_big, very_big).unwrap_err();
+        let err = sigmoid.mix(very_big, very_big).unwrap_err();
         assert_eq!(err, ContractError::ComputationOverflow("powd"));
 
         // Precise limit
         let very_big = 32_313_447;
-        assert_eq!(sigmoid.rewards(very_big, very_big).unwrap(), 1000);
-        let err = sigmoid.rewards(very_big, very_big + 1).unwrap_err();
+        assert_eq!(sigmoid.mix(very_big, very_big).unwrap(), 1000);
+        let err = sigmoid.mix(very_big, very_big + 1).unwrap_err();
         assert_eq!(err, ContractError::ComputationOverflow("powd"));
     }
 
@@ -354,29 +354,29 @@ mod tests {
         .unwrap();
 
         // either 0 -> 0
-        assert_eq!(sigmoid.rewards(0, 123456).unwrap(), 0);
-        assert_eq!(sigmoid.rewards(7777, 0).unwrap(), 0);
+        assert_eq!(sigmoid.mix(0, 123456).unwrap(), 0);
+        assert_eq!(sigmoid.mix(7777, 0).unwrap(), 0);
 
         // Basic math checks (no rounding)
-        assert_eq!(sigmoid.rewards(5, 1000).unwrap(), 10);
-        assert_eq!(sigmoid.rewards(5, 100000).unwrap(), 105);
-        assert_eq!(sigmoid.rewards(1000, 1000).unwrap(), 148);
-        assert_eq!(sigmoid.rewards(1000, 100000).unwrap(), 905);
-        assert_eq!(sigmoid.rewards(100000, 100000).unwrap(), 1000);
+        assert_eq!(sigmoid.mix(5, 1000).unwrap(), 10);
+        assert_eq!(sigmoid.mix(5, 100000).unwrap(), 105);
+        assert_eq!(sigmoid.mix(1000, 1000).unwrap(), 148);
+        assert_eq!(sigmoid.mix(1000, 100000).unwrap(), 905);
+        assert_eq!(sigmoid.mix(100000, 100000).unwrap(), 1000);
 
         // Overflow checks
-        let err = sigmoid.rewards(u64::MAX, u64::MAX).unwrap_err();
-        assert_eq!(err, ContractError::WeightOverflow {});
+        let err = sigmoid.mix(u64::MAX, u64::MAX).unwrap_err();
+        assert_eq!(err, ContractError::PointsOverflow {});
 
         // Very big, but positive in the i64 range
         let very_big = i64::MAX as u64;
-        let err = sigmoid.rewards(very_big, very_big).unwrap_err();
+        let err = sigmoid.mix(very_big, very_big).unwrap_err();
         assert_eq!(err, ContractError::ComputationOverflow("powd"));
 
         // Precise limit
         let very_big = 16_321_545_412;
-        assert_eq!(sigmoid.rewards(very_big, very_big).unwrap(), 1000);
-        let err = sigmoid.rewards(very_big, very_big + 1).unwrap_err();
+        assert_eq!(sigmoid.mix(very_big, very_big).unwrap(), 1000);
+        let err = sigmoid.mix(very_big, very_big + 1).unwrap_err();
         assert_eq!(err, ContractError::ComputationOverflow("powd"));
     }
 
@@ -386,26 +386,26 @@ mod tests {
             SigmoidSqrt::new(Uint64::new(1000), StdDecimal::from_ratio(3u128, 10000u128)).unwrap();
 
         // either 0 -> 0
-        assert_eq!(sigmoid.rewards(0, 123456).unwrap(), 0);
-        assert_eq!(sigmoid.rewards(7777, 0).unwrap(), 0);
+        assert_eq!(sigmoid.mix(0, 123456).unwrap(), 0);
+        assert_eq!(sigmoid.mix(7777, 0).unwrap(), 0);
 
         // Basic math checks (no rounding)
-        assert_eq!(sigmoid.rewards(5, 1000).unwrap(), 10);
-        assert_eq!(sigmoid.rewards(5, 100000).unwrap(), 105);
-        assert_eq!(sigmoid.rewards(1000, 1000).unwrap(), 148);
-        assert_eq!(sigmoid.rewards(1000, 100000).unwrap(), 905);
-        assert_eq!(sigmoid.rewards(100000, 100000).unwrap(), 1000);
+        assert_eq!(sigmoid.mix(5, 1000).unwrap(), 10);
+        assert_eq!(sigmoid.mix(5, 100000).unwrap(), 105);
+        assert_eq!(sigmoid.mix(1000, 1000).unwrap(), 148);
+        assert_eq!(sigmoid.mix(1000, 100000).unwrap(), 905);
+        assert_eq!(sigmoid.mix(100000, 100000).unwrap(), 1000);
 
         // Overflow checks
-        let err = sigmoid.rewards(u64::MAX, u64::MAX).unwrap_err();
-        assert_eq!(err, ContractError::WeightOverflow {});
+        let err = sigmoid.mix(u64::MAX, u64::MAX).unwrap_err();
+        assert_eq!(err, ContractError::PointsOverflow {});
 
         // Precise limit
         // Very big, but positive in the i64 range
         let very_big = i64::MAX as u64;
-        assert_eq!(sigmoid.rewards(very_big, very_big).unwrap(), 1000);
-        let err = sigmoid.rewards(very_big + 1, very_big + 1).unwrap_err();
-        assert_eq!(err, ContractError::WeightOverflow {});
+        assert_eq!(sigmoid.mix(very_big, very_big).unwrap(), 1000);
+        let err = sigmoid.mix(very_big + 1, very_big + 1).unwrap_err();
+        assert_eq!(err, ContractError::PointsOverflow {});
     }
 
     #[test]
@@ -419,32 +419,30 @@ mod tests {
         .unwrap();
 
         // either 0 -> 0
-        assert_eq!(algebraic_sigmoid.rewards(0, 123456).unwrap(), 0);
-        assert_eq!(algebraic_sigmoid.rewards(7777, 0).unwrap(), 0);
+        assert_eq!(algebraic_sigmoid.mix(0, 123456).unwrap(), 0);
+        assert_eq!(algebraic_sigmoid.mix(7777, 0).unwrap(), 0);
 
         // Basic math checks (no rounding)
         // Values from PoE paper, Appendix A, "root of engagement" curve
-        assert_eq!(algebraic_sigmoid.rewards(5, 1000).unwrap(), 5);
-        assert_eq!(algebraic_sigmoid.rewards(5, 100000).unwrap(), 115);
-        assert_eq!(algebraic_sigmoid.rewards(1000, 1000).unwrap(), 183);
-        assert_eq!(algebraic_sigmoid.rewards(1000, 100000).unwrap(), 973);
-        assert_eq!(algebraic_sigmoid.rewards(100000, 100000).unwrap(), 999);
+        assert_eq!(algebraic_sigmoid.mix(5, 1000).unwrap(), 5);
+        assert_eq!(algebraic_sigmoid.mix(5, 100000).unwrap(), 115);
+        assert_eq!(algebraic_sigmoid.mix(1000, 1000).unwrap(), 183);
+        assert_eq!(algebraic_sigmoid.mix(1000, 100000).unwrap(), 973);
+        assert_eq!(algebraic_sigmoid.mix(100000, 100000).unwrap(), 999);
 
         // Overflow checks
-        let err = algebraic_sigmoid.rewards(u64::MAX, u64::MAX).unwrap_err();
-        assert_eq!(err, ContractError::WeightOverflow {});
+        let err = algebraic_sigmoid.mix(u64::MAX, u64::MAX).unwrap_err();
+        assert_eq!(err, ContractError::PointsOverflow {});
 
         // Very big, but positive in the i64 range
         let very_big = i64::MAX as u64;
-        let err = algebraic_sigmoid.rewards(very_big, very_big).unwrap_err();
+        let err = algebraic_sigmoid.mix(very_big, very_big).unwrap_err();
         assert_eq!(err, ContractError::ComputationOverflow("powd"));
 
         // Precise limit
         let very_big = 32_313_447;
-        assert_eq!(algebraic_sigmoid.rewards(very_big, very_big).unwrap(), 999);
-        let err = algebraic_sigmoid
-            .rewards(very_big, very_big + 1)
-            .unwrap_err();
+        assert_eq!(algebraic_sigmoid.mix(very_big, very_big).unwrap(), 999);
+        let err = algebraic_sigmoid.mix(very_big, very_big + 1).unwrap_err();
         assert_eq!(err, ContractError::ComputationOverflow("powd"));
     }
 }

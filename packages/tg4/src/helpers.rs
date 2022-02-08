@@ -173,7 +173,7 @@ impl Tg4Contract {
             at_height: Some(height),
         })?;
         let res: MemberResponse = querier.query(&query)?;
-        Ok(res.weight)
+        Ok(res.points)
     }
 
     pub fn list_members(
@@ -187,14 +187,14 @@ impl Tg4Contract {
         Ok(res.members)
     }
 
-    pub fn list_members_by_weight(
+    pub fn list_members_by_points(
         &self,
         querier: &QuerierWrapper,
         start_after: Option<Member>,
         limit: Option<u32>,
     ) -> StdResult<Vec<Member>> {
         let query =
-            self.encode_smart_query(Tg4QueryMsg::ListMembersByWeight { start_after, limit })?;
+            self.encode_smart_query(Tg4QueryMsg::ListMembersByPoints { start_after, limit })?;
         let res: MemberListResponse = querier.query(&query)?;
         Ok(res.members)
     }

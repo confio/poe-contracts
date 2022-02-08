@@ -53,7 +53,7 @@ pub enum ExecuteMsg {
     WithdrawEngagementRewards {},
     /// Message comming from valset on funds distribution, just takes funds
     /// send with message and does nothing
-    DistributeFunds {},
+    DistributeRewards {},
 }
 
 // We can also add this as a cw3 extension

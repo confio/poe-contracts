@@ -6,16 +6,16 @@ use serde::{Deserialize, Serialize};
 pub enum Tg4QueryMsg {
     /// Return AdminResponse
     Admin {},
-    /// Return TotalWeightResponse
-    TotalWeight {},
+    /// Return TotalPointsResponse
+    TotalPoints {},
     /// Returns MemberListResponse.
     /// The result is sorted by address ascending
     ListMembers {
         start_after: Option<String>,
         limit: Option<u32>,
     },
-    /// Returns MemberListResponse, sorted by weight descending
-    ListMembersByWeight {
+    /// Returns MemberListResponse, sorted by points descending
+    ListMembersByPoints {
         start_after: Option<Member>,
         limit: Option<u32>,
     },
@@ -33,13 +33,13 @@ pub struct AdminResponse {
     pub admin: Option<String>,
 }
 
-/// A group member has a weight associated with them.
+/// A group member has some points associated with them.
 /// This may all be equal, or may have meaning in the app that
 /// makes use of the group (eg. voting power)
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 pub struct Member {
     pub addr: String,
-    pub weight: u64,
+    pub points: u64,
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
@@ -49,12 +49,12 @@ pub struct MemberListResponse {
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 pub struct MemberResponse {
-    pub weight: Option<u64>,
+    pub points: Option<u64>,
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
-pub struct TotalWeightResponse {
-    pub weight: u64,
+pub struct TotalPointsResponse {
+    pub points: u64,
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]

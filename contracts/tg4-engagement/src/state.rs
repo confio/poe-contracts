@@ -33,7 +33,7 @@ impl Halflife {
 /// `32, to have those 32 bits, but it reduces how much tokens may be handled by this contract
 /// (it is now 96-bit integer instead of 128). In original ERC2222 it is handled by 256-bit
 /// calculations, but I256 is missing and it is required for this.
-pub const POINTS_SHIFT: u8 = 32;
+pub const SHARES_SHIFT: u8 = 32;
 
 pub const HALFLIFE: Item<Halflife> = Item::new("halflife");
 
@@ -41,22 +41,22 @@ pub const HALFLIFE: Item<Halflife> = Item::new("halflife");
 pub struct Distribution {
     /// Tokens can be distributed by this denom.
     pub denom: String,
-    /// How much points is single point of weight worth at this point.
-    pub points_per_weight: Uint128,
-    /// Points which were not fully distributed on previous distributions, and should be redistributed
-    pub points_leftover: u64,
-    /// Total funds distributed by this contract.
+    /// How many shares is single point worth
+    pub shares_per_point: Uint128,
+    /// Shares which were not fully distributed on previous distributions, and should be redistributed
+    pub shares_leftover: u64,
+    /// Total rewards distributed by this contract.
     pub distributed_total: Uint128,
-    /// Total funds not yet withdrawn.
+    /// Total rewards not yet withdrawn.
     pub withdrawable_total: Uint128,
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 pub struct WithdrawAdjustment {
     /// How much points should be added/removed from calculated funds while withdrawal.
-    pub points_correction: Int128,
+    pub shares_correction: Int128,
     /// How much funds addresses already withdrawn.
-    pub withdrawn_funds: Uint128,
+    pub withdrawn_rewards: Uint128,
     /// User delegated for funds withdrawal
     pub delegated: Addr,
 }

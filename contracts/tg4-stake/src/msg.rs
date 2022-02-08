@@ -14,7 +14,7 @@ const fn default_auto_return_limit() -> u64 {
 pub struct InstantiateMsg {
     /// denom of the token to stake
     pub denom: String,
-    pub tokens_per_weight: Uint128,
+    pub tokens_per_point: Uint128,
     pub min_bond: Uint128,
     /// unbounding period in seconds
     pub unbonding_period: u64,
@@ -83,15 +83,16 @@ pub enum QueryMsg {
 
     /// Return AdminResponse
     Admin {},
-    /// Return TotalWeightResponse
-    TotalWeight {},
+    /// Return TotalPointsResponse. This is the amount of tokens bonded divided by
+    /// tokens_per_point.
+    TotalPoints {},
     /// Returns MemberListResponse
     ListMembers {
         start_after: Option<String>,
         limit: Option<u32>,
     },
     /// Returns MemberListResponse, sorted by weight descending.
-    ListMembersByWeight {
+    ListMembersByPoints {
         start_after: Option<Member>,
         limit: Option<u32>,
     },
@@ -133,8 +134,8 @@ pub struct ClaimsResponse {
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
-pub struct TotalWeightResponse {
-    pub weight: u64,
+pub struct TotalPointsResponse {
+    pub points: u64,
     pub denom: String,
 }
 
