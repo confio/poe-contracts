@@ -10,7 +10,8 @@ use tg_bindings::TgradeMsg;
 use crate::msg::Tg4ExecuteMsg;
 use crate::query::HooksResponse;
 use crate::{
-    member_key, AdminResponse, Member, MemberListResponse, MemberResponse, Tg4QueryMsg, TOTAL_KEY,
+    member_key, AdminResponse, Member, MemberListResponse, MemberListResponse2, MemberResponse,
+    Tg4QueryMsg, TOTAL_KEY,
 };
 
 pub type SubMsg = cosmwasm_std::SubMsg<TgradeMsg>;
@@ -196,6 +197,20 @@ impl Tg4Contract {
         let query =
             self.encode_smart_query(Tg4QueryMsg::ListMembersByPoints { start_after, limit })?;
         let res: MemberListResponse = querier.query(&query)?;
+        Ok(res.members)
+    }
+
+    pub fn list_members_by_weight_tie_breaking(
+        &self,
+        querier: &QuerierWrapper,
+        start_after: Option<(Member, u64)>,
+        limit: Option<u32>,
+    ) -> StdResult<Vec<(Member, u64)>> {
+        let query = self.encode_smart_query(Tg4QueryMsg::ListMembersByWeightTieBreaking {
+            start_after,
+            limit,
+        })?;
+        let res: MemberListResponse2 = querier.query(&query)?;
         Ok(res.members)
     }
 
