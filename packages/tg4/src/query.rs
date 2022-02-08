@@ -48,6 +48,11 @@ pub struct MemberListResponse {
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+pub struct MemberListResponse2 {
+    pub members: Vec<(Member, u64)>,
+}
+
+#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 pub struct MemberResponse {
     pub points: Option<u64>,
 }

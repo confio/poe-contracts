@@ -16,8 +16,8 @@ use tg_utils::{
 };
 
 use tg4::{
-    HooksResponse, Member, MemberChangedHookMsg, MemberDiff, MemberListResponse, MemberResponse,
-    Tg4Contract, TotalPointsResponse,
+    HooksResponse, Member, MemberChangedHookMsg, MemberDiff, MemberListResponse,
+    MemberListResponse2, MemberResponse, Tg4Contract, TotalPointsResponse,
 };
 
 use crate::error::ContractError;
@@ -460,6 +460,34 @@ fn list_members_by_points(
         .collect();
 
     Ok(MemberListResponse { members: members? })
+}
+
+fn list_members_by_weight_tie_breaking(
+    deps: Deps,
+    start_after: Option<(Member, u64)>,
+    limit: Option<u32>,
+) -> StdResult<MemberListResponse2> {
+    let limit = limit.unwrap_or(DEFAULT_LIMIT).min(MAX_LIMIT) as usize;
+    let start =
+        start_after.map(|m| Bound::exclusive((m.0.points, -(m.1 as i64), m.0.addr).joined_key()));
+    let members: StdResult<Vec<_>> = members()
+        .idx
+        .points_tie_break
+        .range(deps.storage, None, start, Order::Descending)
+        .take(limit)
+        .map(|item| {
+            let (addr, (points, start_height)) = item?;
+            Ok((
+                Member {
+                    addr: addr.into(),
+                    points,
+                },
+                start_height,
+            ))
+        })
+        .collect();
+
+    Ok(MemberListResponse2 { members: members? })
 }
 
 pub fn query_mixer_function(
