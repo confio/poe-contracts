@@ -1,33 +1,13 @@
 use cosmwasm_std::Binary;
 use tg_bindings::Pubkey;
 
-use crate::msg::{JailingPeriod, OperatorResponse, ValidatorMetadata, MAX_METADATA_SIZE};
+use crate::msg::{JailingPeriod, OperatorResponse};
 use crate::state::ValidatorInfo;
 
 // Converts address to valid public key
 // Requires addr to be exactly 32 bytes long, panics otherwise
 pub fn addr_to_pubkey(addr: &str) -> Pubkey {
     Pubkey::Ed25519(Binary((*addr).as_bytes().to_vec()))
-}
-
-pub fn invalid_metadata_short(seed: &str) -> ValidatorMetadata {
-    ValidatorMetadata {
-        moniker: seed.into(),
-        identity: Some(String::new()),
-        website: Some(String::new()),
-        security_contact: Some(String::new()),
-        details: Some(String::new()),
-    }
-}
-
-pub fn invalid_metadata_long(seed: &str) -> ValidatorMetadata {
-    ValidatorMetadata {
-        moniker: seed.into(),
-        identity: Some((0..MAX_METADATA_SIZE + 1).map(|_| "X").collect::<String>()),
-        website: Some((0..MAX_METADATA_SIZE + 1).map(|_| "X").collect::<String>()),
-        security_contact: Some((0..MAX_METADATA_SIZE + 1).map(|_| "X").collect::<String>()),
-        details: Some((0..MAX_METADATA_SIZE + 1).map(|_| "X").collect::<String>()),
-    }
 }
 
 pub fn members_init<'m>(members: &[&'m str], weights: &[u64]) -> Vec<(&'m str, u64)> {

@@ -279,8 +279,8 @@ pub struct ValidatorMetadata {
     pub details: Option<String>,
 }
 
-const MIN_MONIKER_LENGTH: usize = 3;
-const MIN_METADATA_SIZE: usize = 1;
+pub const MIN_MONIKER_LENGTH: usize = 3;
+pub const MIN_METADATA_SIZE: usize = 1;
 pub const MAX_METADATA_SIZE: usize = 256;
 
 impl ValidatorMetadata {
@@ -289,6 +289,7 @@ impl ValidatorMetadata {
             return Err(ContractError::InvalidMetadata {
                 data: "moniker".to_owned(),
                 min: MIN_MONIKER_LENGTH,
+                max: MAX_METADATA_SIZE,
             });
         }
         if let Some(identity) = &self.identity {
@@ -296,6 +297,7 @@ impl ValidatorMetadata {
                 return Err(ContractError::InvalidMetadata {
                     data: "identity".to_owned(),
                     min: MIN_METADATA_SIZE,
+                    max: MAX_METADATA_SIZE,
                 });
             }
         }
@@ -304,6 +306,7 @@ impl ValidatorMetadata {
                 return Err(ContractError::InvalidMetadata {
                     data: "website".to_owned(),
                     min: MIN_METADATA_SIZE,
+                    max: MAX_METADATA_SIZE,
                 });
             }
         }
@@ -312,6 +315,7 @@ impl ValidatorMetadata {
                 return Err(ContractError::InvalidMetadata {
                     data: "security_contract".to_owned(),
                     min: MIN_METADATA_SIZE,
+                    max: MAX_METADATA_SIZE,
                 });
             }
         }
@@ -320,6 +324,7 @@ impl ValidatorMetadata {
                 return Err(ContractError::InvalidMetadata {
                     data: "details".to_owned(),
                     min: MIN_METADATA_SIZE,
+                    max: MAX_METADATA_SIZE,
                 });
             }
         }
@@ -554,5 +559,126 @@ mod test {
         invalid.epoch_reward.denom = "".into();
         let err = invalid.validate().unwrap_err();
         assert_eq!(err, ContractError::InvalidRewardDenom {});
+    }
+
+    #[test]
+    fn validate_metadata() {
+        let meta = ValidatorMetadata {
+            moniker: "example".to_owned(),
+            identity: Some((0..MAX_METADATA_SIZE + 1).map(|_| "X").collect::<String>()),
+            website: Some((0..MAX_METADATA_SIZE + 1).map(|_| "X").collect::<String>()),
+            security_contact: Some((0..MAX_METADATA_SIZE + 1).map(|_| "X").collect::<String>()),
+            details: Some((0..MAX_METADATA_SIZE + 1).map(|_| "X").collect::<String>()),
+        };
+        let resp = meta.validate().unwrap_err();
+        assert_eq!(
+            ContractError::InvalidMetadata {
+                data: "identity".to_owned(),
+                min: MIN_METADATA_SIZE,
+                max: MAX_METADATA_SIZE
+            },
+            resp
+        );
+
+        let meta = ValidatorMetadata {
+            identity: Some("identity".to_owned()),
+            ..meta
+        };
+        let resp = meta.validate().unwrap_err();
+        assert_eq!(
+            ContractError::InvalidMetadata {
+                data: "website".to_owned(),
+                min: MIN_METADATA_SIZE,
+                max: MAX_METADATA_SIZE,
+            },
+            resp
+        );
+
+        let meta = ValidatorMetadata {
+            website: Some("website".to_owned()),
+            ..meta
+        };
+        let resp = meta.validate().unwrap_err();
+        assert_eq!(
+            ContractError::InvalidMetadata {
+                data: "security_contract".to_owned(),
+                min: MIN_METADATA_SIZE,
+                max: MAX_METADATA_SIZE,
+            },
+            resp
+        );
+
+        let meta = ValidatorMetadata {
+            security_contact: Some("contract".to_owned()),
+            ..meta
+        };
+        let resp = meta.validate().unwrap_err();
+        assert_eq!(
+            ContractError::InvalidMetadata {
+                data: "details".to_owned(),
+                min: MIN_METADATA_SIZE,
+                max: MAX_METADATA_SIZE,
+            },
+            resp
+        );
+
+        let meta = ValidatorMetadata {
+            identity: Some(String::new()),
+            website: Some(String::new()),
+            security_contact: Some(String::new()),
+            details: Some(String::new()),
+            ..meta
+        };
+        let resp = meta.validate().unwrap_err();
+        assert_eq!(
+            ContractError::InvalidMetadata {
+                data: "identity".to_owned(),
+                min: MIN_METADATA_SIZE,
+                max: MAX_METADATA_SIZE
+            },
+            resp
+        );
+
+        let meta = ValidatorMetadata {
+            identity: Some("identity".to_owned()),
+            ..meta
+        };
+        let resp = meta.validate().unwrap_err();
+        assert_eq!(
+            ContractError::InvalidMetadata {
+                data: "website".to_owned(),
+                min: MIN_METADATA_SIZE,
+                max: MAX_METADATA_SIZE,
+            },
+            resp
+        );
+
+        let meta = ValidatorMetadata {
+            website: Some("website".to_owned()),
+            ..meta
+        };
+        let resp = meta.validate().unwrap_err();
+        assert_eq!(
+            ContractError::InvalidMetadata {
+                data: "security_contract".to_owned(),
+                min: MIN_METADATA_SIZE,
+                max: MAX_METADATA_SIZE,
+            },
+            resp
+        );
+
+        let meta = ValidatorMetadata {
+            security_contact: Some("contract".to_owned()),
+            ..meta
+        };
+        let resp = meta.validate().unwrap_err();
+        assert_eq!(
+            ContractError::InvalidMetadata {
+                data: "details".to_owned(),
+                min: MIN_METADATA_SIZE,
+                max: MAX_METADATA_SIZE,
+            },
+            resp
+        );
     }
 }

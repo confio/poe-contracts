@@ -1,8 +1,10 @@
 use crate::error::ContractError;
-use crate::msg::{EpochResponse, ValidatorMetadata};
+use crate::msg::{
+    EpochResponse, ValidatorMetadata, MAX_METADATA_SIZE, MIN_METADATA_SIZE, MIN_MONIKER_LENGTH,
+};
 use crate::state::Config;
 
-use super::helpers::{assert_active_validators, assert_operators, members_init};
+use super::helpers::{addr_to_pubkey, assert_active_validators, assert_operators, members_init};
 use super::suite::SuiteBuilder;
 use assert_matches::assert_matches;
 use cosmwasm_std::{coin, Decimal};
@@ -177,60 +179,8 @@ fn update_metadata() {
     assert_eq!(
         ContractError::InvalidMetadata {
             data: "moniker".to_owned(),
-            min: 3
-        },
-        resp.downcast().unwrap()
-    );
-
-    // Ensure no metadata changed
-    let resp = suite.validator(members[0]).unwrap();
-    assert_eq!(resp.validator.unwrap().metadata, meta);
-
-    // Update with valid meta on non-member always fail
-    let resp = suite.update_metadata("invalid", &meta).unwrap_err();
-    assert_eq!(
-        ContractError::Unauthorized("No operator info found".to_owned()),
-        resp.downcast().unwrap()
-    );
-}
-
-#[test]
-fn try_to_update_else_metadata() {
-    let members = vec!["member1", "member2"];
-    let mut suite = SuiteBuilder::new()
-        .with_engagement(&members_init(&members, &[2]))
-        .with_operators(&members)
-        .build();
-
-    let meta = ValidatorMetadata {
-        moniker: "funny boy".to_owned(),
-        identity: Some("Secret identity".to_owned()),
-        website: Some("https://www.funny.boy.rs".to_owned()),
-        security_contact: Some("funny@boy.rs".to_owned()),
-        details: Some("Comedian".to_owned()),
-    };
-
-    suite.update_metadata(members[0], &meta).unwrap();
-
-    let resp = suite.validator(members[0]).unwrap();
-    assert_eq!(resp.validator.unwrap().metadata, meta);
-
-    let invalid_meta = ValidatorMetadata {
-        moniker: "".to_owned(),
-        identity: Some("Magic identity".to_owned()),
-        website: Some("https://www.empty.one.rs".to_owned()),
-        security_contact: Some("empty@one.rs".to_owned()),
-        details: Some("Ghost".to_owned()),
-    };
-
-    // Update with invalid meta (empty moniker) fails
-    let resp = suite
-        .update_metadata(members[0], &invalid_meta)
-        .unwrap_err();
-    assert_eq!(
-        ContractError::InvalidMetadata {
-            data: "moniker".to_owned(),
-            min: 3
+            min: MIN_MONIKER_LENGTH,
+            max: MAX_METADATA_SIZE,
         },
         resp.downcast().unwrap()
     );
@@ -317,5 +267,55 @@ fn list_validators_paginated() {
             (members[3], None),
             (members[4], None),
         ],
+    );
+}
+
+#[test]
+fn register_key_invalid_metadata() {
+    let members = vec!["member1"];
+
+    let mut suite = SuiteBuilder::new()
+        .with_engagement(&members_init(&members, &[2, 3, 5, 8, 13, 21]))
+        .with_operators(&members)
+        .with_min_weight(5)
+        .build();
+
+    let meta = ValidatorMetadata {
+        moniker: "example".to_owned(),
+        identity: Some((0..MAX_METADATA_SIZE + 1).map(|_| "X").collect::<String>()),
+        website: Some((0..MAX_METADATA_SIZE + 1).map(|_| "X").collect::<String>()),
+        security_contact: Some((0..MAX_METADATA_SIZE + 1).map(|_| "X").collect::<String>()),
+        details: Some((0..MAX_METADATA_SIZE + 1).map(|_| "X").collect::<String>()),
+    };
+    let pubkey = addr_to_pubkey(members[0]);
+    let resp = suite
+        .register_validator_key(members[0], pubkey.clone(), meta.clone())
+        .unwrap_err();
+    assert_eq!(
+        ContractError::InvalidMetadata {
+            data: "identity".to_owned(),
+            min: MIN_METADATA_SIZE,
+            max: MAX_METADATA_SIZE
+        },
+        resp.downcast().unwrap()
+    );
+
+    let meta = ValidatorMetadata {
+        identity: Some(String::new()),
+        website: Some(String::new()),
+        security_contact: Some(String::new()),
+        details: Some(String::new()),
+        ..meta
+    };
+    let resp = suite
+        .register_validator_key(members[0], pubkey, meta)
+        .unwrap_err();
+    assert_eq!(
+        ContractError::InvalidMetadata {
+            data: "identity".to_owned(),
+            min: MIN_METADATA_SIZE,
+            max: MAX_METADATA_SIZE
+        },
+        resp.downcast().unwrap()
     );
 }

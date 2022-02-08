@@ -69,8 +69,12 @@ pub enum ContractError {
     #[error("Jail did not yet expire")]
     JailDidNotExpire {},
 
-    #[error("Invalid metadata - {data} length must be {min}-256 characters")]
-    InvalidMetadata { data: String, min: usize },
+    #[error("Invalid metadata - {data} length must be {min}-{max} characters")]
+    InvalidMetadata {
+        data: String,
+        min: usize,
+        max: usize,
+    },
 }
 
 impl From<Ed25519PubkeyConversionError> for ContractError {
