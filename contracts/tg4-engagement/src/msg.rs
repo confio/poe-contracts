@@ -89,6 +89,12 @@ pub enum QueryMsg {
         start_after: Option<Member>,
         limit: Option<u32>,
     },
+    /// Returns MemberListResponse2, sorted by weight descending,
+    /// breaking ties by start height
+    ListMembersByWeightTieBreaking {
+        start_after: Option<(Member, u64)>,
+        limit: Option<u32>,
+    },
     /// Returns MemberResponse
     Member {
         addr: String,

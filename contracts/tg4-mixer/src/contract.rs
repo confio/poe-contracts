@@ -360,6 +360,9 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
         ListMembersByPoints { start_after, limit } => {
             to_binary(&list_members_by_points(deps, start_after, limit)?)
         }
+        ListMembersByWeightTieBreaking { start_after, limit } => to_binary(
+            &list_members_by_weight_tie_breaking(deps, start_after, limit)?,
+        ),
         TotalPoints {} => to_binary(&query_total_points(deps)?),
         Groups {} => to_binary(&query_groups(deps)?),
         Hooks {} => {
