@@ -2,7 +2,7 @@
 
 This guide lists API changes between releases of *PoE* contracts.
 
-## 0.6.0-beta1 -> 0.6.0-beta2
+## 0.6.0-beta1 -> 0.6.0-rc1
 
 ### tg4-engagement
 

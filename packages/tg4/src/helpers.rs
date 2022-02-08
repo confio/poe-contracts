@@ -187,7 +187,7 @@ impl Tg4Contract {
         Ok(res.members)
     }
 
-    pub fn list_members_by_weight(
+    pub fn list_members_by_points(
         &self,
         querier: &QuerierWrapper,
         start_after: Option<Member>,
