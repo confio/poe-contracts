@@ -14,6 +14,7 @@ workflows:
       - package_bindings
       - package_bindings_test
       - package_utils
+      - package_tg3
       - package_tg4
       - package_voting_contract
       - package_test_utils
@@ -340,6 +341,34 @@ jobs:
             - /usr/local/cargo/registry
             - target
           key: cargocache-v2-utils:1.58.1-{{ checksum "~/project/Cargo.lock" }}
+
+  package_tg3:
+    docker:
+      - image: rust:1.58.1
+    working_directory: ~/project/packages/tg3
+    steps:
+      - checkout:
+          path: ~/project
+      - run:
+          name: Version information
+          command: rustc --version; cargo --version; rustup --version; rustup target list --installed
+      - restore_cache:
+          keys:
+            - cargocache-v2-tg3:1.58.1-{{ checksum "~/project/Cargo.lock" }}
+      - run:
+          name: Build library for native target
+          command: cargo build --locked
+      - run:
+          name: Run unit tests
+          command: cargo test --locked
+      - run:
+          name: Build and run schema generator
+          command: cargo schema --locked
+      - save_cache:
+          paths:
+            - /usr/local/cargo/registry
+            - target
+          key: cargocache-v2-tg3:1.58.1-{{ checksum "~/project/Cargo.lock" }}
 
 
   package_tg4:
