@@ -429,7 +429,7 @@ mod instantiate {
             auto_unjail: false,
             double_sign_slash_ratio: Decimal::percent(50),
             distribution_contracts: UnvalidatedDistributionContracts::default(),
-            rewards_code_id: 1,
+            validator_group_code_id: 1,
         };
 
         let err = app

@@ -113,7 +113,7 @@ pub fn instantiate(
 
     let instantiate_rewards_msg = WasmMsg::Instantiate {
         admin: msg.admin,
-        code_id: msg.rewards_code_id,
+        code_id: msg.validator_group_code_id,
         msg: to_binary(&rewards_init)?,
         funds: vec![],
         label: format!("rewards_distribution_{}", env.contract.address),

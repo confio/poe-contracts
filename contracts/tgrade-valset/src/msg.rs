@@ -89,7 +89,7 @@ pub struct InstantiateMsg {
     /// ```
     ///
     /// This contract has to support all the `RewardsDistribution` messages
-    pub rewards_code_id: u64,
+    pub validator_group_code_id: u64,
 }
 
 impl InstantiateMsg {
@@ -518,7 +518,7 @@ mod test {
             auto_unjail: false,
             double_sign_slash_ratio: Decimal::percent(50),
             distribution_contracts: UnvalidatedDistributionContracts::default(),
-            rewards_code_id: 0,
+            validator_group_code_id: 0,
         };
         proper.validate().unwrap();
 

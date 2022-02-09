@@ -349,7 +349,7 @@ impl SuiteBuilder {
                     distribution_contracts: UnvalidatedDistributionContracts {
                         inner: distribution_contract_instantiation_info,
                     },
-                    rewards_code_id: engagement_id,
+                    validator_group_code_id: engagement_id,
                 },
                 &[],
                 "valset",
