@@ -559,10 +559,10 @@ fn list_jailed_validators(
                 None => Ok(None),
             }
         })
-        .take(limit)
         .collect::<Result<Vec<Option<_>>, ContractError>>()?
         .into_iter()
         .flatten()
+        .take(limit)
         .collect();
 
     Ok(ListValidatorResponse { validators })
