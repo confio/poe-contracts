@@ -1146,7 +1146,7 @@ mod tests {
         // Add an extra member for tie-breaking checks
         let add = vec![Member {
             addr: USER3.into(),
-            weight: 6, // same as USER2
+            points: 6, // same as USER2
         }];
         let remove = vec![];
 
@@ -1166,21 +1166,21 @@ mod tests {
                 (
                     Member {
                         addr: USER1.into(),
-                        weight: 11,
+                        points: 11,
                     },
                     12345
                 ),
                 (
                     Member {
                         addr: USER2.into(),
-                        weight: 6,
+                        points: 6,
                     },
                     12345
                 ),
                 (
                     Member {
                         addr: USER3.into(),
-                        weight: 6,
+                        points: 6,
                     },
                     12355
                 )
@@ -1195,7 +1195,7 @@ mod tests {
         // And re-add it, ten blocks later
         let add = vec![Member {
             addr: USER2.into(),
-            weight: 6, // same as USER3
+            points: 6, // same as USER3
         }];
         let remove = vec![];
         let env = mock_env_height(20);
@@ -1212,21 +1212,21 @@ mod tests {
                 (
                     Member {
                         addr: USER1.into(),
-                        weight: 11,
+                        points: 11,
                     },
                     12345
                 ),
                 (
                     Member {
                         addr: USER3.into(),
-                        weight: 6,
+                        points: 6,
                     },
                     12355
                 ),
                 (
                     Member {
                         addr: USER2.into(),
-                        weight: 6,
+                        points: 6,
                     },
                     12365
                 ),
@@ -1244,7 +1244,7 @@ mod tests {
             vec![(
                 Member {
                     addr: USER1.into(),
-                    weight: 11,
+                    points: 11,
                 },
                 12345
             )]
@@ -1262,7 +1262,7 @@ mod tests {
             vec![(
                 Member {
                     addr: USER3.into(),
-                    weight: 6,
+                    points: 6,
                 },
                 12355
             )]
@@ -1280,7 +1280,7 @@ mod tests {
             vec![(
                 Member {
                     addr: USER2.into(),
-                    weight: 6,
+                    points: 6,
                 },
                 12365
             )]
