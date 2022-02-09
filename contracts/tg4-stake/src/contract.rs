@@ -888,7 +888,7 @@ mod tests {
     }
 
     #[test]
-    fn try_list_members_by_weight() {
+    fn try_list_members_by_points() {
         let mut deps = mock_dependencies();
         default_instantiate(deps.as_mut());
 

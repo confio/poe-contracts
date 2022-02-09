@@ -1078,7 +1078,7 @@ mod tests {
     }
 
     #[test]
-    fn try_list_members_by_weight() {
+    fn try_list_members_by_points() {
         let mut deps = mock_dependencies();
         do_instantiate(deps.as_mut());
 
@@ -1139,7 +1139,7 @@ mod tests {
     }
 
     #[test]
-    fn members_by_weight_tie_breaking() {
+    fn members_by_points_tie_breaking() {
         let mut deps = mock_dependencies();
         do_instantiate(deps.as_mut());
 
