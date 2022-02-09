@@ -58,8 +58,12 @@ Messages changes:
 Messages changes:
 
 * `min_weight` field on instantiate message renamed to `min_points`
+* rewards_code_id field on instantiate message renamed to validator_group_code_id
+* rewards_contract field on InstantiateReponse message renamed to validator_group
+
 
 State changes:
 
 * `min_weight` field on `config` item renamed to `min_points`
+* rewards_contract field on config item renamed to validator_group
 

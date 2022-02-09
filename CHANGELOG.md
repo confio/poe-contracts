@@ -4,6 +4,32 @@
 
 [Full Changelog](https://github.com/confio/poe-contracts/compare/v0.6.0-beta1...HEAD)
 
+**Breaking changes:**
+
+- Use specilaized tg3 version of voting API for tgrade contracts [\#85](https://github.com/confio/poe-contracts/issues/85)
+- Valset config contract names [\#96](https://github.com/confio/poe-contracts/pull/96) ([maurolacy](https://github.com/maurolacy))
+- tg3: Common voting interfaces for tgrade [\#93](https://github.com/confio/poe-contracts/pull/93) ([hashedone](https://github.com/hashedone))
+- Rename API to points and rewards [\#50](https://github.com/confio/poe-contracts/pull/50) ([ethanfrey](https://github.com/ethanfrey))
+
+**Closed issues:**
+
+- Valset: add `ListJailedValidators` query [\#87](https://github.com/confio/poe-contracts/issues/87)
+- Add `list_votes_by_voter` query to `voting_contract` [\#78](https://github.com/confio/poe-contracts/issues/78)
+- Increase max limit [\#76](https://github.com/confio/poe-contracts/issues/76)
+- Missing items found when updating Go code [\#75](https://github.com/confio/poe-contracts/issues/75)
+- Tools to help build API Migration Guide [\#72](https://github.com/confio/poe-contracts/issues/72)
+- \[tgrade-valset\] Metadata issues [\#66](https://github.com/confio/poe-contracts/issues/66)
+- Ensure validator is online before adding to the active set [\#36](https://github.com/confio/poe-contracts/issues/36)
+
+**Merged pull requests:**
+
+- Valset: Implement ListJailedValidators query [\#92](https://github.com/confio/poe-contracts/pull/92) ([ueco-jb](https://github.com/ueco-jb))
+- Valset: metadata validation [\#84](https://github.com/confio/poe-contracts/pull/84) ([ueco-jb](https://github.com/ueco-jb))
+- Increase MAX\_LIMIT constant to 100 and DEFAULT\_LIMIT to 30 [\#80](https://github.com/confio/poe-contracts/pull/80) ([ueco-jb](https://github.com/ueco-jb))
+- Voting Contract: Add list\_votes\_by\_voter query [\#79](https://github.com/confio/poe-contracts/pull/79) ([ueco-jb](https://github.com/ueco-jb))
+- Feature-gated `SimulateValidatorSet` [\#77](https://github.com/confio/poe-contracts/pull/77) ([maurolacy](https://github.com/maurolacy))
+- Add `diff_schema.sh` / `diff_state.sh` tools [\#74](https://github.com/confio/poe-contracts/pull/74) ([maurolacy](https://github.com/maurolacy))
+
 ## [v0.6.0-beta1](https://github.com/confio/poe-contracts/tree/v0.6.0-beta1) (2022-02-03)
 
 [Full Changelog](https://github.com/confio/poe-contracts/compare/v0.6.0-alpha1...v0.6.0-beta1)
