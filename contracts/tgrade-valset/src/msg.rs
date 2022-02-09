@@ -308,6 +308,8 @@ impl ValidatorMetadata {
                     min: MIN_METADATA_SIZE,
                     max: MAX_METADATA_SIZE,
                 });
+            } else if !website.starts_with("https://") && !website.starts_with("http://") {
+                return Err(ContractError::InvalidMetadataWebsitePrefix {});
             }
         }
         if let Some(security_contract) = &self.security_contact {
@@ -595,7 +597,7 @@ mod test {
         );
 
         let meta = ValidatorMetadata {
-            website: Some("website".to_owned()),
+            website: Some("https://website".to_owned()),
             ..meta
         };
         let resp = meta.validate().unwrap_err();
@@ -654,7 +656,7 @@ mod test {
         );
 
         let meta = ValidatorMetadata {
-            website: Some("website".to_owned()),
+            website: Some("http://website".to_owned()),
             ..meta
         };
         let resp = meta.validate().unwrap_err();
@@ -680,5 +682,12 @@ mod test {
             },
             resp
         );
+
+        let meta = ValidatorMetadata {
+            website: Some("website".to_owned()),
+            ..meta
+        };
+        let resp = meta.validate().unwrap_err();
+        assert_eq!(ContractError::InvalidMetadataWebsitePrefix {}, resp);
     }
 }

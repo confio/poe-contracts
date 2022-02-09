@@ -75,6 +75,9 @@ pub enum ContractError {
         min: usize,
         max: usize,
     },
+
+    #[error("Invalid metadata - website needs to start with http:// or https://")]
+    InvalidMetadataWebsitePrefix {},
 }
 
 impl From<Ed25519PubkeyConversionError> for ContractError {
