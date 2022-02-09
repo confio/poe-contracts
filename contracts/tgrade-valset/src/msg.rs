@@ -293,6 +293,12 @@ pub enum QueryMsg {
         limit: Option<u32>,
     },
 
+    /// Returns ListValidatorsResponse
+    ListJailedValidators {
+        start_after: Option<String>,
+        limit: Option<u32>,
+    },
+
     /// This will calculate who the new validators would be if
     /// we recalculated end block right now.
     /// Also returns ListActiveValidatorsResponse

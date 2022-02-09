@@ -48,6 +48,9 @@ pub enum ContractError {
     #[error("No validators")]
     NoValidators {},
 
+    #[error("Validator not jailed")]
+    ValidatorNotJailed {},
+
     #[error("The sum of distribution contract ratios exceeds 100%")]
     InvalidRewardsRatio {},
 

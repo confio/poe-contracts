@@ -412,6 +412,12 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> Result<Binary, ContractErro
             start_after,
             limit,
         )?)?),
+        ListJailedValidators { start_after, limit } => Ok(to_binary(&list_jailed_validators(
+            deps,
+            env,
+            start_after,
+            limit,
+        )?)?),
         SimulateActiveValidators {} => Ok(to_binary(&simulate_active_validators(deps, env)?)?),
         ListValidatorSlashing { operator } => {
             Ok(to_binary(&list_validator_slashing(deps, env, operator)?)?)
@@ -521,6 +527,45 @@ fn list_active_validators(
     Ok(ListActiveValidatorsResponse {
         validators: Vec::from(validators),
     })
+}
+
+fn list_jailed_validators(
+    deps: Deps,
+    env: Env,
+    start_after: Option<String>,
+    limit: Option<u32>,
+) -> Result<ListValidatorResponse, ContractError> {
+    let cfg = CONFIG.load(deps.storage)?;
+    let limit = limit.unwrap_or(DEFAULT_LIMIT).min(MAX_LIMIT) as usize;
+    let start_after = maybe_addr(deps.api, start_after)?;
+    let start = start_after.map(|addr| Bound::exclusive(addr.as_str()));
+
+    let validators: Vec<OperatorResponse> = operators()
+        .range(deps.storage, start, None, Order::Ascending)
+        .map(|r| {
+            let (operator, info) = r?;
+
+            let jailed_until = JAIL
+                .may_load(deps.storage, &Addr::unchecked(&operator))?
+                .filter(|expires| !(cfg.auto_unjail && expires.is_expired(&env.block)));
+            match jailed_until {
+                Some(jailed_into) => Ok(Some(OperatorResponse {
+                    operator: operator.into(),
+                    metadata: info.metadata,
+                    pubkey: info.pubkey.into(),
+                    jailed_until: Some(jailed_into),
+                    active_validator: info.active_validator,
+                })),
+                None => Ok(None),
+            }
+        })
+        .take(limit)
+        .collect::<Result<Vec<Option<_>>, ContractError>>()?
+        .into_iter()
+        .flatten()
+        .collect();
+
+    Ok(ListValidatorResponse { validators })
 }
 
 fn simulate_active_validators(
