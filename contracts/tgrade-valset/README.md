@@ -70,7 +70,7 @@ managed by `tgrade-valset`. It is assumed to be the `tg4-engagement` contract, b
 in reality it should just support the proper API, which is then used by `tgrade-valset`
 (which is just a subset of `tg4-engagement`).
 
-During valset instantiation, the rewards distribution contract is instantiated using
+During valset instantiation, the rewards distribution contract, called `validator_group`, is instantiated using
 the message:
 
 ```json
@@ -81,22 +81,19 @@ the message:
 }
 ```
 
-The code id of the stored rewards distribution contract is sent to valset in its instantiation message
-(`rewards_code_id` field). The assigned address of the rewards distribution contract would be
+The code id of the stored validator group contract is sent to valset in its instantiation message
+(`validator_group_code_id` field). The assigned address of the validator group contract would be
 emitted with a `wasm` event:
 
 ```json
 {
   "_contract_addr": "valset_addr",
   "action": "tgrade-valset_instantiation",
-  "rewards_contract": "rewards_contract_addr"
+  "validator_group": "validator_group_addr"
 }
 ```
 
-Additionally, the rewards contract address can be queried at any time using the
-`rewards_distribution_contract {}` query.
-
-At every epoch end, rewards would be sent to the rewards distribution contract
+At every epoch end, rewards would be sent to the validator group contract
 with the execution message:
 
 ```json
@@ -253,7 +250,7 @@ pub struct InstantiateMsg {
     /// ```
     ///
     /// This contract has to support all the `RewardsDistribution` messages
-    pub rewards_code_id: u64,
+    pub validator_group_id: u64,
 }
 ```
 
