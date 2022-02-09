@@ -1,6 +1,6 @@
 [package]
 name = "tgrade-community-pool"
-version = "0.6.0-rc1"
+version = "0.6.0-rc2"
 authors = ["Bartłomiej Kuras <bart.k@confio.gmbh>"]
 edition = "2018"
 description = "Implementing tgrade-community-pool voting contract"
@@ -22,15 +22,15 @@ tg3 = { path = "../../packages/tg3", version = "0.6.0-beta1" }
 cosmwasm-std = "1.0.0-beta"
 schemars = "0.8.1"
 serde = { version = "1", default-features = false, features = ["derive"] }
-tg-bindings = { path = "../../packages/bindings", version = "0.6.0-rc1" }
-tg-utils = { path = "../../packages/utils", version = "0.6.0-rc1" }
-tg-voting-contract = { version = "0.6.0-rc1", path = "../../packages/voting-contract" }
-tg4-engagement = { path = "../tg4-engagement", version = "0.6.0-rc1", features = ["library"] }
+tg-bindings = { path = "../../packages/bindings", version = "0.6.0-rc2" }
+tg-utils = { path = "../../packages/utils", version = "0.6.0-rc2" }
+tg-voting-contract = { version = "0.6.0-rc2", path = "../../packages/voting-contract" }
+tg4-engagement = { path = "../tg4-engagement", version = "0.6.0-rc2", features = ["library"] }
 thiserror = "1"
 
 [dev-dependencies]
 anyhow = "1"
 cosmwasm-schema = "1.0.0-beta"
 cw-multi-test = "0.11.0"
-tg-bindings-test = { path = "../../packages/bindings-test", version = "0.6.0-rc1" }
-tg4 = { path = "../../packages/tg4", version = "0.6.0-rc1" }
+tg-bindings-test = { path = "../../packages/bindings-test", version = "0.6.0-rc2" }
+tg4 = { path = "../../packages/tg4", version = "0.6.0-rc2" }
