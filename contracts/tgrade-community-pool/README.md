@@ -2,7 +2,7 @@
 
 This defines and implements Community Pool functionality for managing
 engagement points and validator slashing, according to proposals voting,
-based on [CW3](https://github.com/CosmWasm/cosmwasm-plus/tree/master/packages/cw3).
+based on [TG3](https://github.com/confio/poe-contracts/tree/main/packages/tg3).
 
 ## Instantiation
 

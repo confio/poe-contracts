@@ -2,8 +2,8 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use cosmwasm_std::{Addr, BlockInfo, Decimal, StdResult, Storage, Uint128};
-use cw3::{Status, Vote};
 use cw_storage_plus::{Item, Map};
+use tg3::{Status, Vote};
 use tg4::Tg4Contract;
 use tg_utils::Expiration;
 

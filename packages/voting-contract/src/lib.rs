@@ -16,10 +16,10 @@ use state::{
 };
 
 use cosmwasm_std::{Addr, BlockInfo, Deps, DepsMut, Env, MessageInfo, Order, StdResult, Storage};
-use cw3::{Status, Vote, VoterDetail, VoterListResponse, VoterResponse};
 use cw_storage_plus::Bound;
 use cw_utils::maybe_addr;
-use tg4::Tg4Contract;
+use tg3::{Status, Vote, VoterDetail, VoterListResponse, VoterResponse};
+use tg4::{Member, Tg4Contract};
 use tg_bindings::TgradeMsg;
 use tg_utils::Expiration;
 
@@ -413,9 +413,9 @@ pub fn list_votes_by_voter(
 pub fn query_voter(deps: Deps, voter: String) -> StdResult<VoterResponse> {
     let cfg = CONFIG.load(deps.storage)?;
     let voter_addr = deps.api.addr_validate(&voter)?;
-    let weight = cfg.group_contract.is_member(&deps.querier, &voter_addr)?;
+    let points = cfg.group_contract.is_member(&deps.querier, &voter_addr)?;
 
-    Ok(VoterResponse { weight })
+    Ok(VoterResponse { points })
 }
 
 pub fn list_voters(
@@ -428,10 +428,7 @@ pub fn list_voters(
         .group_contract
         .list_members(&deps.querier, start_after, limit)?
         .into_iter()
-        .map(|member| VoterDetail {
-            addr: member.addr,
-            weight: member.points,
-        })
+        .map(|Member { addr, points }| VoterDetail { addr, points })
         .collect();
     Ok(VoterListResponse { voters })
 }

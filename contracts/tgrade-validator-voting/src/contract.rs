@@ -295,7 +295,7 @@ mod tests {
     use tg_voting_contract::state::{proposals, Proposal, Votes, VotingRules};
 
     use super::*;
-    use cw3::Status;
+    use tg3::Status;
 
     #[derive(serde::Serialize)]
     struct DummyMigrateMsg {}

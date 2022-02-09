@@ -1,6 +1,6 @@
 use super::suite::{get_proposal_id, SuiteBuilder};
 use cosmwasm_std::{Decimal, StdError};
-use cw3::{Status, Vote};
+use tg3::{Status, Vote};
 
 use crate::{state::RulesBuilder, ContractError};
 

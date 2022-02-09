@@ -37,7 +37,7 @@ as well as a final step to execute any approved proposal once.
 
 ## Base
 
-The following interfaces must be implemented for all cw3
+The following interfaces must be implemented for all tg3
 contracts. Note that updating the members of the voting
 contract is not contained here (one approach is defined in cw4).
 Also, how to change the threshold rules (if at all) is not
