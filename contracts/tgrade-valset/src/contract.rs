@@ -415,6 +415,12 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> Result<Binary, ContractErro
             start_after,
             limit,
         )?)?),
+        ListJailedValidators { start_after, limit } => Ok(to_binary(&list_jailed_validators(
+            deps,
+            env,
+            start_after,
+            limit,
+        )?)?),
         SimulateActiveValidators {} => Ok(to_binary(&simulate_active_validators(deps, env)?)?),
         ListValidatorSlashing { operator } => {
             Ok(to_binary(&list_validator_slashing(deps, env, operator)?)?)
@@ -524,6 +530,46 @@ fn list_active_validators(
     Ok(ListActiveValidatorsResponse {
         validators: Vec::from(validators),
     })
+}
+
+fn list_jailed_validators(
+    deps: Deps,
+    env: Env,
+    start_after: Option<String>,
+    limit: Option<u32>,
+) -> Result<ListValidatorResponse, ContractError> {
+    let cfg = CONFIG.load(deps.storage)?;
+    let limit = limit.unwrap_or(DEFAULT_LIMIT).min(MAX_LIMIT) as usize;
+    let start_after = maybe_addr(deps.api, start_after)?;
+    let start = start_after.map(|addr| Bound::exclusive(addr.as_str()));
+
+    let validators = JAIL
+        .range(deps.storage, start, None, Order::Ascending)
+        .map(|jail| {
+            let (addr, jailing_period) = jail?;
+            if !(cfg.auto_unjail && jailing_period.is_expired(&env.block)) {
+                Ok(Some((addr, jailing_period)))
+            } else {
+                Ok(None)
+            }
+        })
+        .collect::<Result<Vec<Option<_>>, ContractError>>()?
+        .into_iter()
+        .flatten()
+        .map(|(addr, jailing_period)| {
+            let info = operators().load(deps.storage, &Addr::unchecked(&addr))?;
+            Ok(OperatorResponse {
+                operator: addr.into(),
+                metadata: info.metadata,
+                pubkey: info.pubkey.into(),
+                jailed_until: Some(jailing_period),
+                active_validator: info.active_validator,
+            })
+        })
+        .take(limit)
+        .collect::<Result<Vec<OperatorResponse>, ContractError>>()?;
+
+    Ok(ListValidatorResponse { validators })
 }
 
 fn simulate_active_validators(

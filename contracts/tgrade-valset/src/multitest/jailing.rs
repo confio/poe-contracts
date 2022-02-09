@@ -348,3 +348,65 @@ fn jailed_validators_show_up_as_inactive_when_listed() {
     assert!(operators[2].active_validator);
     assert!(operators[3].active_validator);
 }
+
+#[test]
+fn list_jailed_validators_all() {
+    let members = vec!["member1", "member2", "member3", "member4"];
+    let mut suite = SuiteBuilder::new()
+        .with_engagement(&members_init(&members, &[2, 3, 5, 8]))
+        .with_operators(&members)
+        .build();
+    let admin = suite.admin().to_owned();
+
+    // Jailing operators as test prerequirements
+    suite.jail(&admin, members[0], Duration::new(3600)).unwrap();
+    suite.jail(&admin, members[2], Duration::new(7200)).unwrap();
+
+    let operators = suite.list_jailed_validators(None, None).unwrap();
+    assert_eq!(operators.len(), 2);
+    assert_eq!(operators[0].operator, members[0]);
+    assert_eq!(operators[1].operator, members[2]);
+
+    // Moving forward so jailing periods expired
+    suite.advance_seconds(4000).unwrap();
+
+    // Unjail one of the jailed ops
+    suite.unjail(&admin, members[0]).unwrap();
+
+    let operators = suite.list_jailed_validators(None, None).unwrap();
+    assert_eq!(operators.len(), 1);
+    assert_eq!(operators[0].operator, members[2]);
+}
+
+#[test]
+fn list_jailed_validators_with_pagination() {
+    let members = vec!["member1", "member2", "member3", "member4", "member5"];
+    let mut suite = SuiteBuilder::new()
+        .with_engagement(&members_init(&members, &[2, 3, 5, 8, 10]))
+        .with_operators(&members)
+        .build();
+    let admin = suite.admin().to_owned();
+
+    // Jailing operators as test prerequirements
+    suite.jail(&admin, members[0], Duration::new(3600)).unwrap();
+    suite.jail(&admin, members[1], Duration::new(3600)).unwrap();
+    suite.jail(&admin, members[2], Duration::new(7200)).unwrap();
+    suite.jail(&admin, members[3], Duration::new(7200)).unwrap();
+    suite.jail(&admin, members[4], Duration::new(7200)).unwrap();
+
+    let operators = suite.list_jailed_validators(None, None).unwrap();
+    assert_eq!(operators.len(), 5);
+
+    let operators = suite.list_jailed_validators(None, 3).unwrap();
+    assert_eq!(operators.len(), 3);
+    assert_eq!(operators[0].operator, members[0]);
+    assert_eq!(operators[1].operator, members[1]);
+    assert_eq!(operators[2].operator, members[2]);
+
+    let operators = suite
+        .list_jailed_validators(operators.last().unwrap().operator.clone(), None)
+        .unwrap();
+    assert_eq!(operators.len(), 2);
+    assert_eq!(operators[0].operator, members[3]);
+    assert_eq!(operators[1].operator, members[4]);
+}

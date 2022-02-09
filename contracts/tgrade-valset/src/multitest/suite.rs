@@ -691,6 +691,22 @@ impl Suite {
         Ok(resp.validators)
     }
 
+    pub fn list_jailed_validators(
+        &self,
+        start_after: impl Into<Option<String>>,
+        limit: impl Into<Option<u32>>,
+    ) -> StdResult<Vec<OperatorResponse>> {
+        let resp: ListValidatorResponse = self.app.wrap().query_wasm_smart(
+            self.valset.clone(),
+            &QueryMsg::ListJailedValidators {
+                start_after: start_after.into(),
+                limit: limit.into(),
+            },
+        )?;
+
+        Ok(resp.validators)
+    }
+
     pub fn list_validator_slashing(&self, addr: &str) -> StdResult<ListValidatorSlashingResponse> {
         let resp = self.app.wrap().query_wasm_smart(
             self.valset.clone(),
