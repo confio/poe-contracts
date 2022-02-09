@@ -1,5 +1,5 @@
 use cosmwasm_std::Decimal;
-use cw3::{Status, Vote};
+use tg3::{Status, Vote};
 use tg_utils::Expiration;
 
 use super::contracts::voting::Proposal;
@@ -469,8 +469,8 @@ fn list_votes_by_voter_with_pagination() {
 #[test]
 fn voter() {
     let suite = SuiteBuilder::new().with_member("alice", 1).build();
-    assert_eq!(suite.query_voter("alice").unwrap().weight, Some(1));
-    assert_eq!(suite.query_voter("bob").unwrap().weight, None);
+    assert_eq!(suite.query_voter("alice").unwrap().points, Some(1));
+    assert_eq!(suite.query_voter("bob").unwrap().points, None);
 }
 
 #[test]

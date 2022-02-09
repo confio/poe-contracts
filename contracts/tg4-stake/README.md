@@ -3,7 +3,7 @@
 This is a second implementation of the [tg4_spec](../../packages/tg4/README.md).
 It fulfills all elements of the spec, including the raw query lookups,
 and is designed to be used as a backing storage for 
-[cw3 compliant contracts](https://github.com/CosmWasm/cosmwasm-plus/blob/master/packages/cw3/README.md).
+[tg3 compliant contracts](https://github.com/confio/poe-contracts/tree/main/packages/tg3/README.md).
 
 It provides a similar API to `tg4-engagement` (which handles elected membership),
 but rather than appointing members (by admin or multisig), their

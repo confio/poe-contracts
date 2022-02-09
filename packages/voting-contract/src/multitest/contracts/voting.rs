@@ -4,7 +4,7 @@ use crate::{
     query_voter, reverse_proposals, state::VotingRules, ContractError, Response,
 };
 use cosmwasm_std::{from_slice, to_binary};
-use cw3::Vote;
+use tg3::Vote;
 
 use super::*;
 

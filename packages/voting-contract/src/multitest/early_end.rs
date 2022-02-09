@@ -1,5 +1,5 @@
 use cosmwasm_std::Decimal;
-use cw3::{Status, Vote};
+use tg3::{Status, Vote};
 
 use crate::multitest::suite::{get_proposal_id, SuiteBuilder};
 use crate::state::RulesBuilder;

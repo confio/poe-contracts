@@ -3,7 +3,7 @@
 This is a basic implementation of the [tg4 spec](../../packages/tg4/README.md).
 It fulfills all elements of the spec, including the raw query lookups,
 and it designed to be used as a backing storage for
-[cw3 compliant contracts](https://github.com/CosmWasm/cosmwasm-plus/blob/master/packages/cw3/README.mdl).
+[tg3 compliant contracts](https://github.com/confio/poe-contracts/tree/main/packages/tg3/README.md).
 
 It stores a set of members along with an admin, and allows the admin to
 update the state. Raw queries (intended for cross-contract queries)

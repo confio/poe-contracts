@@ -1,8 +1,8 @@
 use anyhow::Result as AnyResult;
 
 use cosmwasm_std::{to_binary, Addr, ContractInfoResponse, Decimal};
-use cw3::Status;
 use cw_multi_test::{AppResponse, Contract, ContractWrapper, Executor};
+use tg3::Status;
 use tg4::{Member, Tg4ExecuteMsg};
 use tg_bindings::TgradeMsg;
 use tg_bindings_test::{TgradeApp, UpgradePlan};

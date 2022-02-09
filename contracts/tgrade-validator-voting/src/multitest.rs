@@ -7,7 +7,7 @@ use crate::msg::ValidatorProposal;
 use suite::{get_proposal_id, SuiteBuilder};
 
 use cosmwasm_std::Decimal;
-use cw3::Status;
+use tg3::Status;
 use tg_voting_contract::state::RulesBuilder;
 
 #[test]

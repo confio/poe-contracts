@@ -1,5 +1,5 @@
 use cosmwasm_std::StdError;
-use cw3::Status;
+use tg3::Status;
 use tg_utils::Expiration;
 
 use crate::multitest::contracts::voting::Proposal;

@@ -2,7 +2,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use cosmwasm_std::Binary;
-use cw3::Vote;
+use tg3::Vote;
 
 use tg_voting_contract::state::VotingRules;
 
@@ -83,7 +83,7 @@ pub enum ValidatorProposal {
     Text {},
 }
 
-// We can also add this as a cw3 extension
+// We can also add this as a tg3 extension
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
 pub enum QueryMsg {

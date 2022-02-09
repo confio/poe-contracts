@@ -4,7 +4,7 @@ Based on [cosmwasm-plus](https://github.com/CosmWasm/cosmwasm-plus)
 [CW4](https://github.com/CosmWasm/cosmwasm-plus/tree/master/packages/cw4).
 
 TG4 is a spec for storing group membership, which can be combined
-with [CW3](https://github.com/CosmWasm/cosmwasm-plus/tree/master/packages/cw3) multisigs.
+with [TG3](https://github.com/confio/poe-contracts/tree/main/packages/tg3) multisigs.
 The purpose is to store a set of members/voters that can be accessed
 to determine permissions in another section.
 
@@ -15,7 +15,7 @@ Implementations may add more data structures, but at least
 the ones laid out here should be under the specified keys and in the
 same format.
 
-In this case, a cw3 contract could *read* an external group contract with
+In this case, a tg3 contract could *read* an external group contract with
 no significant cost more than reading local storage. However, updating
 that group contract (if allowed), would be an external message and
 charged the instantiation overhead for each contract.
@@ -41,7 +41,7 @@ There are three messages supported by a group contract:
 
 Only the `admin` may execute any of these function. Thus, by omitting an
 `admin`, we end up with a similar functionality ad `cw3-fixed-multisig`.
-If we include one, it may often be desired to be a `cw3` contract that
+If we include one, it may often be desired to be a `tg3` contract that
 uses this group contract as a group. This leads to a bit of chicken-and-egg
 problem, but we cover how to instantiate that in
 [`cw3-flexible-multisig`](https://github.com/CosmWasm/cosmwasm-plus/tree/master/contracts/cw3-flexible-multisig/README.md#instantiation).
