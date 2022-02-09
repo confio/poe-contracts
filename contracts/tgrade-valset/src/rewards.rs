@@ -63,7 +63,7 @@ pub fn pay_block_rewards(
     // After rewarding all non-validators, the remainder goes to validators.
     if reward_pool > Uint128::zero() {
         messages.push(SubMsg::new(WasmMsg::Execute {
-            contract_addr: config.rewards_contract.to_string(),
+            contract_addr: config.validator_group.to_string(),
             msg: to_binary(&RewardsDistribution::DistributeRewards {})?,
             funds: coins(reward_pool.into(), &block_reward.denom),
         }));

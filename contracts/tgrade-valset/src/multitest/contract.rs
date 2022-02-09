@@ -39,7 +39,7 @@ fn initialization() {
             distribution_contracts: vec![],
             // This one it is basically assumed is set correctly. Other tests tests if behavior
             // of relation between those contract is correct
-            rewards_contract: config.rewards_contract.clone(),
+            validator_group: config.validator_group.clone(),
         }
     );
 
@@ -429,7 +429,7 @@ mod instantiate {
             auto_unjail: false,
             double_sign_slash_ratio: Decimal::percent(50),
             distribution_contracts: UnvalidatedDistributionContracts::default(),
-            rewards_code_id: 1,
+            validator_group_code_id: 1,
         };
 
         let err = app

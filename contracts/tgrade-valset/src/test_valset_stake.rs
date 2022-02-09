@@ -102,7 +102,7 @@ fn init_msg(
     stake_addr: &str,
     max_validators: u32,
     min_weight: u64,
-    rewards_code_id: u64,
+    validator_group_code_id: u64,
 ) -> InstantiateMsg {
     let members = addrs(PREREGISTER_MEMBERS)
         .into_iter()
@@ -121,7 +121,7 @@ fn init_msg(
         auto_unjail: false,
         double_sign_slash_ratio: Decimal::percent(50),
         distribution_contracts: UnvalidatedDistributionContracts::default(),
-        rewards_code_id,
+        validator_group_code_id,
     }
 }
 
@@ -175,7 +175,7 @@ fn init_and_query_state() {
             auto_unjail: false,
             double_sign_slash_ratio: Decimal::percent(50),
             distribution_contracts: vec![],
-            rewards_contract: cfg.rewards_contract.clone(),
+            validator_group: cfg.validator_group.clone(),
         }
     );
 

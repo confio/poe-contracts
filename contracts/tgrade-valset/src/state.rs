@@ -51,8 +51,8 @@ pub struct Config {
     /// rewards contract.
     pub distribution_contracts: Vec<DistributionContract>,
 
-    /// Address of contract for rewards distribution.
-    pub rewards_contract: Addr,
+    /// Address of contract for validator group voting.
+    pub validator_group: Addr,
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]

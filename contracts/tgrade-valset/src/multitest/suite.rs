@@ -349,7 +349,7 @@ impl SuiteBuilder {
                     distribution_contracts: UnvalidatedDistributionContracts {
                         inner: distribution_contract_instantiation_info,
                     },
-                    rewards_code_id: engagement_id,
+                    validator_group_code_id: engagement_id,
                 },
                 &[],
                 "valset",
@@ -404,7 +404,7 @@ impl SuiteBuilder {
             operators: operators.into_iter().map(|o| o.operator).collect(),
             epoch_length: self.epoch_length,
             denom,
-            rewards_contract: resp.rewards_contract,
+            validator_group: resp.validator_group,
         }
     }
 }
@@ -432,7 +432,7 @@ pub struct Suite {
     /// Reward denom
     denom: String,
     /// Rewards distribution contract address
-    rewards_contract: Addr,
+    validator_group: Addr,
 }
 
 impl Suite {
@@ -620,7 +620,7 @@ impl Suite {
     pub fn withdraw_validation_reward(&mut self, executor: &str) -> AnyResult<AppResponse> {
         self.app.execute_contract(
             Addr::unchecked(executor),
-            self.rewards_contract.clone(),
+            self.validator_group.clone(),
             &tg4_engagement::msg::ExecuteMsg::WithdrawRewards {
                 owner: None,
                 receiver: None,
