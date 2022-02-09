@@ -71,7 +71,7 @@ in the spec but left open to the implementation.
 
 `Vote{proposal_id, vote}` - Given a proposal_id, you can
 vote yes, no, abstain or veto. Each signed may have a
-different "weight" in the voting and they apply their
+different "points" in the voting and they apply their
 entire weight on the vote.
 
 Many contracts (like typical multisig with absolute threshold)
@@ -126,6 +126,6 @@ lexicographically ascending order.
 Information on who can vote is contract dependent. But
 we will work on a common API to display some of this.
 
-`Voter { address }` - returns voting power (weight) of this address, if any
+`Voter { address }` - returns voting power (points) of this address, if any
 
 `ListVoters { start_after, limit }` - list all eligible voters

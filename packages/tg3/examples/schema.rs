@@ -4,8 +4,8 @@ use std::fs::create_dir_all;
 use cosmwasm_schema::{export_schema, export_schema_with_title, remove_schemas, schema_for};
 
 use tg3::{
-    ProposalListResponse, ProposalResponse, Tg3ExecuteMsg, Tg3QueryMsg, ThresholdResponse,
-    VoteListResponse, VoteResponse, VoterDetail, VoterListResponse, VoterResponse,
+    Tg3ExecuteMsg, Tg3QueryMsg, VoteListResponse, VoteResponse, VoterDetail, VoterListResponse,
+    VoterResponse,
 };
 
 fn main() {
@@ -16,12 +16,9 @@ fn main() {
 
     export_schema_with_title(&schema_for!(Tg3ExecuteMsg), &out_dir, "ExecuteMsg");
     export_schema_with_title(&schema_for!(Tg3QueryMsg), &out_dir, "QueryMsg");
-    export_schema_with_title(&schema_for!(ProposalResponse), &out_dir, "ProposalResponse");
-    export_schema(&schema_for!(ProposalListResponse), &out_dir);
     export_schema(&schema_for!(VoteResponse), &out_dir);
     export_schema(&schema_for!(VoteListResponse), &out_dir);
     export_schema(&schema_for!(VoterResponse), &out_dir);
     export_schema(&schema_for!(VoterDetail), &out_dir);
     export_schema(&schema_for!(VoterListResponse), &out_dir);
-    export_schema(&schema_for!(ThresholdResponse), &out_dir);
 }
