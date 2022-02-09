@@ -1017,7 +1017,7 @@ pub fn rewards_instantiate_reply(
     })?;
 
     let data = InstantiateResponse {
-        rewards_contract: addr,
+        validator_group: addr,
     };
 
     let resp = Response::new().set_data(to_binary(&data)?);
