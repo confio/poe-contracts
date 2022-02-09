@@ -749,7 +749,7 @@ fn calculate_validators(
     let mut validators = vec![];
     let mut batch =
         cfg.membership
-            .list_members_by_weight_tie_breaking(&deps.querier, None, QUERY_LIMIT)?;
+            .list_members_by_points_tie_breaking(&deps.querier, None, QUERY_LIMIT)?;
     let mut auto_unjail = vec![];
 
     while !batch.is_empty() && validators.len() < cfg.max_validators as usize {
@@ -800,7 +800,7 @@ fn calculate_validators(
         // and get the next page
         batch =
             cfg.membership
-                .list_members_by_weight_tie_breaking(&deps.querier, last, QUERY_LIMIT)?;
+                .list_members_by_points_tie_breaking(&deps.querier, last, QUERY_LIMIT)?;
     }
 
     Ok((validators, auto_unjail))

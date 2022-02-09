@@ -200,13 +200,13 @@ impl Tg4Contract {
         Ok(res.members)
     }
 
-    pub fn list_members_by_weight_tie_breaking(
+    pub fn list_members_by_points_tie_breaking(
         &self,
         querier: &QuerierWrapper,
         start_after: Option<(Member, u64)>,
         limit: Option<u32>,
     ) -> StdResult<Vec<(Member, u64)>> {
-        let query = self.encode_smart_query(Tg4QueryMsg::ListMembersByWeightTieBreaking {
+        let query = self.encode_smart_query(Tg4QueryMsg::ListMembersByPointsTieBreaking {
             start_after,
             limit,
         })?;
