@@ -327,7 +327,7 @@ mod tests {
                         threshold: Decimal::percent(40),
                         allow_end_early: true,
                     },
-                    total_weight: 20,
+                    total_points: 20,
                     votes: Votes {
                         yes: 20,
                         no: 0,
@@ -371,7 +371,7 @@ mod tests {
                         threshold: Decimal::percent(40),
                         allow_end_early: true,
                     },
-                    total_weight: 20,
+                    total_points: 20,
                     votes: Votes {
                         yes: 20,
                         no: 0,
@@ -417,7 +417,7 @@ mod tests {
                         threshold: Decimal::percent(40),
                         allow_end_early: true,
                     },
-                    total_weight: 20,
+                    total_points: 20,
                     votes: Votes {
                         yes: 20,
                         no: 0,
@@ -463,7 +463,7 @@ mod tests {
                         threshold: Decimal::percent(40),
                         allow_end_early: true,
                     },
-                    total_weight: 20,
+                    total_points: 20,
                     votes: Votes {
                         yes: 20,
                         no: 0,
@@ -512,7 +512,7 @@ mod tests {
                         threshold: Decimal::percent(40),
                         allow_end_early: true,
                     },
-                    total_weight: 20,
+                    total_points: 20,
                     votes: Votes {
                         yes: 20,
                         no: 0,
@@ -564,7 +564,7 @@ mod tests {
                         threshold: Decimal::percent(40),
                         allow_end_early: true,
                     },
-                    total_weight: 20,
+                    total_points: 20,
                     votes: Votes {
                         yes: 20,
                         no: 0,

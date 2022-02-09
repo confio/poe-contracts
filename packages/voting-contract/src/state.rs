@@ -32,8 +32,8 @@ pub struct Proposal<P> {
     pub status: Status,
     /// pass requirements
     pub rules: VotingRules,
-    // the total weight when the proposal started (used to calculate percentages)
-    pub total_weight: u64,
+    // the total number of points when the proposal started (used to calculate percentages)
+    pub total_points: u64,
     // summary of existing votes
     pub votes: Votes,
 }
@@ -81,7 +81,7 @@ impl<P> Proposal<P> {
         } = self.rules;
 
         // we always require the quorum
-        if self.votes.total() < votes_needed(self.total_weight, quorum) {
+        if self.votes.total() < votes_needed(self.total_points, quorum) {
             return false;
         }
         if self.expires.is_expired(block) {
@@ -91,7 +91,7 @@ impl<P> Proposal<P> {
         } else if allow_end_early {
             // If not expired, we must assume all non-votes will be cast as No.
             // We compare threshold against the total weight (minus abstain).
-            let possible_opinions = self.total_weight - self.votes.abstain;
+            let possible_opinions = self.total_points - self.votes.abstain;
             self.votes.yes >= votes_needed(possible_opinions, threshold)
         } else {
             false
@@ -112,7 +112,7 @@ pub struct ProposalResponse<P> {
     pub status: Status,
     pub expires: Expiration,
     pub rules: VotingRules,
-    pub total_weight: u64,
+    pub total_points: u64,
     pub votes: Votes,
 }
 
@@ -257,7 +257,7 @@ fn votes_needed(weight: u64, percentage: Decimal) -> u64 {
 // stored under the key that voted
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 pub struct Ballot {
-    pub weight: u64,
+    pub points: u64,
     pub vote: Vote,
 }
 

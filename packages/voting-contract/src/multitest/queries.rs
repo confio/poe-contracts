@@ -1,9 +1,8 @@
 use cosmwasm_std::Decimal;
-use tg3::{Status, Vote};
+use tg3::{Status, Vote, VoteInfo};
 use tg_utils::Expiration;
 
 use super::contracts::voting::Proposal;
-use crate::msg::VoteInfo;
 use crate::multitest::suite::{get_proposal_id, SuiteBuilder};
 use crate::state::{ProposalInfo, ProposalResponse, RulesBuilder, Votes};
 
@@ -69,7 +68,7 @@ fn query_proposal() {
             status: Status::Open,
             expires: expected_expiration,
             rules: rules.clone(),
-            total_weight: 10,
+            total_points: 10,
             votes: Votes {
                 yes: 1,
                 no: 0,
@@ -95,7 +94,7 @@ fn query_proposal() {
             status: Status::Open,
             expires: expected_expiration,
             rules: rules.clone(),
-            total_weight: 10,
+            total_points: 10,
             votes: Votes {
                 yes: 1,
                 no: 2,
@@ -118,7 +117,7 @@ fn query_proposal() {
             status: Status::Rejected,
             expires: expected_expiration,
             rules,
-            total_weight: 10,
+            total_points: 10,
             votes: Votes {
                 yes: 1,
                 no: 2,
@@ -156,7 +155,7 @@ fn query_individual_votes() {
             proposal_id,
             voter: "alice".to_string(),
             vote: Vote::Yes,
-            weight: 1
+            points: 1
         })
     );
 
@@ -168,7 +167,7 @@ fn query_individual_votes() {
             proposal_id,
             voter: "bob".to_owned(),
             vote: Vote::No,
-            weight: 2
+            points: 2
         })
     );
 
@@ -261,13 +260,13 @@ fn list_votes() {
                 proposal_id,
                 voter: "alice".to_string(),
                 vote: Vote::Yes,
-                weight: 1
+                points: 1
             },
             VoteInfo {
                 proposal_id,
                 voter: "bob".to_string(),
                 vote: Vote::No,
-                weight: 2
+                points: 2
             }
         ]
     )
@@ -303,19 +302,19 @@ fn list_votes_pagination() {
                 proposal_id,
                 voter: "alice".to_string(),
                 vote: Vote::Yes,
-                weight: 1
+                points: 1
             },
             VoteInfo {
                 proposal_id,
                 voter: "bob".to_string(),
                 vote: Vote::No,
-                weight: 2
+                points: 2
             },
             VoteInfo {
                 proposal_id,
                 voter: "carol".to_string(),
                 vote: Vote::Abstain,
-                weight: 3
+                points: 3
             }
         ]
     );
@@ -328,13 +327,13 @@ fn list_votes_pagination() {
                 proposal_id,
                 voter: "carol".to_string(),
                 vote: Vote::Abstain,
-                weight: 3
+                points: 3
             },
             VoteInfo {
                 proposal_id,
                 voter: "dave".to_string(),
                 vote: Vote::Veto,
-                weight: 4
+                points: 4
             },
         ]
     );
@@ -372,19 +371,19 @@ fn list_votes_by_voter() {
                 proposal_id,
                 voter: "bob".to_string(),
                 vote: Vote::No,
-                weight: 2
+                points: 2
             },
             VoteInfo {
                 proposal_id: proposal_id2,
                 voter: "bob".to_string(),
                 vote: Vote::Yes,
-                weight: 2
+                points: 2
             },
             VoteInfo {
                 proposal_id: proposal_id3,
                 voter: "bob".to_string(),
                 vote: Vote::Abstain,
-                weight: 2
+                points: 2
             }
         ]
     );
@@ -426,13 +425,13 @@ fn list_votes_by_voter_with_pagination() {
                 proposal_id,
                 voter: "bob".to_string(),
                 vote: Vote::No,
-                weight: 2
+                points: 2
             },
             VoteInfo {
                 proposal_id: proposal_id2,
                 voter: "bob".to_string(),
                 vote: Vote::Yes,
-                weight: 2
+                points: 2
             },
         ]
     );
@@ -443,7 +442,7 @@ fn list_votes_by_voter_with_pagination() {
             proposal_id: proposal_id3,
             voter: "bob".to_string(),
             vote: Vote::Abstain,
-            weight: 2
+            points: 2
         },]
     );
     let votes = suite.list_votes_by_voter("bob", 2, None).unwrap();
@@ -454,13 +453,13 @@ fn list_votes_by_voter_with_pagination() {
                 proposal_id: proposal_id3,
                 voter: "bob".to_string(),
                 vote: Vote::Abstain,
-                weight: 2
+                points: 2
             },
             VoteInfo {
                 proposal_id: proposal_id4,
                 voter: "bob".to_string(),
                 vote: Vote::Yes,
-                weight: 2
+                points: 2
             },
         ]
     )
