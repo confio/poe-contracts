@@ -1,6 +1,6 @@
 #!/bin/bash
 set -o errexit -o nounset -o pipefail
-command -v shellcheck > /dev/null && shellcheck "$0"
+command -v shellcheck >/dev/null && shellcheck "$0"
 
 # These are imported by other packages - wait 30 seconds between each as they have linear dependencies
 BASE_CRATES="packages/bindings packages/bindings-test packages/tg4 packages/utils contracts/tg4-engagement contracts/tg4-stake contracts/tg4-mixer packages/voting-contract"
