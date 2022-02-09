@@ -71,7 +71,7 @@ pub enum ContractError {
 
     #[error("Invalid metadata - {data} length must be {min}-{max} characters")]
     InvalidMetadata {
-        data: String,
+        data: &'static str,
         min: usize,
         max: usize,
     },

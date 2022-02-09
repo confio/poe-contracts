@@ -178,7 +178,7 @@ fn update_metadata() {
         .unwrap_err();
     assert_eq!(
         ContractError::InvalidMetadata {
-            data: "moniker".to_owned(),
+            data: "moniker",
             min: MIN_MONIKER_LENGTH,
             max: MAX_METADATA_SIZE,
         },
@@ -277,7 +277,7 @@ fn register_key_invalid_metadata() {
     let mut suite = SuiteBuilder::new()
         .with_engagement(&members_init(&members, &[2, 3, 5, 8, 13, 21]))
         .with_operators(&members)
-        .with_min_weight(5)
+        .with_min_points(5)
         .build();
 
     let meta = ValidatorMetadata {
@@ -293,7 +293,7 @@ fn register_key_invalid_metadata() {
         .unwrap_err();
     assert_eq!(
         ContractError::InvalidMetadata {
-            data: "identity".to_owned(),
+            data: "identity",
             min: MIN_METADATA_SIZE,
             max: MAX_METADATA_SIZE
         },
@@ -312,7 +312,7 @@ fn register_key_invalid_metadata() {
         .unwrap_err();
     assert_eq!(
         ContractError::InvalidMetadata {
-            data: "identity".to_owned(),
+            data: "identity",
             min: MIN_METADATA_SIZE,
             max: MAX_METADATA_SIZE
         },
@@ -327,7 +327,7 @@ fn update_metadata_invalid_metadata() {
     let mut suite = SuiteBuilder::new()
         .with_engagement(&members_init(&members, &[2, 3, 5, 8, 13, 21]))
         .with_operators(&members)
-        .with_min_weight(5)
+        .with_min_points(5)
         .build();
 
     let meta = ValidatorMetadata {
@@ -340,7 +340,7 @@ fn update_metadata_invalid_metadata() {
     let resp = suite.update_metadata(members[0], &meta).unwrap_err();
     assert_eq!(
         ContractError::InvalidMetadata {
-            data: "identity".to_owned(),
+            data: "identity",
             min: MIN_METADATA_SIZE,
             max: MAX_METADATA_SIZE
         },
@@ -357,7 +357,7 @@ fn update_metadata_invalid_metadata() {
     let resp = suite.update_metadata(members[0], &meta).unwrap_err();
     assert_eq!(
         ContractError::InvalidMetadata {
-            data: "identity".to_owned(),
+            data: "identity",
             min: MIN_METADATA_SIZE,
             max: MAX_METADATA_SIZE
         },
@@ -386,7 +386,7 @@ mod instantiate {
         let admin = "steakhouse owner".to_owned();
         let msg = tg4_stake::msg::InstantiateMsg {
             denom: "james bond denom".to_owned(),
-            tokens_per_weight: Uint128::new(10),
+            tokens_per_point: Uint128::new(10),
             min_bond: Uint128::new(1),
             unbonding_period: 1234,
             admin: Some(admin.clone()),
@@ -419,7 +419,7 @@ mod instantiate {
         let msg = InstantiateMsg {
             admin: None,
             membership: stake_addr.into(),
-            min_weight: 1,
+            min_points: 1,
             max_validators: 120,
             epoch_length: 10,
             epoch_reward: coin(1, "denom"),
@@ -437,7 +437,7 @@ mod instantiate {
             .unwrap_err();
         assert_eq!(
             ContractError::InvalidMetadata {
-                data: "details".to_owned(),
+                data: "details",
                 min: MIN_METADATA_SIZE,
                 max: MAX_METADATA_SIZE
             },

@@ -287,7 +287,7 @@ impl ValidatorMetadata {
     pub fn validate(&self) -> Result<(), ContractError> {
         if self.moniker.len() < MIN_MONIKER_LENGTH || self.moniker.len() > MAX_METADATA_SIZE {
             return Err(ContractError::InvalidMetadata {
-                data: "moniker".to_owned(),
+                data: "moniker",
                 min: MIN_MONIKER_LENGTH,
                 max: MAX_METADATA_SIZE,
             });
@@ -295,7 +295,7 @@ impl ValidatorMetadata {
         if let Some(identity) = &self.identity {
             if identity.is_empty() || identity.len() > MAX_METADATA_SIZE {
                 return Err(ContractError::InvalidMetadata {
-                    data: "identity".to_owned(),
+                    data: "identity",
                     min: MIN_METADATA_SIZE,
                     max: MAX_METADATA_SIZE,
                 });
@@ -304,7 +304,7 @@ impl ValidatorMetadata {
         if let Some(website) = &self.website {
             if website.is_empty() || website.len() > MAX_METADATA_SIZE {
                 return Err(ContractError::InvalidMetadata {
-                    data: "website".to_owned(),
+                    data: "website",
                     min: MIN_METADATA_SIZE,
                     max: MAX_METADATA_SIZE,
                 });
@@ -313,7 +313,7 @@ impl ValidatorMetadata {
         if let Some(security_contract) = &self.security_contact {
             if security_contract.is_empty() || security_contract.len() > MAX_METADATA_SIZE {
                 return Err(ContractError::InvalidMetadata {
-                    data: "security_contract".to_owned(),
+                    data: "security_contract",
                     min: MIN_METADATA_SIZE,
                     max: MAX_METADATA_SIZE,
                 });
@@ -322,7 +322,7 @@ impl ValidatorMetadata {
         if let Some(details) = &self.details {
             if details.is_empty() || details.len() > MAX_METADATA_SIZE {
                 return Err(ContractError::InvalidMetadata {
-                    data: "details".to_owned(),
+                    data: "details",
                     min: MIN_METADATA_SIZE,
                     max: MAX_METADATA_SIZE,
                 });
@@ -573,7 +573,7 @@ mod test {
         let resp = meta.validate().unwrap_err();
         assert_eq!(
             ContractError::InvalidMetadata {
-                data: "identity".to_owned(),
+                data: "identity",
                 min: MIN_METADATA_SIZE,
                 max: MAX_METADATA_SIZE
             },
@@ -587,7 +587,7 @@ mod test {
         let resp = meta.validate().unwrap_err();
         assert_eq!(
             ContractError::InvalidMetadata {
-                data: "website".to_owned(),
+                data: "website",
                 min: MIN_METADATA_SIZE,
                 max: MAX_METADATA_SIZE,
             },
@@ -601,7 +601,7 @@ mod test {
         let resp = meta.validate().unwrap_err();
         assert_eq!(
             ContractError::InvalidMetadata {
-                data: "security_contract".to_owned(),
+                data: "security_contract",
                 min: MIN_METADATA_SIZE,
                 max: MAX_METADATA_SIZE,
             },
@@ -615,7 +615,7 @@ mod test {
         let resp = meta.validate().unwrap_err();
         assert_eq!(
             ContractError::InvalidMetadata {
-                data: "details".to_owned(),
+                data: "details",
                 min: MIN_METADATA_SIZE,
                 max: MAX_METADATA_SIZE,
             },
@@ -632,7 +632,7 @@ mod test {
         let resp = meta.validate().unwrap_err();
         assert_eq!(
             ContractError::InvalidMetadata {
-                data: "identity".to_owned(),
+                data: "identity",
                 min: MIN_METADATA_SIZE,
                 max: MAX_METADATA_SIZE
             },
@@ -646,7 +646,7 @@ mod test {
         let resp = meta.validate().unwrap_err();
         assert_eq!(
             ContractError::InvalidMetadata {
-                data: "website".to_owned(),
+                data: "website",
                 min: MIN_METADATA_SIZE,
                 max: MAX_METADATA_SIZE,
             },
@@ -660,7 +660,7 @@ mod test {
         let resp = meta.validate().unwrap_err();
         assert_eq!(
             ContractError::InvalidMetadata {
-                data: "security_contract".to_owned(),
+                data: "security_contract",
                 min: MIN_METADATA_SIZE,
                 max: MAX_METADATA_SIZE,
             },
@@ -674,7 +674,7 @@ mod test {
         let resp = meta.validate().unwrap_err();
         assert_eq!(
             ContractError::InvalidMetadata {
-                data: "details".to_owned(),
+                data: "details",
                 min: MIN_METADATA_SIZE,
                 max: MAX_METADATA_SIZE,
             },
