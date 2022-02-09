@@ -404,7 +404,7 @@ impl SuiteBuilder {
             operators: operators.into_iter().map(|o| o.operator).collect(),
             epoch_length: self.epoch_length,
             denom,
-            rewards_contract: resp.rewards_contract,
+            rewards_contract: resp.validator_group,
         }
     }
 }

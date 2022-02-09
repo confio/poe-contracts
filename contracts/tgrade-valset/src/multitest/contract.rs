@@ -39,7 +39,7 @@ fn initialization() {
             distribution_contracts: vec![],
             // This one it is basically assumed is set correctly. Other tests tests if behavior
             // of relation between those contract is correct
-            rewards_contract: config.rewards_contract.clone(),
+            validator_group: config.rewards_contract.clone(),
         }
     );
 

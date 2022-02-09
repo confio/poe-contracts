@@ -74,7 +74,7 @@ pub fn instantiate(
         double_sign_slash_ratio: msg.double_sign_slash_ratio,
         distribution_contracts,
         // Will be overwritten in reply for rewards contract instantiation
-        rewards_contract: Addr::unchecked(""),
+        validator_group: Addr::unchecked(""),
     };
     CONFIG.save(deps.storage, &cfg)?;
 
@@ -724,7 +724,7 @@ fn end_block(deps: DepsMut, env: Env) -> Result<Response, ContractError> {
     };
 
     let res = res.add_submessage(SubMsg::new(WasmMsg::Execute {
-        contract_addr: cfg.rewards_contract.to_string(),
+        contract_addr: cfg.validator_group.to_string(),
         msg: to_binary(&update_members)?,
         funds: vec![],
     }));
@@ -1012,7 +1012,7 @@ pub fn rewards_instantiate_reply(
 
     let addr = deps.api.addr_validate(&res.contract_address)?;
     CONFIG.update(deps.storage, |mut config| -> StdResult<_> {
-        config.rewards_contract = addr.clone();
+        config.validator_group = addr.clone();
         Ok(config)
     })?;
 
