@@ -1547,6 +1547,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "tg3"
+version = "0.6.0-beta1"
+dependencies = [
+ "cosmwasm-schema",
+ "cosmwasm-std",
+ "schemars",
+ "serde",
+ "tg-bindings",
+ "tg-utils",
+]
+
+[[package]]
 name = "tg4"
 version = "0.6.0-beta1"
 dependencies = [
