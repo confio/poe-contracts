@@ -2,7 +2,7 @@
 
 This guide lists API changes between releases of *PoE* contracts.
 
-## 0.6.0-beta1 -> 0.6.0-rc1
+## 0.6.0-beta1 -> 0.6.0-rc2
 
 ### tg4-engagement
 
@@ -61,9 +61,13 @@ Messages changes:
 * rewards_code_id field on instantiate message renamed to validator_group_code_id
 * rewards_contract field on InstantiateReponse message renamed to validator_group
 
-
 State changes:
 
 * `min_weight` field on `config` item renamed to `min_points`
 * rewards_contract field on config item renamed to validator_group
 
+### voting-contract
+
+Messages changes:
+
+* total_weight field on Proposal message renamed to total_points
