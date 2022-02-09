@@ -712,8 +712,8 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
         ListMembersByPoints { start_after, limit } => {
             to_binary(&list_members_by_points(deps, start_after, limit)?)
         }
-        ListMembersByWeightTieBreaking { start_after, limit } => to_binary(
-            &list_members_by_weight_tie_breaking(deps, start_after, limit)?,
+        ListMembersByPointsTieBreaking { start_after, limit } => to_binary(
+            &list_members_by_points_tie_breaking(deps, start_after, limit)?,
         ),
         TotalPoints {} => to_binary(&query_total_points(deps)?),
         Admin {} => to_binary(&ADMIN.query_admin(deps)?),
@@ -878,7 +878,7 @@ fn list_members_by_points(
     Ok(MemberListResponse { members: members? })
 }
 
-fn list_members_by_weight_tie_breaking(
+fn list_members_by_points_tie_breaking(
     deps: Deps,
     start_after: Option<(Member, u64)>,
     limit: Option<u32>,
@@ -1155,7 +1155,7 @@ mod tests {
         let info = mock_info(INIT_ADMIN, &[]);
         execute_update_members(deps.as_mut(), env.clone(), info.clone(), add, remove).unwrap();
 
-        let members = list_members_by_weight_tie_breaking(deps.as_ref(), None, None)
+        let members = list_members_by_points_tie_breaking(deps.as_ref(), None, None)
             .unwrap()
             .members;
         assert_eq!(members.len(), 3);
@@ -1201,7 +1201,7 @@ mod tests {
         let env = mock_env_height(20);
         execute_update_members(deps.as_mut(), env, info, add, remove).unwrap();
 
-        let members = list_members_by_weight_tie_breaking(deps.as_ref(), None, None)
+        let members = list_members_by_points_tie_breaking(deps.as_ref(), None, None)
             .unwrap()
             .members;
         assert_eq!(members.len(), 3);
@@ -1234,7 +1234,7 @@ mod tests {
         );
 
         // Test pagination / limits work
-        let members = list_members_by_weight_tie_breaking(deps.as_ref(), None, Some(1))
+        let members = list_members_by_points_tie_breaking(deps.as_ref(), None, Some(1))
             .unwrap()
             .members;
         assert_eq!(members.len(), 1);
@@ -1252,7 +1252,7 @@ mod tests {
 
         // Next page
         let start_after = Some(members[0].clone());
-        let members = list_members_by_weight_tie_breaking(deps.as_ref(), start_after, Some(1))
+        let members = list_members_by_points_tie_breaking(deps.as_ref(), start_after, Some(1))
             .unwrap()
             .members;
         assert_eq!(members.len(), 1);
@@ -1270,7 +1270,7 @@ mod tests {
 
         // Next page
         let start_after = Some(members[0].clone());
-        let members = list_members_by_weight_tie_breaking(deps.as_ref(), start_after, Some(1))
+        let members = list_members_by_points_tie_breaking(deps.as_ref(), start_after, Some(1))
             .unwrap()
             .members;
         assert_eq!(members.len(), 1);
@@ -1288,7 +1288,7 @@ mod tests {
 
         // Assert there's no more
         let start_after = Some(members[0].clone());
-        let members = list_members_by_weight_tie_breaking(deps.as_ref(), start_after, Some(1))
+        let members = list_members_by_points_tie_breaking(deps.as_ref(), start_after, Some(1))
             .unwrap()
             .members;
         assert_eq!(members.len(), 0);

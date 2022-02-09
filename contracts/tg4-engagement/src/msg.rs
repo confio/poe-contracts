@@ -91,7 +91,7 @@ pub enum QueryMsg {
     },
     /// Returns MemberListResponse2, sorted by weight descending,
     /// breaking ties by start height
-    ListMembersByWeightTieBreaking {
+    ListMembersByPointsTieBreaking {
         start_after: Option<(Member, u64)>,
         limit: Option<u32>,
     },
