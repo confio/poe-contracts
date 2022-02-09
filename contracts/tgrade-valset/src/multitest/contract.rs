@@ -364,3 +364,84 @@ fn update_metadata_invalid_metadata() {
         resp.downcast().unwrap()
     );
 }
+
+mod instantiate {
+    use cosmwasm_std::{coin, Addr, Decimal, Uint128};
+    use cw_multi_test::{AppBuilder, BasicApp, Executor};
+    use tg_bindings::TgradeMsg;
+
+    use crate::error::ContractError;
+    use crate::msg::{
+        InstantiateMsg, OperatorInitInfo, UnvalidatedDistributionContracts, ValidatorMetadata,
+        MAX_METADATA_SIZE, MIN_METADATA_SIZE,
+    };
+    use crate::multitest::suite::{contract_stake, contract_valset};
+    use crate::test_helpers::mock_pubkey;
+
+    #[test]
+    fn instantiate_invalid_metadata() {
+        let mut app: BasicApp<TgradeMsg> = AppBuilder::new_custom().build(|_, _, _| ());
+
+        let stake_id = app.store_code(contract_stake());
+        let admin = "steakhouse owner".to_owned();
+        let msg = tg4_stake::msg::InstantiateMsg {
+            denom: "james bond denom".to_owned(),
+            tokens_per_weight: Uint128::new(10),
+            min_bond: Uint128::new(1),
+            unbonding_period: 1234,
+            admin: Some(admin.clone()),
+            preauths_hooks: 0,
+            preauths_slashing: 1,
+            auto_return_limit: 0,
+        };
+        let stake_addr = app
+            .instantiate_contract(
+                stake_id,
+                Addr::unchecked(admin.clone()),
+                &msg,
+                &[],
+                "stake",
+                Some(admin.clone()),
+            )
+            .unwrap();
+
+        let valset_id = app.store_code(contract_valset());
+
+        let member = OperatorInitInfo {
+            operator: "example".to_owned(),
+            validator_pubkey: mock_pubkey("example".as_bytes()),
+            metadata: ValidatorMetadata {
+                moniker: "example".into(),
+                details: Some(String::new()), // <- invalid (empty) details field in metadata
+                ..ValidatorMetadata::default()
+            },
+        };
+        let msg = InstantiateMsg {
+            admin: None,
+            membership: stake_addr.into(),
+            min_weight: 1,
+            max_validators: 120,
+            epoch_length: 10,
+            epoch_reward: coin(1, "denom"),
+            initial_keys: [member].to_vec(),
+            scaling: None,
+            fee_percentage: Decimal::zero(),
+            auto_unjail: false,
+            double_sign_slash_ratio: Decimal::percent(50),
+            distribution_contracts: UnvalidatedDistributionContracts::default(),
+            rewards_code_id: 1,
+        };
+
+        let err = app
+            .instantiate_contract(valset_id, Addr::unchecked(admin), &msg, &[], "valset", None)
+            .unwrap_err();
+        assert_eq!(
+            ContractError::InvalidMetadata {
+                data: "details".to_owned(),
+                min: MIN_METADATA_SIZE,
+                max: MAX_METADATA_SIZE
+            },
+            err.downcast().unwrap()
+        );
+    }
+}

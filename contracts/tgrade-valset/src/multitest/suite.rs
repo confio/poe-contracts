@@ -24,7 +24,7 @@ pub fn contract_engagement() -> Box<dyn Contract<TgradeMsg>> {
     Box::new(contract)
 }
 
-fn contract_stake() -> Box<dyn Contract<TgradeMsg>> {
+pub fn contract_stake() -> Box<dyn Contract<TgradeMsg>> {
     let contract = ContractWrapper::new(
         tg4_stake::contract::execute,
         tg4_stake::contract::instantiate,
