@@ -175,7 +175,7 @@ fn init_and_query_state() {
             auto_unjail: false,
             double_sign_slash_ratio: Decimal::percent(50),
             distribution_contracts: vec![],
-            rewards_contract: cfg.rewards_contract.clone(),
+            validator_group: cfg.validator_group.clone(),
         }
     );
 
