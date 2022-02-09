@@ -1,30 +1,13 @@
 use cosmwasm_std::Binary;
 use tg_bindings::Pubkey;
 
-use crate::msg::{JailingPeriod, OperatorResponse, ValidatorMetadata};
+use crate::msg::{JailingPeriod, OperatorResponse};
 use crate::state::ValidatorInfo;
 
 // Converts address to valid public key
 // Requires addr to be exactly 32 bytes long, panics otherwise
 pub fn addr_to_pubkey(addr: &str) -> Pubkey {
     Pubkey::Ed25519(Binary((*addr).as_bytes().to_vec()))
-}
-
-pub fn mock_pubkey(base: &[u8]) -> Pubkey {
-    const ED25519_PUBKEY_LENGTH: usize = 32;
-
-    let copies = (ED25519_PUBKEY_LENGTH / base.len()) + 1;
-    let mut raw = base.repeat(copies);
-    raw.truncate(ED25519_PUBKEY_LENGTH);
-    Pubkey::Ed25519(Binary(raw))
-}
-
-pub fn mock_metadata(seed: &str) -> ValidatorMetadata {
-    ValidatorMetadata {
-        moniker: seed.into(),
-        details: Some(format!("I'm really {}", seed)),
-        ..ValidatorMetadata::default()
-    }
 }
 
 pub fn members_init<'m>(members: &[&'m str], weights: &[u64]) -> Vec<(&'m str, u64)> {

@@ -1,5 +1,6 @@
-use super::helpers::{addr_to_pubkey, mock_metadata, mock_pubkey};
+use super::helpers::addr_to_pubkey;
 use crate::state::Config;
+use crate::test_helpers::{mock_metadata, mock_pubkey};
 use crate::{msg::*, state::ValidatorInfo};
 use anyhow::{bail, Result as AnyResult};
 use cosmwasm_std::{
@@ -23,7 +24,7 @@ pub fn contract_engagement() -> Box<dyn Contract<TgradeMsg>> {
     Box::new(contract)
 }
 
-fn contract_stake() -> Box<dyn Contract<TgradeMsg>> {
+pub fn contract_stake() -> Box<dyn Contract<TgradeMsg>> {
     let contract = ContractWrapper::new(
         tg4_stake::contract::execute,
         tg4_stake::contract::instantiate,

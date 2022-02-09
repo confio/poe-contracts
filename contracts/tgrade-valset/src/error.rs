@@ -36,9 +36,6 @@ pub enum ContractError {
     #[error("Scaling must be unset or greater than zero")]
     InvalidScaling {},
 
-    #[error("The moniker field must not be empty")]
-    InvalidMoniker {},
-
     #[error("Tendermint pubkey must be 32 bytes long")]
     InvalidPubkey {},
 
@@ -71,6 +68,16 @@ pub enum ContractError {
 
     #[error("Jail did not yet expire")]
     JailDidNotExpire {},
+
+    #[error("Invalid metadata - {data} length must be {min}-{max} characters")]
+    InvalidMetadata {
+        data: &'static str,
+        min: usize,
+        max: usize,
+    },
+
+    #[error("Invalid metadata - website needs to start with http:// or https://")]
+    InvalidMetadataWebsitePrefix {},
 }
 
 impl From<Ed25519PubkeyConversionError> for ContractError {

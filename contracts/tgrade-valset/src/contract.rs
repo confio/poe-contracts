@@ -91,6 +91,7 @@ pub fn instantiate(
     for op in msg.initial_keys.into_iter() {
         let oper = deps.api.addr_validate(&op.operator)?;
         let pubkey: Ed25519Pubkey = op.validator_pubkey.try_into()?;
+        op.metadata.validate()?;
         let info = OperatorInfo {
             pubkey,
             metadata: op.metadata,
@@ -205,6 +206,8 @@ fn execute_register_validator_key(
     pubkey: Pubkey,
     metadata: ValidatorMetadata,
 ) -> Result<Response, ContractError> {
+    metadata.validate()?;
+
     let pubkey: Ed25519Pubkey = pubkey.try_into()?;
     let moniker = metadata.moniker.clone();
 

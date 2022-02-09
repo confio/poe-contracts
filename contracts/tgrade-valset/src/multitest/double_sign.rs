@@ -2,10 +2,11 @@ use cosmwasm_std::coin;
 use cosmwasm_std::{Binary, Decimal};
 use tg_bindings::{Ed25519Pubkey, Evidence, EvidenceType, ToAddress, Validator};
 
-use super::helpers::{addr_to_pubkey, assert_operators, mock_pubkey};
+use super::helpers::{addr_to_pubkey, assert_operators};
 use super::suite::SuiteBuilder;
 use crate::msg::{JailingPeriod, ValidatorMetadata};
 use crate::multitest::helpers::members_init;
+use crate::test_helpers::mock_pubkey;
 
 use std::convert::TryFrom;
 

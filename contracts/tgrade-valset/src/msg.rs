@@ -92,60 +92,6 @@ pub struct InstantiateMsg {
     pub rewards_code_id: u64,
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
-pub struct UnvalidatedDistributionContract {
-    /// The unvalidated address of the contract to which part of the reward tokens is sent to.
-    pub contract: String,
-    /// The ratio of total reward tokens for an epoch to be sent to that contract for further
-    /// distribution.
-    pub ratio: Decimal,
-}
-
-impl UnvalidatedDistributionContract {
-    fn validate(self, api: &dyn Api) -> Result<DistributionContract, ContractError> {
-        Ok(DistributionContract {
-            contract: api.addr_validate(&self.contract)?,
-            ratio: self.ratio,
-        })
-    }
-}
-
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug, Default)]
-#[serde(transparent)]
-pub struct UnvalidatedDistributionContracts {
-    pub inner: Vec<UnvalidatedDistributionContract>,
-}
-
-impl UnvalidatedDistributionContracts {
-    /// Validates the addresses and the sum of ratios.
-    pub fn validate(self, api: &dyn Api) -> Result<Vec<DistributionContract>, ContractError> {
-        if self.sum_ratios() > Decimal::one() {
-            return Err(ContractError::InvalidRewardsRatio {});
-        }
-
-        self.inner.into_iter().map(|c| c.validate(api)).collect()
-    }
-
-    fn sum_ratios(&self) -> Decimal {
-        self.inner
-            .iter()
-            .map(|c| c.ratio)
-            .fold(Decimal::zero(), Decimal::add)
-    }
-}
-
-pub fn default_fee_percentage() -> Decimal {
-    Decimal::zero()
-}
-
-pub fn default_validators_reward_ratio() -> Decimal {
-    Decimal::one()
-}
-
-pub fn default_double_sign_slash() -> Decimal {
-    Decimal::percent(50)
-}
-
 impl InstantiateMsg {
     pub fn validate(&self) -> Result<(), ContractError> {
         if self.epoch_length == 0 {
@@ -168,54 +114,6 @@ impl InstantiateMsg {
             op.validate()?
         }
         Ok(())
-    }
-}
-
-/// Validator Metadata modeled after the Cosmos SDK staking module
-#[derive(
-    Serialize, Deserialize, Clone, Eq, PartialEq, Ord, PartialOrd, JsonSchema, Debug, Default,
-)]
-pub struct ValidatorMetadata {
-    /// The validator's name (required)
-    pub moniker: String,
-
-    /// The optional identity signature (ex. UPort or Keybase)
-    pub identity: Option<String>,
-
-    /// The validator's (optional) website
-    pub website: Option<String>,
-
-    /// The validator's (optional) security contact email
-    pub security_contact: Option<String>,
-
-    /// The validator's (optional) details
-    pub details: Option<String>,
-}
-
-const MIN_MONIKER_LENGTH: usize = 3;
-
-impl ValidatorMetadata {
-    pub fn validate(&self) -> Result<(), ContractError> {
-        if self.moniker.len() < MIN_MONIKER_LENGTH {
-            return Err(ContractError::InvalidMoniker {});
-        }
-        Ok(())
-    }
-}
-
-/// Maps an sdk address to a Tendermint pubkey.
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
-pub struct OperatorInitInfo {
-    pub operator: String,
-    /// TODO: better name to specify this is the Tendermint pubkey for consensus?
-    pub validator_pubkey: Pubkey,
-    pub metadata: ValidatorMetadata,
-}
-
-impl OperatorInitInfo {
-    pub fn validate(&self) -> Result<(), ContractError> {
-        Ed25519Pubkey::try_from(&self.validator_pubkey)?;
-        self.metadata.validate()
     }
 }
 
@@ -304,6 +202,152 @@ pub enum QueryMsg {
 
     /// Returns cw_controllers::AdminResponse
     Admin {},
+}
+
+#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+pub struct UnvalidatedDistributionContract {
+    /// The unvalidated address of the contract to which part of the reward tokens is sent to.
+    pub contract: String,
+    /// The ratio of total reward tokens for an epoch to be sent to that contract for further
+    /// distribution.
+    pub ratio: Decimal,
+}
+
+impl UnvalidatedDistributionContract {
+    fn validate(self, api: &dyn Api) -> Result<DistributionContract, ContractError> {
+        Ok(DistributionContract {
+            contract: api.addr_validate(&self.contract)?,
+            ratio: self.ratio,
+        })
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug, Default)]
+#[serde(transparent)]
+pub struct UnvalidatedDistributionContracts {
+    pub inner: Vec<UnvalidatedDistributionContract>,
+}
+
+impl UnvalidatedDistributionContracts {
+    /// Validates the addresses and the sum of ratios.
+    pub fn validate(self, api: &dyn Api) -> Result<Vec<DistributionContract>, ContractError> {
+        if self.sum_ratios() > Decimal::one() {
+            return Err(ContractError::InvalidRewardsRatio {});
+        }
+
+        self.inner.into_iter().map(|c| c.validate(api)).collect()
+    }
+
+    fn sum_ratios(&self) -> Decimal {
+        self.inner
+            .iter()
+            .map(|c| c.ratio)
+            .fold(Decimal::zero(), Decimal::add)
+    }
+}
+
+pub fn default_fee_percentage() -> Decimal {
+    Decimal::zero()
+}
+
+pub fn default_validators_reward_ratio() -> Decimal {
+    Decimal::one()
+}
+
+pub fn default_double_sign_slash() -> Decimal {
+    Decimal::percent(50)
+}
+
+/// Validator Metadata modeled after the Cosmos SDK staking module
+#[derive(
+    Serialize, Deserialize, Clone, Eq, PartialEq, Ord, PartialOrd, JsonSchema, Debug, Default,
+)]
+pub struct ValidatorMetadata {
+    /// The validator's name (required)
+    pub moniker: String,
+
+    /// The optional identity signature (ex. UPort or Keybase)
+    pub identity: Option<String>,
+
+    /// The validator's (optional) website
+    pub website: Option<String>,
+
+    /// The validator's (optional) security contact email
+    pub security_contact: Option<String>,
+
+    /// The validator's (optional) details
+    pub details: Option<String>,
+}
+
+pub const MIN_MONIKER_LENGTH: usize = 3;
+pub const MIN_METADATA_SIZE: usize = 1;
+pub const MAX_METADATA_SIZE: usize = 256;
+
+impl ValidatorMetadata {
+    pub fn validate(&self) -> Result<(), ContractError> {
+        if self.moniker.len() < MIN_MONIKER_LENGTH || self.moniker.len() > MAX_METADATA_SIZE {
+            return Err(ContractError::InvalidMetadata {
+                data: "moniker",
+                min: MIN_MONIKER_LENGTH,
+                max: MAX_METADATA_SIZE,
+            });
+        }
+        if let Some(identity) = &self.identity {
+            if identity.is_empty() || identity.len() > MAX_METADATA_SIZE {
+                return Err(ContractError::InvalidMetadata {
+                    data: "identity",
+                    min: MIN_METADATA_SIZE,
+                    max: MAX_METADATA_SIZE,
+                });
+            }
+        }
+        if let Some(website) = &self.website {
+            if website.is_empty() || website.len() > MAX_METADATA_SIZE {
+                return Err(ContractError::InvalidMetadata {
+                    data: "website",
+                    min: MIN_METADATA_SIZE,
+                    max: MAX_METADATA_SIZE,
+                });
+            } else if !website.starts_with("https://") && !website.starts_with("http://") {
+                return Err(ContractError::InvalidMetadataWebsitePrefix {});
+            }
+        }
+        if let Some(security_contract) = &self.security_contact {
+            if security_contract.is_empty() || security_contract.len() > MAX_METADATA_SIZE {
+                return Err(ContractError::InvalidMetadata {
+                    data: "security_contract",
+                    min: MIN_METADATA_SIZE,
+                    max: MAX_METADATA_SIZE,
+                });
+            }
+        }
+        if let Some(details) = &self.details {
+            if details.is_empty() || details.len() > MAX_METADATA_SIZE {
+                return Err(ContractError::InvalidMetadata {
+                    data: "details",
+                    min: MIN_METADATA_SIZE,
+                    max: MAX_METADATA_SIZE,
+                });
+            }
+        }
+        Ok(())
+    }
+}
+
+/// Maps an sdk address to a Tendermint pubkey.
+#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+pub struct OperatorInitInfo {
+    pub operator: String,
+    /// TODO: better name to specify this is the Tendermint pubkey for consensus?
+    pub validator_pubkey: Pubkey,
+    pub metadata: ValidatorMetadata,
+}
+
+impl OperatorInitInfo {
+    pub fn validate(&self) -> Result<(), ContractError> {
+        Ed25519Pubkey::try_from(&self.validator_pubkey)?;
+        self.metadata.validate()
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
@@ -517,5 +561,133 @@ mod test {
         invalid.epoch_reward.denom = "".into();
         let err = invalid.validate().unwrap_err();
         assert_eq!(err, ContractError::InvalidRewardDenom {});
+    }
+
+    #[test]
+    fn validate_metadata() {
+        let meta = ValidatorMetadata {
+            moniker: "example".to_owned(),
+            identity: Some((0..MAX_METADATA_SIZE + 1).map(|_| "X").collect::<String>()),
+            website: Some((0..MAX_METADATA_SIZE + 1).map(|_| "X").collect::<String>()),
+            security_contact: Some((0..MAX_METADATA_SIZE + 1).map(|_| "X").collect::<String>()),
+            details: Some((0..MAX_METADATA_SIZE + 1).map(|_| "X").collect::<String>()),
+        };
+        let resp = meta.validate().unwrap_err();
+        assert_eq!(
+            ContractError::InvalidMetadata {
+                data: "identity",
+                min: MIN_METADATA_SIZE,
+                max: MAX_METADATA_SIZE
+            },
+            resp
+        );
+
+        let meta = ValidatorMetadata {
+            identity: Some("identity".to_owned()),
+            ..meta
+        };
+        let resp = meta.validate().unwrap_err();
+        assert_eq!(
+            ContractError::InvalidMetadata {
+                data: "website",
+                min: MIN_METADATA_SIZE,
+                max: MAX_METADATA_SIZE,
+            },
+            resp
+        );
+
+        let meta = ValidatorMetadata {
+            website: Some("https://website".to_owned()),
+            ..meta
+        };
+        let resp = meta.validate().unwrap_err();
+        assert_eq!(
+            ContractError::InvalidMetadata {
+                data: "security_contract",
+                min: MIN_METADATA_SIZE,
+                max: MAX_METADATA_SIZE,
+            },
+            resp
+        );
+
+        let meta = ValidatorMetadata {
+            security_contact: Some("contract".to_owned()),
+            ..meta
+        };
+        let resp = meta.validate().unwrap_err();
+        assert_eq!(
+            ContractError::InvalidMetadata {
+                data: "details",
+                min: MIN_METADATA_SIZE,
+                max: MAX_METADATA_SIZE,
+            },
+            resp
+        );
+
+        let meta = ValidatorMetadata {
+            identity: Some(String::new()),
+            website: Some(String::new()),
+            security_contact: Some(String::new()),
+            details: Some(String::new()),
+            ..meta
+        };
+        let resp = meta.validate().unwrap_err();
+        assert_eq!(
+            ContractError::InvalidMetadata {
+                data: "identity",
+                min: MIN_METADATA_SIZE,
+                max: MAX_METADATA_SIZE
+            },
+            resp
+        );
+
+        let meta = ValidatorMetadata {
+            identity: Some("identity".to_owned()),
+            ..meta
+        };
+        let resp = meta.validate().unwrap_err();
+        assert_eq!(
+            ContractError::InvalidMetadata {
+                data: "website",
+                min: MIN_METADATA_SIZE,
+                max: MAX_METADATA_SIZE,
+            },
+            resp
+        );
+
+        let meta = ValidatorMetadata {
+            website: Some("http://website".to_owned()),
+            ..meta
+        };
+        let resp = meta.validate().unwrap_err();
+        assert_eq!(
+            ContractError::InvalidMetadata {
+                data: "security_contract",
+                min: MIN_METADATA_SIZE,
+                max: MAX_METADATA_SIZE,
+            },
+            resp
+        );
+
+        let meta = ValidatorMetadata {
+            security_contact: Some("contract".to_owned()),
+            ..meta
+        };
+        let resp = meta.validate().unwrap_err();
+        assert_eq!(
+            ContractError::InvalidMetadata {
+                data: "details",
+                min: MIN_METADATA_SIZE,
+                max: MAX_METADATA_SIZE,
+            },
+            resp
+        );
+
+        let meta = ValidatorMetadata {
+            website: Some("website".to_owned()),
+            ..meta
+        };
+        let resp = meta.validate().unwrap_err();
+        assert_eq!(ContractError::InvalidMetadataWebsitePrefix {}, resp);
     }
 }

@@ -1,8 +1,10 @@
 use crate::error::ContractError;
-use crate::msg::{EpochResponse, ValidatorMetadata};
+use crate::msg::{
+    EpochResponse, ValidatorMetadata, MAX_METADATA_SIZE, MIN_METADATA_SIZE, MIN_MONIKER_LENGTH,
+};
 use crate::state::Config;
 
-use super::helpers::{assert_active_validators, assert_operators, members_init};
+use super::helpers::{addr_to_pubkey, assert_active_validators, assert_operators, members_init};
 use super::suite::SuiteBuilder;
 use assert_matches::assert_matches;
 use cosmwasm_std::{coin, Decimal};
@@ -174,7 +176,14 @@ fn update_metadata() {
     let resp = suite
         .update_metadata(members[0], &invalid_meta)
         .unwrap_err();
-    assert_eq!(ContractError::InvalidMoniker {}, resp.downcast().unwrap());
+    assert_eq!(
+        ContractError::InvalidMetadata {
+            data: "moniker",
+            min: MIN_MONIKER_LENGTH,
+            max: MAX_METADATA_SIZE,
+        },
+        resp.downcast().unwrap()
+    );
 
     // Ensure no metadata changed
     let resp = suite.validator(members[0]).unwrap();
@@ -259,4 +268,180 @@ fn list_validators_paginated() {
             (members[4], None),
         ],
     );
+}
+
+#[test]
+fn register_key_invalid_metadata() {
+    let members = vec!["member1"];
+
+    let mut suite = SuiteBuilder::new()
+        .with_engagement(&members_init(&members, &[2, 3, 5, 8, 13, 21]))
+        .with_operators(&members)
+        .with_min_points(5)
+        .build();
+
+    let meta = ValidatorMetadata {
+        moniker: "example".to_owned(),
+        identity: Some((0..MAX_METADATA_SIZE + 1).map(|_| "X").collect::<String>()),
+        website: Some((0..MAX_METADATA_SIZE + 1).map(|_| "X").collect::<String>()),
+        security_contact: Some((0..MAX_METADATA_SIZE + 1).map(|_| "X").collect::<String>()),
+        details: Some((0..MAX_METADATA_SIZE + 1).map(|_| "X").collect::<String>()),
+    };
+    let pubkey = addr_to_pubkey(members[0]);
+    let resp = suite
+        .register_validator_key(members[0], pubkey.clone(), meta.clone())
+        .unwrap_err();
+    assert_eq!(
+        ContractError::InvalidMetadata {
+            data: "identity",
+            min: MIN_METADATA_SIZE,
+            max: MAX_METADATA_SIZE
+        },
+        resp.downcast().unwrap()
+    );
+
+    let meta = ValidatorMetadata {
+        identity: Some(String::new()),
+        website: Some(String::new()),
+        security_contact: Some(String::new()),
+        details: Some(String::new()),
+        ..meta
+    };
+    let resp = suite
+        .register_validator_key(members[0], pubkey, meta)
+        .unwrap_err();
+    assert_eq!(
+        ContractError::InvalidMetadata {
+            data: "identity",
+            min: MIN_METADATA_SIZE,
+            max: MAX_METADATA_SIZE
+        },
+        resp.downcast().unwrap()
+    );
+}
+
+#[test]
+fn update_metadata_invalid_metadata() {
+    let members = vec!["member1"];
+
+    let mut suite = SuiteBuilder::new()
+        .with_engagement(&members_init(&members, &[2, 3, 5, 8, 13, 21]))
+        .with_operators(&members)
+        .with_min_points(5)
+        .build();
+
+    let meta = ValidatorMetadata {
+        moniker: "example".to_owned(),
+        identity: Some((0..MAX_METADATA_SIZE + 1).map(|_| "X").collect::<String>()),
+        website: Some((0..MAX_METADATA_SIZE + 1).map(|_| "X").collect::<String>()),
+        security_contact: Some((0..MAX_METADATA_SIZE + 1).map(|_| "X").collect::<String>()),
+        details: Some((0..MAX_METADATA_SIZE + 1).map(|_| "X").collect::<String>()),
+    };
+    let resp = suite.update_metadata(members[0], &meta).unwrap_err();
+    assert_eq!(
+        ContractError::InvalidMetadata {
+            data: "identity",
+            min: MIN_METADATA_SIZE,
+            max: MAX_METADATA_SIZE
+        },
+        resp.downcast().unwrap()
+    );
+
+    let meta = ValidatorMetadata {
+        identity: Some(String::new()),
+        website: Some(String::new()),
+        security_contact: Some(String::new()),
+        details: Some(String::new()),
+        ..meta
+    };
+    let resp = suite.update_metadata(members[0], &meta).unwrap_err();
+    assert_eq!(
+        ContractError::InvalidMetadata {
+            data: "identity",
+            min: MIN_METADATA_SIZE,
+            max: MAX_METADATA_SIZE
+        },
+        resp.downcast().unwrap()
+    );
+}
+
+mod instantiate {
+    use cosmwasm_std::{coin, Addr, Decimal, Uint128};
+    use cw_multi_test::{AppBuilder, BasicApp, Executor};
+    use tg_bindings::TgradeMsg;
+
+    use crate::error::ContractError;
+    use crate::msg::{
+        InstantiateMsg, OperatorInitInfo, UnvalidatedDistributionContracts, ValidatorMetadata,
+        MAX_METADATA_SIZE, MIN_METADATA_SIZE,
+    };
+    use crate::multitest::suite::{contract_stake, contract_valset};
+    use crate::test_helpers::mock_pubkey;
+
+    #[test]
+    fn instantiate_invalid_metadata() {
+        let mut app: BasicApp<TgradeMsg> = AppBuilder::new_custom().build(|_, _, _| ());
+
+        let stake_id = app.store_code(contract_stake());
+        let admin = "steakhouse owner".to_owned();
+        let msg = tg4_stake::msg::InstantiateMsg {
+            denom: "james bond denom".to_owned(),
+            tokens_per_point: Uint128::new(10),
+            min_bond: Uint128::new(1),
+            unbonding_period: 1234,
+            admin: Some(admin.clone()),
+            preauths_hooks: 0,
+            preauths_slashing: 1,
+            auto_return_limit: 0,
+        };
+        let stake_addr = app
+            .instantiate_contract(
+                stake_id,
+                Addr::unchecked(admin.clone()),
+                &msg,
+                &[],
+                "stake",
+                Some(admin.clone()),
+            )
+            .unwrap();
+
+        let valset_id = app.store_code(contract_valset());
+
+        let member = OperatorInitInfo {
+            operator: "example".to_owned(),
+            validator_pubkey: mock_pubkey("example".as_bytes()),
+            metadata: ValidatorMetadata {
+                moniker: "example".into(),
+                details: Some(String::new()), // <- invalid (empty) details field in metadata
+                ..ValidatorMetadata::default()
+            },
+        };
+        let msg = InstantiateMsg {
+            admin: None,
+            membership: stake_addr.into(),
+            min_points: 1,
+            max_validators: 120,
+            epoch_length: 10,
+            epoch_reward: coin(1, "denom"),
+            initial_keys: [member].to_vec(),
+            scaling: None,
+            fee_percentage: Decimal::zero(),
+            auto_unjail: false,
+            double_sign_slash_ratio: Decimal::percent(50),
+            distribution_contracts: UnvalidatedDistributionContracts::default(),
+            rewards_code_id: 1,
+        };
+
+        let err = app
+            .instantiate_contract(valset_id, Addr::unchecked(admin), &msg, &[], "valset", None)
+            .unwrap_err();
+        assert_eq!(
+            ContractError::InvalidMetadata {
+                data: "details",
+                min: MIN_METADATA_SIZE,
+                max: MAX_METADATA_SIZE
+            },
+            err.downcast().unwrap()
+        );
+    }
 }

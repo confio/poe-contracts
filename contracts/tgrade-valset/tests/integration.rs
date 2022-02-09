@@ -15,6 +15,7 @@ use tg_bindings::Pubkey;
 
 use tgrade_valset::msg::ExecuteMsg;
 use tgrade_valset::state::ValidatorInfo;
+use tgrade_valset::test_helpers::mock_pubkey;
 
 // Copied from test_helpers
 // returns a list of addresses that are set in the tg4-stake contract
@@ -48,16 +49,6 @@ fn mock_instance_on_tgrade(wasm: &[u8]) -> Instance<MockApi, MockStorage, MockQu
             ..Default::default()
         },
     )
-}
-
-const ED25519_PUBKEY_LENGTH: usize = 32;
-
-// creates a valid pubkey from a seed
-fn mock_pubkey(base: &[u8]) -> Pubkey {
-    let copies = (ED25519_PUBKEY_LENGTH / base.len()) + 1;
-    let mut raw = base.repeat(copies);
-    raw.truncate(ED25519_PUBKEY_LENGTH);
-    Pubkey::Ed25519(Binary(raw))
 }
 
 static WASM: &[u8] =
