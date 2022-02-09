@@ -540,30 +540,31 @@ fn list_jailed_validators(
     let start_after = maybe_addr(deps.api, start_after)?;
     let start = start_after.map(|addr| Bound::exclusive(addr.as_str()));
 
-    let validators: Vec<OperatorResponse> = operators()
+    let validators = JAIL
         .range(deps.storage, start, None, Order::Ascending)
-        .map(|r| {
-            let (operator, info) = r?;
-
-            let jailed_until = JAIL
-                .may_load(deps.storage, &Addr::unchecked(&operator))?
-                .filter(|expires| !(cfg.auto_unjail && expires.is_expired(&env.block)));
-            match jailed_until {
-                Some(jailed_into) => Ok(Some(OperatorResponse {
-                    operator: operator.into(),
-                    metadata: info.metadata,
-                    pubkey: info.pubkey.into(),
-                    jailed_until: Some(jailed_into),
-                    active_validator: info.active_validator,
-                })),
-                None => Ok(None),
+        .map(|jail| {
+            let (addr, jailing_period) = jail?;
+            if !(cfg.auto_unjail && jailing_period.is_expired(&env.block)) {
+                Ok(Some((addr, jailing_period)))
+            } else {
+                Ok(None)
             }
         })
         .collect::<Result<Vec<Option<_>>, ContractError>>()?
         .into_iter()
         .flatten()
+        .map(|(addr, jailing_period)| {
+            let info = operators().load(deps.storage, &Addr::unchecked(&addr))?;
+            Ok(OperatorResponse {
+                operator: addr.into(),
+                metadata: info.metadata,
+                pubkey: info.pubkey.into(),
+                jailed_until: Some(jailing_period),
+                active_validator: info.active_validator,
+            })
+        })
         .take(limit)
-        .collect();
+        .collect::<Result<Vec<OperatorResponse>, ContractError>>()?;
 
     Ok(ListValidatorResponse { validators })
 }
