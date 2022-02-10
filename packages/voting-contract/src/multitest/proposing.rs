@@ -41,7 +41,7 @@ fn proposal_creation() {
             status: Status::Open,
             expires: expected_expiration,
             rules,
-            total_weight: 4,
+            total_points: 4,
             votes: Votes::yes(1),
         }
     )

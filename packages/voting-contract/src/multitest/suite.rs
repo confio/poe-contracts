@@ -7,13 +7,14 @@ use anyhow::Result as AnyResult;
 use cosmwasm_std::{Addr, StdResult};
 use cw_multi_test::{AppResponse, Executor};
 use derivative::Derivative;
-use tg3::{Vote, VoterDetail, VoterListResponse, VoterResponse};
+use tg3::{
+    Vote, VoteInfo, VoteListResponse, VoteResponse, VoterDetail, VoterListResponse, VoterResponse,
+};
 
 use tg4::Member;
 use tg_bindings_test::TgradeApp;
 
 use crate::{
-    msg::{VoteInfo, VoteListResponse, VoteResponse},
     state::{
         ProposalInfo, ProposalListResponse, ProposalResponse, RulesBuilder,
         TextProposalListResponse, VotingRules,

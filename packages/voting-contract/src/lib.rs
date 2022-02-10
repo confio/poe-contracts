@@ -8,7 +8,6 @@ use serde::de::DeserializeOwned;
 use serde::Serialize;
 
 pub use error::ContractError;
-use msg::{VoteInfo, VoteListResponse, VoteResponse};
 use state::{
     next_id, proposals, Ballot, Config, Proposal, ProposalListResponse, ProposalResponse,
     TextProposalListResponse, Votes, VotingRules, BALLOTS, BALLOTS_BY_VOTER, CONFIG,
@@ -18,7 +17,10 @@ use state::{
 use cosmwasm_std::{Addr, BlockInfo, Deps, DepsMut, Env, MessageInfo, Order, StdResult, Storage};
 use cw_storage_plus::Bound;
 use cw_utils::maybe_addr;
-use tg3::{Status, Vote, VoterDetail, VoterListResponse, VoterResponse};
+use tg3::{
+    Status, Vote, VoteInfo, VoteListResponse, VoteResponse, VoterDetail, VoterListResponse,
+    VoterResponse,
+};
 use tg4::{Member, Tg4Contract};
 use tg_bindings::TgradeMsg;
 use tg_utils::Expiration;
@@ -92,7 +94,7 @@ where
         status: Status::Open,
         votes: Votes::yes(vote_power),
         rules: cfg.rules,
-        total_weight: cfg.group_contract.total_weight(&deps.querier)?,
+        total_points: cfg.group_contract.total_weight(&deps.querier)?,
     };
     prop.update_status(&env.block);
     let id = next_id(deps.storage)?;
@@ -104,7 +106,7 @@ where
         id,
         &info.sender,
         Ballot {
-            weight: vote_power,
+            points: vote_power,
             vote: Vote::Yes,
         },
     )?;
@@ -155,7 +157,7 @@ where
         proposal_id,
         &info.sender,
         Ballot {
-            weight: vote_power,
+            points: vote_power,
             vote,
         },
     )?;
@@ -266,7 +268,7 @@ where
         status,
         expires: prop.expires,
         rules,
-        total_weight: prop.total_weight,
+        total_points: prop.total_points,
         votes: prop.votes,
     })
 }
@@ -286,7 +288,7 @@ fn map_proposal<P>(
         status,
         expires: prop.expires,
         rules: prop.rules,
-        total_weight: prop.total_weight,
+        total_points: prop.total_points,
         votes: prop.votes,
     })
 }
@@ -351,7 +353,7 @@ pub fn query_vote(deps: Deps, proposal_id: u64, voter: String) -> StdResult<Vote
         proposal_id,
         voter,
         vote: b.vote,
-        weight: b.weight,
+        points: b.points,
     });
     Ok(VoteResponse { vote })
 }
@@ -375,7 +377,7 @@ pub fn list_votes(
                 proposal_id,
                 voter: voter.into(),
                 vote: ballot.vote,
-                weight: ballot.weight,
+                points: ballot.points,
             })
         })
         .collect();
@@ -402,7 +404,7 @@ pub fn list_votes_by_voter(
                 proposal_id,
                 voter: voter.clone(),
                 vote: ballot.vote,
-                weight: ballot.weight,
+                points: ballot.points,
             })
         })
         .collect();
