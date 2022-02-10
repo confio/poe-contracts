@@ -18,7 +18,7 @@ library = []
 
 [dependencies]
 cw2 = "0.11.0"
-tg3 = { path = "../../packages/tg3", version = "0.6.0-beta1" }
+tg3 = { path = "../../packages/tg3", version = "0.6.0-rc2" }
 cosmwasm-std = "1.0.0-beta"
 schemars = "0.8.1"
 serde = { version = "1", default-features = false, features = ["derive"] }
