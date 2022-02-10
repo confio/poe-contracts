@@ -11,7 +11,7 @@ can check a given member address and the total points. Smart queries (designed
 for client API) can do the same, and also query the admin address as well as
 paginate over all members.
 
-Also this contract provides api for behavior similar to EIP2222 standard, which
+Also, this contract provides api for behavior similar to EIP2222 standard, which
 allows for automatic split rewards sent to this contract proportionally to
 members points.
 
@@ -72,7 +72,7 @@ they are assigned for future withdrawal.
 
 `WithdrawFunds {receiver}` - withdraws funds previously assigned to sender of the
 message while funds distribution. Optional `receiver` field is an address where
-funds should be send, message sender by default.
+funds should be sent, message sender by default.
 
 `DelegateWithdrawal{delegated}` - set `delegated` address to be allowed to
 withdraw funds assigned to `sender`. Only one address can be delegated for any
@@ -86,13 +86,13 @@ to `sender`.
 
 `Preauths {}` - returns the current number of preauths.
 
-`WithdrawableFunds {owner}` - returns how much funds is assigned for withdrawal by
+`WithdrawableRewards {owner}` - returns how many rewards are assigned for withdrawal by
 owner.
 
-`DistributedFunds {}` - returns how much funds were distributed by this contract in
+`DistributedRewards {}` - returns how many rewards were distributed by this contract in
 its lifetime.
 
-`UndistributedFunds {}` - returns how much funds is waiting for distribution on this
+`UndistributedRewards {}` - returns how many rewards are waiting for distribution on this
 contract.
 
 `Delegated {owner}` - returns address allowed to withdraw funds assigned to given

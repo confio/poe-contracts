@@ -747,8 +747,8 @@ fn query_member(deps: Deps, addr: String, height: Option<u64>) -> StdResult<Memb
 }
 
 pub fn query_withdrawable_rewards(deps: Deps, owner: String) -> StdResult<RewardsResponse> {
-    // Not checking address, as if it is ivnalid it is guaranteed not to appear in maps, so
-    // `withdrawable_funds` would return error itself.
+    // Not checking address, as if it is invalid it is guaranteed not to appear in maps, so
+    // `withdrawable_rewards` would return error itself.
     let owner = Addr::unchecked(&owner);
     let distribution = DISTRIBUTION.load(deps.storage)?;
     let adjustment = if let Some(adj) = WITHDRAW_ADJUSTMENT.may_load(deps.storage, &owner)? {

@@ -55,15 +55,15 @@ mod funds_distribution {
         assert_eq!(suite.token_balance(&members[3]).unwrap(), 0);
 
         assert_eq!(
-            suite.withdrawable_funds(&members[0]).unwrap(),
+            suite.withdrawable_rewards(&members[0]).unwrap(),
             coin(50, &denom)
         );
         assert_eq!(
-            suite.withdrawable_funds(&members[1]).unwrap(),
+            suite.withdrawable_rewards(&members[1]).unwrap(),
             coin(100, &denom)
         );
         assert_eq!(
-            suite.withdrawable_funds(&members[2]).unwrap(),
+            suite.withdrawable_rewards(&members[2]).unwrap(),
             coin(250, &denom)
         );
 
@@ -562,7 +562,7 @@ mod funds_distribution {
     fn querying_unknown_address() {
         let suite = SuiteBuilder::new().with_denom("usdc").build();
 
-        let resp = suite.withdrawable_funds("unknown").unwrap();
+        let resp = suite.withdrawable_rewards("unknown").unwrap();
         assert_eq!(resp, coin(0, "usdc"))
     }
 }

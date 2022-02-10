@@ -282,7 +282,7 @@ impl Suite {
         Ok(slashers_list)
     }
 
-    pub fn withdrawable_funds(&self, owner: &str) -> Result<Coin, ContractError> {
+    pub fn withdrawable_rewards(&self, owner: &str) -> Result<Coin, ContractError> {
         let resp: RewardsResponse = self.app.wrap().query_wasm_smart(
             self.contract.clone(),
             &QueryMsg::WithdrawableRewards {
