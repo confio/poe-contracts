@@ -53,7 +53,7 @@ echo
 RESULTS="./schema_diffs-$LEFT_TAG-$RIGHT_TAG.txt"
 
 # Remove schemas on exit
-trap 'rm -rf ./*/*/"schema-$LEFT_TAG" ./*/*/"schema-$RIGHT_TAG"' 0
+#trap 'rm -rf ./*/*/"schema-$LEFT_TAG" ./*/*/"schema-$RIGHT_TAG"' 0
 
 # Generate LEFT_TAG schemas
 git checkout "$LEFT_TAG" || echo "Error: cannot checkout to $LEFT_TAG." || exit 1
