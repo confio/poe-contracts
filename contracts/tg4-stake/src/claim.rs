@@ -247,7 +247,7 @@ impl<'a> Claims<'a> {
         start_after: Option<Expiration>,
     ) -> StdResult<Vec<Claim>> {
         let limit = limit.unwrap_or(DEFAULT_LIMIT).min(MAX_LIMIT) as usize;
-        // FIXME: Prefix-generated bounds are still untyped(!)
+        // FIXME: IndexedMap prefix-generated bounds are still untyped(!)
         let start = start_after.map(|s| Bound::ExclusiveRaw(s.as_key().to_cw_bytes().into()));
 
         self.claims
