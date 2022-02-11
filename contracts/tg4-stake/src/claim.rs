@@ -6,7 +6,9 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use cosmwasm_std::{Addr, BlockInfo, Decimal, Deps, Order, StdResult, Storage, Uint128};
-use cw_storage_plus::{Bound, CwIntKey, Index, IndexList, IndexedMap, MultiIndex, PrimaryKey};
+use cw_storage_plus::{
+    Bound, CwIntKey, Index, IndexList, IndexedMap, MultiIndex, PrefixBound, PrimaryKey,
+};
 use tg_utils::Expiration;
 
 // settings for pagination
@@ -144,24 +146,15 @@ impl<'a> Claims<'a> {
         block: &BlockInfo,
         limit: impl Into<Option<u64>>,
     ) -> StdResult<Vec<(Addr, Uint128)>> {
-        // Technically it should not be needed, and it should be enough to call for
-        // `Bound::inclusive` range, but its implementation seems to be buggy. As claim expiration
-        // is measured in seconds, offsetting it by 1ns would make and querying exclusive range
-        // would have expected behavior.
-        // Note: This is solved by `prefix_range_raw` + `PrefixBound::inclusive`
-        // (after https://github.com/CosmWasm/cw-plus/pull/616)
-        let excluded_timestamp = block.time.plus_nanos(1);
         let claims = self
             .claims
             .idx
             .release_at
             // take all claims which are expired (at most same timestamp as current block)
-            .range_raw(
+            .prefix_range_raw(
                 storage,
                 None,
-                Some(Bound::ExclusiveRaw(self.claims.idx.release_at.index_key(
-                    Expiration::at_timestamp(excluded_timestamp).as_key(),
-                ))),
+                Some(PrefixBound::inclusive(block.time.nanos())),
                 Order::Ascending,
             );
 
