@@ -479,7 +479,7 @@ fn list_validator_keys(
     let cfg = CONFIG.load(deps.storage)?;
     let limit = limit.unwrap_or(DEFAULT_LIMIT).min(MAX_LIMIT) as usize;
     let start_after = maybe_addr(deps.api, start_after)?;
-    let start = start_after.map(|addr| Bound::exclusive(addr.as_str()));
+    let start = start_after.as_ref().map(Bound::exclusive);
 
     let operators: StdResult<Vec<_>> = operators()
         .range(deps.storage, start, None, Order::Ascending)
@@ -541,7 +541,7 @@ fn list_jailed_validators(
     let cfg = CONFIG.load(deps.storage)?;
     let limit = limit.unwrap_or(DEFAULT_LIMIT).min(MAX_LIMIT) as usize;
     let start_after = maybe_addr(deps.api, start_after)?;
-    let start = start_after.map(|addr| Bound::exclusive(addr.as_str()));
+    let start = start_after.as_ref().map(Bound::exclusive);
 
     let validators = JAIL
         .range(deps.storage, start, None, Order::Ascending)
