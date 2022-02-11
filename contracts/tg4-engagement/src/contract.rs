@@ -5,7 +5,7 @@ use cosmwasm_std::{
     MessageInfo, Order, StdResult, Timestamp, Uint128,
 };
 use cw2::set_contract_version;
-use cw_storage_plus::{Bound, PrimaryKey};
+use cw_storage_plus::Bound;
 use cw_utils::maybe_addr;
 use tg4::{
     HooksResponse, Member, MemberChangedHookMsg, MemberDiff, MemberListResponse, MemberResponse,
@@ -825,7 +825,7 @@ fn list_members(
 ) -> StdResult<MemberListResponse> {
     let limit = limit.unwrap_or(DEFAULT_LIMIT).min(MAX_LIMIT) as usize;
     let addr = maybe_addr(deps.api, start_after)?;
-    let start = addr.map(|addr| Bound::exclusive(addr.as_ref()));
+    let start = addr.as_ref().map(Bound::exclusive);
 
     let members: StdResult<Vec<_>> = members()
         .range(deps.storage, start, None, Order::Ascending)
@@ -848,7 +848,13 @@ fn list_members_by_points(
     limit: Option<u32>,
 ) -> StdResult<MemberListResponse> {
     let limit = limit.unwrap_or(DEFAULT_LIMIT).min(MAX_LIMIT) as usize;
-    let start = start_after.map(|m| Bound::exclusive((m.points, m.addr.as_str()).joined_key()));
+    let start = start_after
+        .map(|m| {
+            deps.api
+                .addr_validate(&m.addr)
+                .map(|addr| Bound::exclusive((m.points, addr)))
+        })
+        .transpose()?;
     let members: StdResult<Vec<_>> = members()
         .idx
         .points

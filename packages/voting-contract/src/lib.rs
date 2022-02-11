@@ -302,7 +302,7 @@ pub fn list_proposals<P>(
 where
     P: Serialize + DeserializeOwned,
 {
-    let start = start_after.map(Bound::exclusive_int);
+    let start = start_after.map(Bound::exclusive);
     let props: StdResult<Vec<_>> = proposals()
         .range(deps.storage, start, None, Order::Ascending)
         .take(limit)
@@ -317,7 +317,7 @@ pub fn list_text_proposals(
     start_after: Option<u64>,
     limit: usize,
 ) -> StdResult<TextProposalListResponse> {
-    let start = start_after.map(Bound::exclusive_int);
+    let start = start_after.map(Bound::exclusive);
     let props: StdResult<Vec<_>> = TEXT_PROPOSALS
         .range(deps.storage, start, None, Order::Ascending)
         .take(limit)
@@ -336,7 +336,7 @@ pub fn reverse_proposals<P>(
 where
     P: Serialize + DeserializeOwned,
 {
-    let end = start_before.map(Bound::exclusive_int);
+    let end = start_before.map(Bound::exclusive);
     let props: StdResult<Vec<_>> = proposals()
         .range(deps.storage, None, end, Order::Descending)
         .take(limit)
@@ -365,7 +365,7 @@ pub fn list_votes(
     limit: usize,
 ) -> StdResult<VoteListResponse> {
     let addr = maybe_addr(deps.api, start_after)?;
-    let start = addr.map(|addr| Bound::exclusive(addr.as_ref()));
+    let start = addr.as_ref().map(Bound::exclusive);
 
     let votes: StdResult<Vec<_>> = BALLOTS
         .prefix(proposal_id)
@@ -391,7 +391,7 @@ pub fn list_votes_by_voter(
     start_after: Option<u64>,
     limit: usize,
 ) -> StdResult<VoteListResponse> {
-    let start = start_after.map(Bound::exclusive_int);
+    let start = start_after.map(Bound::exclusive);
     let voter_addr = deps.api.addr_validate(&voter)?;
 
     let votes: StdResult<Vec<_>> = BALLOTS_BY_VOTER
