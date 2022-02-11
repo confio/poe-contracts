@@ -6,7 +6,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use cosmwasm_std::{Addr, BlockInfo, Decimal, Deps, Order, StdResult, Storage, Uint128};
-use cw_storage_plus::{Bound, Index, IndexList, IndexedMap, MultiIndex, PrimaryKey};
+use cw_storage_plus::{Bound, CwIntKey, Index, IndexList, IndexedMap, MultiIndex, PrimaryKey};
 use tg_utils::Expiration;
 
 // settings for pagination
@@ -30,7 +30,7 @@ pub struct Claim {
 
 struct ClaimIndexes<'a> {
     // Last type param defines the pk deserialization type
-    pub release_at: MultiIndex<'a, u64, Claim>,
+    pub release_at: MultiIndex<'a, u64, Claim, (Addr, u64)>,
 }
 
 impl<'a> IndexList<Claim> for ClaimIndexes<'a> {
@@ -159,7 +159,7 @@ impl<'a> Claims<'a> {
             .range_raw(
                 storage,
                 None,
-                Some(Bound::exclusive(self.claims.idx.release_at.index_key(
+                Some(Bound::ExclusiveRaw(self.claims.idx.release_at.index_key(
                     Expiration::at_timestamp(excluded_timestamp).as_key(),
                 ))),
                 Order::Ascending,
@@ -254,7 +254,8 @@ impl<'a> Claims<'a> {
         start_after: Option<Expiration>,
     ) -> StdResult<Vec<Claim>> {
         let limit = limit.unwrap_or(DEFAULT_LIMIT).min(MAX_LIMIT) as usize;
-        let start = start_after.map(|s| Bound::exclusive_int(s.as_key()));
+        // FIXME: Prefix-generated bounds are still untyped(!)
+        let start = start_after.map(|s| Bound::ExclusiveRaw(s.as_key().to_cw_bytes().into()));
 
         self.claims
             .prefix(&address)
