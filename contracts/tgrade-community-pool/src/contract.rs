@@ -1,7 +1,8 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    to_binary, BankMsg, Binary, Coin, Deps, DepsMut, Empty, Env, MessageInfo, StdResult,
+    to_binary, BankMsg, Binary, Coin, CustomQuery, Deps, DepsMut, Empty, Env, MessageInfo,
+    StdResult,
 };
 
 use cw2::set_contract_version;
@@ -26,8 +27,8 @@ const CONTRACT_NAME: &str = "crates.io:tgrade_community-pool";
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn instantiate(
-    deps: DepsMut,
+pub fn instantiate<Q: CustomQuery>(
+    deps: DepsMut<Q>,
     _env: Env,
     _info: MessageInfo,
     msg: InstantiateMsg,
@@ -37,8 +38,8 @@ pub fn instantiate(
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn execute(
-    deps: DepsMut,
+pub fn execute<Q: CustomQuery>(
+    deps: DepsMut<Q>,
     env: Env,
     info: MessageInfo,
     msg: ExecuteMsg,
@@ -50,20 +51,20 @@ pub fn execute(
             proposal,
         } => execute_propose(deps, env, info, title, description, proposal),
         ExecuteMsg::Vote { proposal_id, vote } => {
-            execute_vote::<Proposal>(deps, env, info, proposal_id, vote)
+            execute_vote::<Proposal, Q>(deps, env, info, proposal_id, vote)
                 .map_err(ContractError::from)
         }
         ExecuteMsg::Execute { proposal_id } => execute_execute(deps, env, info, proposal_id),
         ExecuteMsg::Close { proposal_id } => {
-            execute_close::<Proposal>(deps, env, info, proposal_id).map_err(ContractError::from)
+            execute_close::<Proposal, Q>(deps, env, info, proposal_id).map_err(ContractError::from)
         }
         ExecuteMsg::WithdrawEngagementRewards {} => execute_withdraw_engagement_rewards(deps, info),
         ExecuteMsg::DistributeRewards {} => Ok(Response::new()),
     }
 }
 
-pub fn execute_propose(
-    deps: DepsMut,
+pub fn execute_propose<Q: CustomQuery>(
+    deps: DepsMut<Q>,
     env: Env,
     info: MessageInfo,
     title: String,
@@ -96,8 +97,8 @@ pub fn execute_send_proposal(to_address: String, amount: Coin) -> Result<Respons
     Ok(resp)
 }
 
-pub fn execute_execute(
-    deps: DepsMut,
+pub fn execute_execute<Q: CustomQuery>(
+    deps: DepsMut<Q>,
     env: Env,
     info: MessageInfo,
     proposal_id: u64,
@@ -124,8 +125,8 @@ pub fn execute_execute(
     Ok(resp)
 }
 
-pub fn execute_withdraw_engagement_rewards(
-    deps: DepsMut,
+pub fn execute_withdraw_engagement_rewards<Q: CustomQuery>(
+    deps: DepsMut<Q>,
     info: MessageInfo,
 ) -> Result<Response, ContractError> {
     let group_contract = VOTING_CONFIG.load(deps.storage)?.group_contract;
@@ -152,27 +153,29 @@ fn align_limit(limit: Option<u32>) -> usize {
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
+pub fn query<Q: CustomQuery>(deps: Deps<Q>, env: Env, msg: QueryMsg) -> StdResult<Binary> {
     use QueryMsg::*;
 
     match msg {
         Rules {} => to_binary(&query_rules(deps)?),
-        Proposal { proposal_id } => to_binary(&query_proposal::<crate::msg::Proposal>(
+        Proposal { proposal_id } => to_binary(&query_proposal::<crate::msg::Proposal, Q>(
             deps,
             env,
             proposal_id,
         )?),
         Vote { proposal_id, voter } => to_binary(&query_vote(deps, proposal_id, voter)?),
-        ListProposals { start_after, limit } => to_binary(&list_proposals::<crate::msg::Proposal>(
-            deps,
-            env,
-            start_after,
-            align_limit(limit),
-        )?),
+        ListProposals { start_after, limit } => {
+            to_binary(&list_proposals::<crate::msg::Proposal, Q>(
+                deps,
+                env,
+                start_after,
+                align_limit(limit),
+            )?)
+        }
         ReverseProposals {
             start_before,
             limit,
-        } => to_binary(&reverse_proposals::<crate::msg::Proposal>(
+        } => to_binary(&reverse_proposals::<crate::msg::Proposal, Q>(
             deps,
             env,
             start_before,
