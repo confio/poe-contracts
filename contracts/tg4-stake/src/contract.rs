@@ -1,8 +1,8 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    coin, coins, to_binary, Addr, BankMsg, Binary, Coin, Decimal, Deps, DepsMut, Empty, Env,
-    MessageInfo, Order, StdResult, Storage, Uint128,
+    coin, coins, to_binary, Addr, BankMsg, Binary, Coin, CustomQuery, Decimal, Deps, DepsMut,
+    Empty, Env, MessageInfo, Order, StdResult, Storage, Uint128,
 };
 
 use cw2::set_contract_version;
@@ -34,8 +34,8 @@ const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 // Note, you can use StdResult in some functions where you do not
 // make use of the custom errors
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn instantiate(
-    mut deps: DepsMut,
+pub fn instantiate<Q: CustomQuery>(
+    mut deps: DepsMut<Q>,
     _env: Env,
     _info: MessageInfo,
     msg: InstantiateMsg,
@@ -70,8 +70,8 @@ pub fn instantiate(
 
 // And declare a custom Error variant for the ones where you will want to make use of it
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn execute(
-    deps: DepsMut,
+pub fn execute<Q: CustomQuery>(
+    deps: DepsMut<Q>,
     env: Env,
     info: MessageInfo,
     msg: ExecuteMsg,
@@ -94,8 +94,8 @@ pub fn execute(
     }
 }
 
-pub fn execute_add_hook(
-    deps: DepsMut,
+pub fn execute_add_hook<Q: CustomQuery>(
+    deps: DepsMut<Q>,
     info: MessageInfo,
     hook: String,
 ) -> Result<Response, ContractError> {
@@ -115,8 +115,8 @@ pub fn execute_add_hook(
     Ok(res)
 }
 
-pub fn execute_remove_hook(
-    deps: DepsMut,
+pub fn execute_remove_hook<Q: CustomQuery>(
+    deps: DepsMut<Q>,
     info: MessageInfo,
     hook: String,
 ) -> Result<Response, ContractError> {
@@ -139,7 +139,11 @@ pub fn execute_remove_hook(
     Ok(res)
 }
 
-pub fn execute_bond(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Response, ContractError> {
+pub fn execute_bond<Q: CustomQuery>(
+    deps: DepsMut<Q>,
+    env: Env,
+    info: MessageInfo,
+) -> Result<Response, ContractError> {
     let cfg = CONFIG.load(deps.storage)?;
     let amount = validate_funds(&info.funds, &cfg.denom)?;
 
@@ -157,8 +161,8 @@ pub fn execute_bond(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
     Ok(res)
 }
 
-pub fn execute_unbond(
-    deps: DepsMut,
+pub fn execute_unbond<Q: CustomQuery>(
+    deps: DepsMut<Q>,
     env: Env,
     info: MessageInfo,
     amount: Uint128,
@@ -196,8 +200,8 @@ pub fn execute_unbond(
     Ok(res)
 }
 
-pub fn execute_add_slasher(
-    deps: DepsMut,
+pub fn execute_add_slasher<Q: CustomQuery>(
+    deps: DepsMut<Q>,
     info: MessageInfo,
     slasher: String,
 ) -> Result<Response, ContractError> {
@@ -217,8 +221,8 @@ pub fn execute_add_slasher(
     Ok(res)
 }
 
-pub fn execute_remove_slasher(
-    deps: DepsMut,
+pub fn execute_remove_slasher<Q: CustomQuery>(
+    deps: DepsMut<Q>,
     info: MessageInfo,
     slasher: String,
 ) -> Result<Response, ContractError> {
@@ -241,8 +245,8 @@ pub fn execute_remove_slasher(
     Ok(res)
 }
 
-pub fn execute_slash(
-    deps: DepsMut,
+pub fn execute_slash<Q: CustomQuery>(
+    deps: DepsMut<Q>,
     env: Env,
     info: MessageInfo,
     addr: String,
@@ -354,8 +358,8 @@ fn calc_points(stake: Uint128, cfg: &Config) -> Option<u64> {
     }
 }
 
-pub fn execute_claim(
-    deps: DepsMut,
+pub fn execute_claim<Q: CustomQuery>(
+    deps: DepsMut<Q>,
     env: Env,
     info: MessageInfo,
 ) -> Result<Response, ContractError> {
@@ -389,7 +393,11 @@ fn coins_to_string(coins: &[Coin]) -> String {
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn sudo(deps: DepsMut, env: Env, msg: TgradeSudoMsg) -> Result<Response, ContractError> {
+pub fn sudo<Q: CustomQuery>(
+    deps: DepsMut<Q>,
+    env: Env,
+    msg: TgradeSudoMsg,
+) -> Result<Response, ContractError> {
     match msg {
         TgradeSudoMsg::PrivilegeChange(PrivilegeChangeMsg::Promoted {}) => privilege_promote(deps),
         TgradeSudoMsg::EndBlock {} => end_block(deps, env),
@@ -397,7 +405,7 @@ pub fn sudo(deps: DepsMut, env: Env, msg: TgradeSudoMsg) -> Result<Response, Con
     }
 }
 
-fn privilege_promote(deps: DepsMut) -> Result<Response, ContractError> {
+fn privilege_promote<Q: CustomQuery>(deps: DepsMut<Q>) -> Result<Response, ContractError> {
     let config = CONFIG.load(deps.storage)?;
 
     if config.auto_return_limit > 0 {
@@ -408,7 +416,7 @@ fn privilege_promote(deps: DepsMut) -> Result<Response, ContractError> {
     }
 }
 
-fn end_block(deps: DepsMut, env: Env) -> Result<Response, ContractError> {
+fn end_block<Q: CustomQuery>(deps: DepsMut<Q>, env: Env) -> Result<Response, ContractError> {
     let mut resp = Response::new();
 
     let config = CONFIG.load(deps.storage)?;
@@ -420,8 +428,8 @@ fn end_block(deps: DepsMut, env: Env) -> Result<Response, ContractError> {
     Ok(resp)
 }
 
-fn release_expired_claims(
-    deps: DepsMut,
+fn release_expired_claims<Q: CustomQuery>(
+    deps: DepsMut<Q>,
     env: Env,
     config: Config,
 ) -> Result<Vec<SubMsg>, ContractError> {
@@ -440,7 +448,7 @@ fn release_expired_claims(
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
+pub fn query<Q: CustomQuery>(deps: Deps<Q>, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     use QueryMsg::*;
     match msg {
         Configuration {} => to_binary(&CONFIG.load(deps.storage)?),
@@ -489,13 +497,13 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     }
 }
 
-fn query_total_points(deps: Deps) -> StdResult<TotalPointsResponse> {
+fn query_total_points<Q: CustomQuery>(deps: Deps<Q>) -> StdResult<TotalPointsResponse> {
     let points = TOTAL.load(deps.storage)?;
     let denom = CONFIG.load(deps.storage)?.denom;
     Ok(TotalPointsResponse { points, denom })
 }
 
-pub fn query_staked(deps: Deps, addr: String) -> StdResult<StakedResponse> {
+pub fn query_staked<Q: CustomQuery>(deps: Deps<Q>, addr: String) -> StdResult<StakedResponse> {
     let addr = deps.api.addr_validate(&addr)?;
     let stake = STAKE.may_load(deps.storage, &addr)?.unwrap_or_default();
     let config = CONFIG.load(deps.storage)?;
@@ -505,7 +513,11 @@ pub fn query_staked(deps: Deps, addr: String) -> StdResult<StakedResponse> {
     })
 }
 
-fn query_member(deps: Deps, addr: String, height: Option<u64>) -> StdResult<MemberResponse> {
+fn query_member<Q: CustomQuery>(
+    deps: Deps<Q>,
+    addr: String,
+    height: Option<u64>,
+) -> StdResult<MemberResponse> {
     let addr = deps.api.addr_validate(&addr)?;
     let points = match height {
         Some(h) => members().may_load_at_height(deps.storage, &addr, h),
@@ -518,8 +530,8 @@ fn query_member(deps: Deps, addr: String, height: Option<u64>) -> StdResult<Memb
 const MAX_LIMIT: u32 = 100;
 const DEFAULT_LIMIT: u32 = 30;
 
-fn list_members(
-    deps: Deps,
+fn list_members<Q: CustomQuery>(
+    deps: Deps<Q>,
     start_after: Option<String>,
     limit: Option<u32>,
 ) -> StdResult<MemberListResponse> {
@@ -542,8 +554,8 @@ fn list_members(
     Ok(MemberListResponse { members: members? })
 }
 
-fn list_members_by_points(
-    deps: Deps,
+fn list_members_by_points<Q: CustomQuery>(
+    deps: Deps<Q>,
     start_after: Option<Member>,
     limit: Option<u32>,
 ) -> StdResult<MemberListResponse> {
@@ -574,7 +586,11 @@ fn list_members_by_points(
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn migrate(deps: DepsMut, _env: Env, _msg: Empty) -> Result<Response, ContractError> {
+pub fn migrate<Q: CustomQuery>(
+    deps: DepsMut<Q>,
+    _env: Env,
+    _msg: Empty,
+) -> Result<Response, ContractError> {
     ensure_from_older_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
     Ok(Response::new())
 }

@@ -5,7 +5,9 @@ use itertools::Itertools;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use cosmwasm_std::{Addr, BlockInfo, Decimal, Deps, Order, StdResult, Storage, Uint128};
+use cosmwasm_std::{
+    Addr, BlockInfo, CustomQuery, Decimal, Deps, Order, StdResult, Storage, Uint128,
+};
 use cw_storage_plus::{
     Bound, CwIntKey, Index, IndexList, IndexedMap, MultiIndex, PrefixBound, PrimaryKey,
 };
@@ -239,9 +241,9 @@ impl<'a> Claims<'a> {
         Ok(total_slashed)
     }
 
-    pub fn query_claims(
+    pub fn query_claims<Q: CustomQuery>(
         &self,
-        deps: Deps,
+        deps: Deps<Q>,
         address: Addr,
         limit: Option<u32>,
         start_after: Option<Expiration>,
