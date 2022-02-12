@@ -4,7 +4,7 @@ use cosmwasm_std::{coin, Addr, CosmosMsg, CustomQuery, StdResult};
 use cw_multi_test::{AppResponse, Contract, ContractWrapper, CosmosRouter, Executor};
 use serde::de::DeserializeOwned;
 use tg4::{Member, Tg4ExecuteMsg};
-use tg_bindings::{TgradeMsg, TgradeQuery};
+use tg_bindings::TgradeMsg;
 use tg_bindings_test::TgradeApp;
 
 use tg_voting_contract::state::{RulesBuilder, VotingRules};
