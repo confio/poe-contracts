@@ -1,12 +1,14 @@
 use crate::msg::{DistributionMsg, RewardsDistribution};
 use crate::state::Config;
-use cosmwasm_std::{coins, to_binary, Coin, DepsMut, Env, StdResult, SubMsg, Uint128, WasmMsg};
+use cosmwasm_std::{
+    coins, to_binary, Addr, Coin, CustomQuery, DepsMut, Env, StdResult, SubMsg, Uint128, WasmMsg,
+};
 use tg_bindings::TgradeMsg;
 
 /// Ensure you pass in non-empty pay-validators, it will panic if total validator points is 0
 /// This handles all deps and calls into pure functions
-pub fn pay_block_rewards(
-    deps: DepsMut,
+pub fn pay_block_rewards<Q: CustomQuery>(
+    deps: DepsMut<Q>,
     env: Env,
     pay_epochs: u64,
     config: &Config,
