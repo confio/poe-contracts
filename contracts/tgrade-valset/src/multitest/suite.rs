@@ -10,7 +10,7 @@ use cw_multi_test::{next_block, AppResponse, Contract, ContractWrapper, CosmosRo
 use derivative::Derivative;
 use serde::de::DeserializeOwned;
 use tg4::{AdminResponse, Member};
-use tg_bindings::{Evidence, Pubkey, TgradeMsg,ValidatorDiff};
+use tg_bindings::{Evidence, Pubkey, TgradeMsg, ValidatorDiff};
 use tg_bindings_test::TgradeApp;
 use tg_utils::{Duration, JailingDuration};
 
