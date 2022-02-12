@@ -3,8 +3,9 @@ use crate::{
     list_votes_by_voter, propose, query_group_contract, query_proposal, query_rules, query_vote,
     query_voter, reverse_proposals, state::VotingRules, ContractError, Response,
 };
-use cosmwasm_std::{from_slice, to_binary};
+use cosmwasm_std::{from_slice, to_binary, CustomQuery};
 use tg3::Vote;
+use tg_bindings::TgradeQuery;
 
 use super::*;
 
@@ -90,10 +91,10 @@ pub enum QueryMsg {
 
 pub struct VotingContract;
 
-impl Contract<TgradeMsg> for VotingContract {
+impl Contract<TgradeMsg, TgradeQuery> for VotingContract {
     fn instantiate(
         &self,
-        deps: DepsMut,
+        deps: DepsMut<TgradeQuery>,
         _env: Env,
         _info: MessageInfo,
         msg: Vec<u8>,
@@ -105,7 +106,7 @@ impl Contract<TgradeMsg> for VotingContract {
 
     fn execute(
         &self,
-        deps: DepsMut,
+        deps: DepsMut<TgradeQuery>,
         env: Env,
         info: MessageInfo,
         msg: Vec<u8>,
@@ -120,35 +121,39 @@ impl Contract<TgradeMsg> for VotingContract {
                 proposal,
             } => propose(deps, env, info, title, description, proposal),
             Vote { proposal_id, vote } => {
-                crate::vote::<Proposal>(deps, env, info, proposal_id, vote)
+                crate::vote::<Proposal, TgradeQuery>(deps, env, info, proposal_id, vote)
             }
             Execute { proposal_id } => execute(deps, env, info, proposal_id),
-            Close { proposal_id } => crate::close::<Proposal>(deps, env, info, proposal_id),
+            Close { proposal_id } => {
+                crate::close::<Proposal, TgradeQuery>(deps, env, info, proposal_id)
+            }
         }
         .map_err(anyhow::Error::from)
     }
 
-    fn query(&self, deps: Deps, env: Env, msg: Vec<u8>) -> anyhow::Result<Binary> {
+    fn query(&self, deps: Deps<TgradeQuery>, env: Env, msg: Vec<u8>) -> anyhow::Result<Binary> {
         let msg: QueryMsg = from_slice(&msg)?;
 
         use QueryMsg::*;
         match msg {
             Rules {} => to_binary(&query_rules(deps)?),
             ListVoters { start_after, limit } => to_binary(&list_voters(deps, start_after, limit)?),
-            Proposal { proposal_id } => {
-                to_binary(&query_proposal::<self::Proposal>(deps, env, proposal_id)?)
-            }
-            Vote { proposal_id, voter } => to_binary(&query_vote(deps, proposal_id, voter)?),
-            ListProposals { start_after, limit } => to_binary(&list_proposals::<self::Proposal>(
+            Proposal { proposal_id } => to_binary(&query_proposal::<self::Proposal, TgradeQuery>(
                 deps,
                 env,
-                start_after,
-                limit,
+                proposal_id,
+            )?),
+            Vote { proposal_id, voter } => to_binary(&query_vote(deps, proposal_id, voter)?),
+            ListProposals { start_after, limit } => to_binary(&list_proposals::<
+                self::Proposal,
+                TgradeQuery,
+            >(
+                deps, env, start_after, limit
             )?),
             ReverseProposals {
                 start_before,
                 limit,
-            } => to_binary(&reverse_proposals::<self::Proposal>(
+            } => to_binary(&reverse_proposals::<self::Proposal, TgradeQuery>(
                 deps,
                 env,
                 start_before,
@@ -175,7 +180,7 @@ impl Contract<TgradeMsg> for VotingContract {
 
     fn sudo(
         &self,
-        _deps: DepsMut,
+        _deps: DepsMut<TgradeQuery>,
         _env: Env,
         _msg: Vec<u8>,
     ) -> anyhow::Result<cosmwasm_std::Response<TgradeMsg>> {
@@ -184,7 +189,7 @@ impl Contract<TgradeMsg> for VotingContract {
 
     fn reply(
         &self,
-        _deps: DepsMut,
+        _deps: DepsMut<TgradeQuery>,
         _env: Env,
         _msg: cosmwasm_std::Reply,
     ) -> anyhow::Result<cosmwasm_std::Response<TgradeMsg>> {
@@ -193,7 +198,7 @@ impl Contract<TgradeMsg> for VotingContract {
 
     fn migrate(
         &self,
-        _deps: DepsMut,
+        _deps: DepsMut<TgradeQuery>,
         _env: Env,
         _msg: Vec<u8>,
     ) -> anyhow::Result<cosmwasm_std::Response<TgradeMsg>> {
@@ -201,8 +206,8 @@ impl Contract<TgradeMsg> for VotingContract {
     }
 }
 
-fn execute(
-    deps: DepsMut,
+fn execute<Q: CustomQuery>(
+    deps: DepsMut<Q>,
     env: Env,
     info: MessageInfo,
     proposal_id: u64,
