@@ -1,8 +1,8 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    coins, to_binary, Addr, BankMsg, Binary, CosmosMsg, Decimal, Deps, DepsMut, Env, MessageInfo,
-    StdResult, Uint128,
+    coins, to_binary, Addr, BankMsg, Binary, CosmosMsg, CustomQuery, Decimal, Deps, DepsMut, Env,
+    MessageInfo, StdResult, Uint128,
 };
 use cw2::set_contract_version;
 
@@ -22,8 +22,8 @@ const CONTRACT_NAME: &str = "crates.io:vesting-contract";
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn instantiate(
-    deps: DepsMut,
+pub fn instantiate<Q: CustomQuery>(
+    deps: DepsMut<Q>,
     _env: Env,
     info: MessageInfo,
     msg: InstantiateMsg,
@@ -33,8 +33,8 @@ pub fn instantiate(
     Ok(Response::default())
 }
 
-fn create_vesting_account(
-    deps: DepsMut,
+fn create_vesting_account<Q: CustomQuery>(
+    deps: DepsMut<Q>,
     info: MessageInfo,
     msg: InstantiateMsg,
 ) -> Result<(), ContractError> {
@@ -56,8 +56,8 @@ fn create_vesting_account(
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn execute(
-    deps: DepsMut,
+pub fn execute<Q: CustomQuery>(
+    deps: DepsMut<Q>,
     env: Env,
     info: MessageInfo,
     msg: ExecuteMsg,
@@ -103,7 +103,11 @@ fn hand_over_completed(account: &VestingAccount) -> Result<(), ContractError> {
 }
 
 /// Returns information about amount of tokens that is allowed to be released
-fn allowed_release(deps: Deps, env: &Env, plan: &VestingPlan) -> Result<Uint128, ContractError> {
+fn allowed_release<Q: CustomQuery>(
+    deps: Deps<Q>,
+    env: &Env,
+    plan: &VestingPlan,
+) -> Result<Uint128, ContractError> {
     let token_info = token_info(deps, env)?;
 
     // In order to allow releasing any extra tokens sent to the account AFTER vesting
@@ -150,8 +154,8 @@ fn allowed_release(deps: Deps, env: &Env, plan: &VestingPlan) -> Result<Uint128,
     }
 }
 
-fn execute_msg(
-    deps: DepsMut,
+fn execute_msg<Q: CustomQuery>(
+    deps: DepsMut<Q>,
     sender: Addr,
     msgs: Vec<CosmosMsg<TgradeMsg>>,
 ) -> Result<Response, ContractError> {
@@ -166,8 +170,8 @@ fn execute_msg(
         .add_attribute("action", "execute"))
 }
 
-fn release_tokens(
-    deps: DepsMut,
+fn release_tokens<Q: CustomQuery>(
+    deps: DepsMut<Q>,
     env: Env,
     sender: Addr,
     requested_amount: Option<Uint128>,
@@ -183,8 +187,8 @@ fn release_tokens(
     helpers::release_tokens(requested_amount, sender, &mut account, deps.storage)
 }
 
-fn freeze_tokens(
-    deps: DepsMut,
+fn freeze_tokens<Q: CustomQuery>(
+    deps: DepsMut<Q>,
     sender: Addr,
     requested_amount: Option<Uint128>,
 ) -> Result<Response, ContractError> {
@@ -200,8 +204,8 @@ fn freeze_tokens(
     }
 }
 
-fn unfreeze_tokens(
-    deps: DepsMut,
+fn unfreeze_tokens<Q: CustomQuery>(
+    deps: DepsMut<Q>,
     sender: Addr,
     requested_amount: Option<Uint128>,
 ) -> Result<Response, ContractError> {
@@ -215,8 +219,8 @@ fn unfreeze_tokens(
     }
 }
 
-fn change_operator(
-    deps: DepsMut,
+fn change_operator<Q: CustomQuery>(
+    deps: DepsMut<Q>,
     sender: Addr,
     new_operator: Addr,
 ) -> Result<Response, ContractError> {
@@ -232,7 +236,11 @@ fn change_operator(
         .add_attribute("sender", sender))
 }
 
-fn hand_over(deps: DepsMut, env: Env, sender: Addr) -> Result<Response, ContractError> {
+fn hand_over<Q: CustomQuery>(
+    deps: DepsMut<Q>,
+    env: Env,
+    sender: Addr,
+) -> Result<Response, ContractError> {
     let mut account = VESTING_ACCOUNT.load(deps.storage)?;
     hand_over_completed(&account)?;
     if ![&account.recipient, &account.oversight].contains(&&sender) {
@@ -334,7 +342,7 @@ mod helpers {
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
+pub fn query<Q: CustomQuery>(deps: Deps<Q>, env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
         QueryMsg::AccountInfo {} => to_binary(&account_info(deps)?),
         QueryMsg::TokenInfo {} => to_binary(&token_info(deps, &env)?),
@@ -343,7 +351,7 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
     }
 }
 
-fn account_info(deps: Deps) -> StdResult<AccountInfoResponse> {
+fn account_info<Q: CustomQuery>(deps: Deps<Q>) -> StdResult<AccountInfoResponse> {
     let account = VESTING_ACCOUNT.load(deps.storage)?;
 
     let info = AccountInfoResponse {
@@ -355,7 +363,7 @@ fn account_info(deps: Deps) -> StdResult<AccountInfoResponse> {
     Ok(info)
 }
 
-fn token_info(deps: Deps, env: &Env) -> StdResult<TokenInfoResponse> {
+fn token_info<Q: CustomQuery>(deps: Deps<Q>, env: &Env) -> StdResult<TokenInfoResponse> {
     let account = VESTING_ACCOUNT.load(deps.storage)?;
     let denom = account.denom;
     let balance = deps
@@ -373,14 +381,14 @@ fn token_info(deps: Deps, env: &Env) -> StdResult<TokenInfoResponse> {
     Ok(info)
 }
 
-fn is_handed_over(deps: Deps) -> StdResult<IsHandedOverResponse> {
+fn is_handed_over<Q: CustomQuery>(deps: Deps<Q>) -> StdResult<IsHandedOverResponse> {
     let account = VESTING_ACCOUNT.load(deps.storage)?;
     Ok(IsHandedOverResponse {
         is_handed_over: account.handed_over,
     })
 }
 
-fn can_execute(deps: Deps, sender: String) -> StdResult<CanExecuteResponse> {
+fn can_execute<Q: CustomQuery>(deps: Deps<Q>, sender: String) -> StdResult<CanExecuteResponse> {
     let account = VESTING_ACCOUNT.load(deps.storage)?;
     if !account.handed_over {
         return Ok(CanExecuteResponse { can_execute: false });
