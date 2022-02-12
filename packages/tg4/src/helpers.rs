@@ -2,7 +2,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use cosmwasm_std::{
-    from_slice, to_binary, to_vec, Addr, Binary, ContractResult, Empty, QuerierWrapper,
+    from_slice, to_binary, to_vec, Addr, Binary, ContractResult, CustomQuery, QuerierWrapper,
     QueryRequest, StdError, StdResult, SystemResult, WasmMsg, WasmQuery,
 };
 use tg_bindings::TgradeMsg;
@@ -63,7 +63,7 @@ impl Tg4Contract {
         self.encode_msg(msg)
     }
 
-    fn encode_smart_query(&self, msg: Tg4QueryMsg) -> StdResult<QueryRequest<Empty>> {
+    fn encode_smart_query<Q: CustomQuery>(&self, msg: Tg4QueryMsg) -> StdResult<QueryRequest<Q>> {
         Ok(WasmQuery::Smart {
             contract_addr: self.addr().into(),
             msg: to_binary(&msg)?,
@@ -71,7 +71,7 @@ impl Tg4Contract {
         .into())
     }
 
-    fn encode_raw_query<T: Into<Binary>>(&self, key: T) -> QueryRequest<Empty> {
+    fn encode_raw_query<T: Into<Binary>, Q: CustomQuery>(&self, key: T) -> QueryRequest<Q> {
         WasmQuery::Raw {
             contract_addr: self.addr().into(),
             key: key.into(),
@@ -80,22 +80,26 @@ impl Tg4Contract {
     }
 
     /// Show the hooks
-    pub fn hooks(&self, querier: &QuerierWrapper) -> StdResult<Vec<String>> {
+    pub fn hooks<Q: CustomQuery>(&self, querier: &QuerierWrapper<Q>) -> StdResult<Vec<String>> {
         let query = self.encode_smart_query(Tg4QueryMsg::Hooks {})?;
         let res: HooksResponse = querier.query(&query)?;
         Ok(res.hooks)
     }
 
     /// Read the total points
-    pub fn total_points(&self, querier: &QuerierWrapper) -> StdResult<u64> {
+    pub fn total_points<Q: CustomQuery>(&self, querier: &QuerierWrapper<Q>) -> StdResult<u64> {
         let query = self.encode_raw_query(TOTAL_KEY.as_bytes());
         querier.query(&query)
     }
 
     /// Check if this address is a member, and if so, with which points
-    pub fn is_member(&self, querier: &QuerierWrapper, addr: &Addr) -> StdResult<Option<u64>> {
+    pub fn is_member<Q: CustomQuery>(
+        &self,
+        querier: &QuerierWrapper<Q>,
+        addr: &Addr,
+    ) -> StdResult<Option<u64>> {
         let path = member_key(addr.as_ref());
-        let query = self.encode_raw_query(path);
+        let query = self.encode_raw_query::<_, Q>(path);
 
         // We have to copy the logic of Querier.query to handle the empty case, and not
         // try to decode empty result into a u64.
@@ -121,7 +125,11 @@ impl Tg4Contract {
     }
 
     /// Check if this address is a member
-    pub fn is_voting_member(&self, querier: &QuerierWrapper, member: &str) -> StdResult<u64> {
+    pub fn is_voting_member<Q: CustomQuery>(
+        &self,
+        querier: &QuerierWrapper<Q>,
+        member: &str,
+    ) -> StdResult<u64> {
         self.is_member(querier, &Addr::unchecked(member))?.map_or(
             Err(StdError::generic_err("Unauthorized: not member of a group")),
             |member_points| {
@@ -137,9 +145,9 @@ impl Tg4Contract {
     }
 
     /// Check if this address was a member, and if its points is >= 1
-    pub fn was_voting_member<T: Into<String>>(
+    pub fn was_voting_member<T: Into<String>, Q: CustomQuery>(
         &self,
-        querier: &QuerierWrapper,
+        querier: &QuerierWrapper<Q>,
         member: T,
         height: u64,
     ) -> StdResult<u64> {
@@ -162,9 +170,9 @@ impl Tg4Contract {
     }
 
     /// Return the member's points at the given snapshot - requires a smart query
-    pub fn member_at_height<T: Into<String>>(
+    pub fn member_at_height<T: Into<String>, Q: CustomQuery>(
         &self,
-        querier: &QuerierWrapper,
+        querier: &QuerierWrapper<Q>,
         member: T,
         height: u64,
     ) -> StdResult<Option<u64>> {
@@ -176,9 +184,9 @@ impl Tg4Contract {
         Ok(res.points)
     }
 
-    pub fn list_members(
+    pub fn list_members<Q: CustomQuery>(
         &self,
-        querier: &QuerierWrapper,
+        querier: &QuerierWrapper<Q>,
         start_after: Option<String>,
         limit: Option<u32>,
     ) -> StdResult<Vec<Member>> {
@@ -187,9 +195,9 @@ impl Tg4Contract {
         Ok(res.members)
     }
 
-    pub fn list_members_by_points(
+    pub fn list_members_by_points<Q: CustomQuery>(
         &self,
-        querier: &QuerierWrapper,
+        querier: &QuerierWrapper<Q>,
         start_after: Option<Member>,
         limit: Option<u32>,
     ) -> StdResult<Vec<Member>> {
@@ -201,12 +209,12 @@ impl Tg4Contract {
 
     /// This will make some queries to ensure that the target contract is tg4-compatible.
     /// It returns `true` iff it appears to be compatible.
-    pub fn is_tg4(&self, querier: &QuerierWrapper) -> bool {
+    pub fn is_tg4<Q: CustomQuery>(&self, querier: &QuerierWrapper<Q>) -> bool {
         self.list_members(querier, None, Some(1)).is_ok()
     }
 
     /// Read the admin
-    pub fn admin(&self, querier: &QuerierWrapper) -> StdResult<Option<String>> {
+    pub fn admin<Q: CustomQuery>(&self, querier: &QuerierWrapper<Q>) -> StdResult<Option<String>> {
         let query = self.encode_smart_query(Tg4QueryMsg::Admin {})?;
         let res: AdminResponse = querier.query(&query)?;
         Ok(res.admin)
