@@ -8,9 +8,7 @@ use serde::{Deserialize, Serialize};
 use cosmwasm_std::{
     Addr, BlockInfo, CustomQuery, Decimal, Deps, Order, StdResult, Storage, Uint128,
 };
-use cw_storage_plus::{
-    Bound, CwIntKey, Index, IndexList, IndexedMap, MultiIndex, PrefixBound, PrimaryKey,
-};
+use cw_storage_plus::{Bound, Index, IndexList, IndexedMap, MultiIndex, PrefixBound};
 use tg_utils::Expiration;
 
 // settings for pagination
@@ -125,9 +123,7 @@ impl<'a> Claims<'a> {
             .range_raw(
                 storage,
                 None,
-                Some(Bound::inclusive(
-                    Expiration::now(block).as_key().joined_key(),
-                )),
+                Some(Bound::inclusive(Expiration::now(block).as_key())),
                 Order::Ascending,
             );
 
@@ -249,8 +245,7 @@ impl<'a> Claims<'a> {
         start_after: Option<Expiration>,
     ) -> StdResult<Vec<Claim>> {
         let limit = limit.unwrap_or(DEFAULT_LIMIT).min(MAX_LIMIT) as usize;
-        // FIXME: IndexedMap prefix-generated bounds are still untyped(!)
-        let start = start_after.map(|s| Bound::ExclusiveRaw(s.as_key().to_cw_bytes().into()));
+        let start = start_after.map(|s| Bound::exclusive(s.as_key()));
 
         self.claims
             .prefix(&address)
