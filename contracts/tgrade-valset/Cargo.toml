@@ -27,17 +27,17 @@ library = []
 integration = ["bech32", "cosmwasm-vm"]
 
 [dependencies]
-cw-utils = { version = "0.12.1" }
+cosmwasm-std = { version = "1.0.0-beta5" }
 cw2 = { version = "0.12.1" }
-tg4 = { path = "../../packages/tg4", version = "0.6.2" }
-tg-bindings = { version = "0.6.2", path = "../../packages/bindings" }
-tg-utils = { version = "0.6.2", path = "../../packages/utils" }
+cw-utils = { version = "0.12.1" }
 cw-controllers = { version = "0.12.1" }
 cw-storage-plus = { version = "0.12.1" }
-cosmwasm-std = { version = "1.0.0-beta5" }
 schemars = "0.8"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
 thiserror = { version = "1.0.21" }
+tg4 = { path = "../../packages/tg4", version = "0.6.2" }
+tg-bindings = { version = "0.6.2", path = "../../packages/bindings" }
+tg-utils = { version = "0.6.2", path = "../../packages/utils" }
 
 # For integration tests ("integration" feature)
 bech32 = { version = "0.8.1", optional = true }
