@@ -45,7 +45,7 @@ fn admin_can_slash() {
     assert_eq!(actor0_slash.slash_height, 1);
     assert_eq!(actor0_slash.portion, Decimal::percent(50));
 
-    // First epoch. Rewards are not slashed yet, but validators and their weights should be
+    // First epoch. Rewards are not slashed yet, but validators and their points should be
     // recalculated
     suite.advance_epoch().unwrap();
 

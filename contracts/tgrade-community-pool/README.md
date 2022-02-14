@@ -39,7 +39,7 @@ an expiration time for the voting process, or it defaults to the limit
 provided when creating the contract (so proposals can be closed after several
 days).
 
-Before the proposal has expired, any voter with non-zero weight can add their
+Before the proposal has expired, any voter with non-zero points can add their
 vote. Only "Yes" votes are tallied. If enough "Yes" votes were submitted before
 the proposal expiration date, the status is set to "Passed".
 

@@ -10,11 +10,11 @@ pub fn addr_to_pubkey(addr: &str) -> Pubkey {
     Pubkey::Ed25519(Binary((*addr).as_bytes().to_vec()))
 }
 
-pub fn members_init<'m>(members: &[&'m str], weights: &[u64]) -> Vec<(&'m str, u64)> {
+pub fn members_init<'m>(members: &[&'m str], points: &[u64]) -> Vec<(&'m str, u64)> {
     members
         .iter()
-        .zip(weights)
-        .map(|(member, weight)| (*member, *weight))
+        .zip(points)
+        .map(|(member, points)| (*member, *points))
         .collect()
 }
 
@@ -29,7 +29,7 @@ pub fn assert_active_validators(received: &[ValidatorInfo], expected: &[(&str, u
         .collect();
     let mut expected: Vec<_> = expected
         .iter()
-        .map(|(addr, weight)| ((*addr).to_owned(), *weight))
+        .map(|(addr, points)| ((*addr).to_owned(), *points))
         .collect();
 
     received.sort_unstable_by_key(|(addr, _)| addr.clone());

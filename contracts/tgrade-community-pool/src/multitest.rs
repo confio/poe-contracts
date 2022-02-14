@@ -18,8 +18,8 @@ fn community_pool_can_withdraw_engagement_rewards() {
     // engagement rewards.
     suite.withdraw_community_pool_rewards("anyone").unwrap();
 
-    // The community pool contract has 9/10 weight as an engagement member, so it should
-    // now have 90 of the 100 distributed tokens.
+    // The community pool contract has 9/10 points as an engagement member, so it should
+    // now have 90 of the 100 distributed rewards.
     assert_eq!(suite.token_balance(suite.contract.clone()).unwrap(), 90);
 }
 

@@ -19,11 +19,11 @@ pub struct MemberDiff {
 }
 
 impl MemberDiff {
-    pub fn new<T: Into<String>>(addr: T, old_weight: Option<u64>, new_weight: Option<u64>) -> Self {
+    pub fn new<T: Into<String>>(addr: T, old_points: Option<u64>, new_points: Option<u64>) -> Self {
         MemberDiff {
             key: addr.into(),
-            old: old_weight,
-            new: new_weight,
+            old: old_points,
+            new: new_points,
         }
     }
 }

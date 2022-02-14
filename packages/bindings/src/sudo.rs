@@ -39,8 +39,8 @@ pub enum PrivilegeChangeMsg {
 /// if it wishes to change the validator set.
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug, Default)]
 pub struct ValidatorDiff {
-    // If a validator is present in this list, change it's weight to the provided weight.
-    // Return a weight of 0 to remove the named validator from the validator set.
+    // If a validator is present in this list, change it's points to the provided points.
+    // Return a points of 0 to remove the named validator from the validator set.
     pub diffs: Vec<ValidatorUpdate>,
 }
 

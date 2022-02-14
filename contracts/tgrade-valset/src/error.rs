@@ -27,8 +27,8 @@ pub enum ContractError {
     #[error("You must use a valid denom for the block reward (> 2 chars)")]
     InvalidRewardDenom {},
 
-    #[error("Min_weight must be greater than zero")]
-    InvalidMinWeight {},
+    #[error("Min_points must be greater than zero")]
+    InvalidMinPoints {},
 
     #[error("Max validators must be greater than zero")]
     InvalidMaxValidators {},

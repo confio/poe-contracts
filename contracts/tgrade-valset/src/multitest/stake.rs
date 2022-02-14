@@ -58,7 +58,7 @@ fn init_and_query_state() {
 #[test]
 fn simulate_validators() {
     let bond_denom = "tgrade";
-    let tokens_per_weight = 100u128;
+    let tokens_per_points = 100u128;
     let min_points = 2;
 
     let ops_owned = addrs(24);
@@ -72,7 +72,7 @@ fn simulate_validators() {
         .collect();
 
     let mut suite = SuiteBuilder::new()
-        .with_stake(bond_denom, tokens_per_weight)
+        .with_stake(bond_denom, tokens_per_points)
         .with_operators(&operators)
         .with_funds(&operator_balances)
         .with_min_points(min_points)
@@ -85,11 +85,11 @@ fn simulate_validators() {
     let active = suite.list_active_validators(None, None).unwrap();
     assert_eq!(0, active.len());
 
-    // One member bonds needed tokens to have enough weight
+    // One member bonds needed tokens to have enough points
     let op1_addr = Addr::unchecked(operators[0]);
 
     // First, he does not bond enough tokens
-    let stake = cosmwasm_std::coins(tokens_per_weight * min_points as u128 - 1u128, bond_denom);
+    let stake = cosmwasm_std::coins(tokens_per_points * min_points as u128 - 1u128, bond_denom);
     suite.bond(&op1_addr, &stake).unwrap();
 
     // what do we expect?
@@ -116,7 +116,7 @@ fn simulate_validators() {
     // Other member bonds twice the minimum amount
     let op2_addr = Addr::unchecked(operators[1]);
 
-    let stake = cosmwasm_std::coins(tokens_per_weight * min_points as u128 * 2u128, bond_denom);
+    let stake = cosmwasm_std::coins(tokens_per_points * min_points as u128 * 2u128, bond_denom);
     suite.bond(&op2_addr, &stake).unwrap();
 
     // what do we expect?
@@ -143,7 +143,7 @@ fn simulate_validators() {
     let op3_addr = Addr::unchecked(operators[2]);
 
     let stake = cosmwasm_std::coins(
-        tokens_per_weight * min_points as u128 * 3u128 - 1u128,
+        tokens_per_points * min_points as u128 * 3u128 - 1u128,
         bond_denom,
     );
     suite.bond(&op3_addr, &stake).unwrap();

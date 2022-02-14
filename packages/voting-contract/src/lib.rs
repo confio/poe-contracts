@@ -74,7 +74,7 @@ where
     let cfg = CONFIG.load(deps.storage)?;
 
     // Only members of the multisig can create a proposal
-    // Additional check if weight >= 1
+    // Additional check if points >= 1
     let vote_power = cfg
         .group_contract
         .is_voting_member(&deps.querier, info.sender.as_str())?;
@@ -94,7 +94,7 @@ where
         status: Status::Open,
         votes: Votes::yes(vote_power),
         rules: cfg.rules,
-        total_points: cfg.group_contract.total_weight(&deps.querier)?,
+        total_points: cfg.group_contract.total_points(&deps.querier)?,
     };
     prop.update_status(&env.block);
     let id = next_id(deps.storage)?;
