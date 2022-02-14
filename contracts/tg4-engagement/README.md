@@ -7,13 +7,13 @@ and it designed to be used as a backing storage for
 
 It stores a set of members along with an admin, and allows the admin to
 update the state. Raw queries (intended for cross-contract queries)
-can check a given member address and the total weight. Smart queries (designed
+can check a given member address and the total points. Smart queries (designed
 for client API) can do the same, and also query the admin address as well as
 paginate over all members.
 
 Also this contract provides api for behavior similar to EIP2222 standard, which
-allows for automatic split tokens sent to this contract proportionally to
-members weights.
+allows for automatic split rewards sent to this contract proportionally to
+members points.
 
 ## Init
 
@@ -31,21 +31,21 @@ pub struct InstantiateMsg {
 
 pub struct Member {
     pub addr: HumanAddr,
-    pub weight: u64,
+    pub points: u64,
 }
 ```
 
-Members are defined by an address and a weight. This is transformed
+Members are defined by an address and a points. This is transformed
 and stored under their `CanonicalAddr`, in a format defined in
 [tg4 raw queries](../../packages/tg4/README.md#raw).
 
-Note that 0 *is an allowed weight*. This doesn't give any voting rights, but
+Note that 0 *is an allowed points*. This doesn't give any voting rights, but
 it does define this address is part of the group. This could be used in
 e.g. a KYC whitelist to say they are allowed, but cannot participate in
 decision-making.
 
 `token` is a native token name which may be distributed with EIP2222-like
-interface. If it is `None`, no tokens may be distributed by this contract.
+interface. If it is `None`, no rewards may be distributed by this contract.
 
 ## Messages
 
@@ -67,7 +67,7 @@ Must be called by an Admin.
 `DistributeFunds {sender}` - distributes funds sent with this message, and sent with
 regular bank message since last `DistributeFunds`. `sender` is optional info
 overwriting `sender` field on generated event. Funds are distributed to members,
-proportionally to their weights. Funds are not sent to members directly, instead
+proportionally to their points. Funds are not sent to members directly, instead
 they are assigned for future withdrawal.
 
 `WithdrawFunds {receiver}` - withdraws funds previously assigned to sender of the

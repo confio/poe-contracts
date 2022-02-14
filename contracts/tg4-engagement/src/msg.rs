@@ -33,14 +33,14 @@ pub enum ExecuteMsg {
         remove: Vec<String>,
         add: Vec<Member>,
     },
-    /// Add points (weight) to member's address
+    /// Add points to member's address
     AddPoints { addr: String, points: u64 },
     /// Add a new hook to be informed of all membership changes. Must be called by Admin
     AddHook { addr: String },
     /// Remove a hook. Must be called by Admin
     RemoveHook { addr: String },
     /// Distributes rewards sent with this message, and all rewards transferred since last call of this
-    /// to members, proportionally to their weights. Rewards are not immediately send to members, but
+    /// to members, proportionally to their points. Rewards are not immediately send to members, but
     /// assigned to them for later withdrawal (see: `ExecuteMsg::WithdrawFunds`)
     DistributeRewards {
         /// Original source of rewards, informational. If present overwrites "sender" field on
@@ -84,7 +84,7 @@ pub enum QueryMsg {
         start_after: Option<String>,
         limit: Option<u32>,
     },
-    /// Returns MemberListResponse, sorted by weight descending
+    /// Returns MemberListResponse, sorted by points descending
     ListMembersByPoints {
         start_after: Option<Member>,
         limit: Option<u32>,
@@ -116,7 +116,7 @@ pub enum QueryMsg {
     IsSlasher { addr: String },
     /// Returns all active slashers as vector of addresses
     ListSlashers {},
-    /// Returns tokens distribution data
+    /// Returns rewards distribution data
     DistributionData {},
     /// Returns withdraw adjustment
     WithdrawAdjustmentData { addr: String },
@@ -140,8 +140,8 @@ pub enum SudoMsg {
     EndWithValidatorUpdate {},
     PrivilegeChange(PrivilegeChangeMsg),
     /// This allows updating group membership via sudo.
-    /// Use case: for post-genesis validators, we want to set some initial engagement points / weight.
-    /// Note: If the member already exists, its weight will be reset to the weight sent here.
+    /// Use case: for post-genesis validators, we want to set some initial engagement points.
+    /// Note: If the member already exists, its points will be reset to the points sent here.
     UpdateMember(Member),
 }
 

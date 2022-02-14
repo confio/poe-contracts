@@ -317,15 +317,15 @@ fn update_membership(
     cfg: &Config,
     height: u64,
 ) -> StdResult<Vec<SubMsg>> {
-    // update their membership weight
-    let new = calc_weight(new_stake, cfg);
+    // update their membership points
+    let new = calc_points(new_stake, cfg);
     let old = members().may_load(storage, &sender)?;
 
     // short-circuit if no change
     if new == old {
         return Ok(vec![]);
     }
-    // otherwise, record change of weight
+    // otherwise, record change of points
     match new.as_ref() {
         Some(w) => members().save(storage, &sender, w, height),
         None => members().remove(storage, &sender, height),
@@ -345,7 +345,7 @@ fn update_membership(
     })
 }
 
-fn calc_weight(stake: Uint128, cfg: &Config) -> Option<u64> {
+fn calc_points(stake: Uint128, cfg: &Config) -> Option<u64> {
     if stake < cfg.min_bond {
         None
     } else {
@@ -507,11 +507,11 @@ pub fn query_staked(deps: Deps, addr: String) -> StdResult<StakedResponse> {
 
 fn query_member(deps: Deps, addr: String, height: Option<u64>) -> StdResult<MemberResponse> {
     let addr = deps.api.addr_validate(&addr)?;
-    let weight = match height {
+    let points = match height {
         Some(h) => members().may_load_at_height(deps.storage, &addr, h),
         None => members().may_load(deps.storage, &addr),
     }?;
-    Ok(MemberResponse { points: weight })
+    Ok(MemberResponse { points })
 }
 
 // settings for pagination
@@ -592,24 +592,24 @@ mod tests {
     const USER2: &str = "user2";
     const USER3: &str = "user3";
     const DENOM: &str = "stake";
-    const TOKENS_PER_WEIGHT: Uint128 = Uint128::new(1_000);
+    const TOKENS_PER_POINT: Uint128 = Uint128::new(1_000);
     const MIN_BOND: Uint128 = Uint128::new(5_000);
     const UNBONDING_DURATION: u64 = 100;
 
     fn default_instantiate(deps: DepsMut) {
-        do_instantiate(deps, TOKENS_PER_WEIGHT, MIN_BOND, UNBONDING_DURATION, 0)
+        do_instantiate(deps, TOKENS_PER_POINT, MIN_BOND, UNBONDING_DURATION, 0)
     }
 
     fn do_instantiate(
         deps: DepsMut,
-        tokens_per_weight: Uint128,
+        tokens_per_point: Uint128,
         min_bond: Uint128,
         unbonding_period: u64,
         auto_return_limit: u64,
     ) {
         let msg = InstantiateMsg {
             denom: "stake".to_owned(),
-            tokens_per_point: tokens_per_weight,
+            tokens_per_point,
             min_bond,
             unbonding_period,
             admin: Some(INIT_ADMIN.into()),
@@ -676,7 +676,7 @@ mod tests {
             res,
             Config {
                 denom: "stake".to_owned(),
-                tokens_per_point: TOKENS_PER_WEIGHT,
+                tokens_per_point: TOKENS_PER_POINT,
                 min_bond: MIN_BOND,
                 unbonding_period: Duration::new(UNBONDING_DURATION),
                 auto_return_limit: 0,
@@ -703,26 +703,26 @@ mod tests {
     // this tests the member queries
     fn assert_users(
         deps: Deps,
-        user1_weight: Option<u64>,
-        user2_weight: Option<u64>,
-        user3_weight: Option<u64>,
+        user1_points: Option<u64>,
+        user2_points: Option<u64>,
+        user3_points: Option<u64>,
         height: Option<u64>,
     ) {
         let member1 = get_member(deps, USER1.into(), height);
-        assert_eq!(member1, user1_weight);
+        assert_eq!(member1, user1_points);
 
         let member2 = get_member(deps, USER2.into(), height);
-        assert_eq!(member2, user2_weight);
+        assert_eq!(member2, user2_points);
 
         let member3 = get_member(deps, USER3.into(), height);
-        assert_eq!(member3, user3_weight);
+        assert_eq!(member3, user3_points);
 
         // this is only valid if we are not doing a historical query
         if height.is_none() {
             // compute expected metrics
-            let weights = vec![user1_weight, user2_weight, user3_weight];
-            let sum: u64 = weights.iter().map(|x| x.unwrap_or_default()).sum();
-            let count = weights.iter().filter(|x| x.is_some()).count();
+            let points = vec![user1_points, user2_points, user3_points];
+            let sum: u64 = points.iter().map(|x| x.unwrap_or_default()).sum();
+            let count = points.iter().filter(|x| x.is_some()).count();
 
             // TODO: more detailed compare?
             let msg = QueryMsg::ListMembers {
@@ -757,20 +757,20 @@ mod tests {
         default_instantiate(deps.as_mut());
         let height = mock_env().block.height;
 
-        // Assert original weights
+        // Assert original points
         assert_users(deps.as_ref(), None, None, None, None);
 
         // ensure it rounds down, and respects cut-off
         bond(deps.as_mut(), 12_000, 7_500, 4_000, 1);
 
-        // Assert updated weights
+        // Assert updated points
         assert_stake(deps.as_ref(), 12_000, 7_500, 4_000);
         assert_users(deps.as_ref(), Some(12), Some(7), None, None);
 
         // add some more, ensure the sum is properly respected (7.5 + 7.6 = 15 not 14)
         bond(deps.as_mut(), 0, 7_600, 1_200, 2);
 
-        // Assert updated weights
+        // Assert updated points
         assert_stake(deps.as_ref(), 12_000, 15_100, 5_200);
         assert_users(deps.as_ref(), Some(12), Some(15), Some(5), None);
 
@@ -850,7 +850,7 @@ mod tests {
     }
 
     #[test]
-    fn try_list_members_by_weight() {
+    fn try_list_members_by_points() {
         let mut deps = mock_dependencies();
         default_instantiate(deps.as_mut());
 
@@ -860,7 +860,7 @@ mod tests {
             .unwrap()
             .members;
         assert_eq!(members.len(), 3);
-        // Assert the set is sorted by (descending) weight
+        // Assert the set is sorted by (descending) points
         assert_eq!(
             members,
             vec![
@@ -934,14 +934,14 @@ mod tests {
         bond(deps.as_mut(), 12_000, 7_500, 4_000, 1);
         unbond(deps.as_mut(), 4_500, 2_600, 1_111, 2, 0);
 
-        // Assert updated weights
+        // Assert updated points
         assert_stake(deps.as_ref(), 7_500, 4_900, 2_889);
         assert_users(deps.as_ref(), Some(7), None, None, None);
 
-        // Adding a little more returns weight
+        // Adding a little more returns points
         bond(deps.as_mut(), 600, 100, 2_222, 3);
 
-        // Assert updated weights
+        // Assert updated points
         assert_users(deps.as_ref(), Some(8), Some(5), Some(5), None);
 
         // check historical queries all work
@@ -1661,11 +1661,11 @@ mod tests {
 
     #[test]
     fn ensure_bonding_edge_cases() {
-        // use min_bond 0, tokens_per_weight 500
+        // use min_bond 0, tokens_per_points 500
         let mut deps = mock_dependencies();
         do_instantiate(deps.as_mut(), Uint128::new(100), Uint128::zero(), 5, 0);
 
-        // setting 50 tokens, gives us Some(0) weight
+        // setting 50 tokens, gives us Some(0) points
         // even setting to 1 token
         bond(deps.as_mut(), 50, 1, 102, 1);
         assert_users(deps.as_ref(), Some(0), Some(0), Some(1), None);
@@ -1730,7 +1730,7 @@ mod tests {
         use super::*;
 
         fn do_instantiate(deps: DepsMut, limit: u64) {
-            super::do_instantiate(deps, TOKENS_PER_WEIGHT, MIN_BOND, UNBONDING_DURATION, limit)
+            super::do_instantiate(deps, TOKENS_PER_POINT, MIN_BOND, UNBONDING_DURATION, limit)
         }
 
         /// Helper for asserting if expected transfers occurred in response. Panics if any non

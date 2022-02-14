@@ -36,10 +36,10 @@ pub struct InstantiateMsg {
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
 pub enum ExecuteMsg {
-    /// Bond will bond all staking tokens sent with the message and update membership weight
+    /// Bond will bond all staking tokens sent with the message and update membership points
     Bond {},
     /// Unbond will start the unbonding process for the given number of tokens.
-    /// The sender immediately loses weight from these tokens, and can claim them
+    /// The sender immediately loses points from these tokens, and can claim them
     /// back to his wallet after `unbonding_period`
     Unbond { tokens: Coin },
     /// Claim is used to claim your native tokens that you previously "unbonded"
@@ -91,7 +91,7 @@ pub enum QueryMsg {
         start_after: Option<String>,
         limit: Option<u32>,
     },
-    /// Returns MemberListResponse, sorted by weight descending.
+    /// Returns MemberListResponse, sorted by points descending.
     ListMembersByPoints {
         start_after: Option<Member>,
         limit: Option<u32>,

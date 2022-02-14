@@ -102,16 +102,16 @@ fn initialize_members(
     let mut batch = groups.left.list_members(&deps.querier, None, QUERY_LIMIT)?;
     while !batch.is_empty() {
         let last = Some(batch.last().unwrap().addr.clone());
-        // check it's weight in the other group, and calculate/save the mixed weight if in both
+        // check it's points in the other group, and calculate/save the mixed points if in both
         for member in batch.into_iter() {
             let addr = deps.api.addr_validate(&member.addr)?;
             // note that this is a *raw query* and therefore quite cheap compared to a *smart query*
             // like calling `list_members` on the right side as well
             let other = groups.right.is_member(&deps.querier, &addr)?;
             if let Some(right) = other {
-                let weight = poe_function.mix(member.points, right)?;
-                total += weight;
-                members().save(deps.storage, &addr, &weight, height)?;
+                let points = poe_function.mix(member.points, right)?;
+                total += points;
+                members().save(deps.storage, &addr, &points, height)?;
             }
         }
         // and get the next page
@@ -197,7 +197,7 @@ pub fn update_members(
     // add all new members and update total
     for change in changes {
         let member_addr = deps.api.addr_validate(&change.key)?;
-        let new_weight = match change.new {
+        let new_points = match change.new {
             Some(x) => match query_group.is_member(&deps.querier, &member_addr)? {
                 Some(y) => Some(poe_function.mix(x, y)?),
                 None => None,
@@ -207,19 +207,19 @@ pub fn update_members(
         let mems = members();
 
         // update the total with changes.
-        // to calculate this, we need to load the old weight before saving the new weight
-        let prev_weight = mems.may_load(deps.storage, &member_addr)?;
-        total -= prev_weight.unwrap_or_default();
-        total += new_weight.unwrap_or_default();
+        // to calculate this, we need to load the old points before saving the new points
+        let prev_points = mems.may_load(deps.storage, &member_addr)?;
+        total -= prev_points.unwrap_or_default();
+        total += new_points.unwrap_or_default();
 
         // store the new value
-        match new_weight {
-            Some(weight) => mems.save(deps.storage, &member_addr, &weight, height)?,
+        match new_points {
+            Some(points) => mems.save(deps.storage, &member_addr, &points, height)?,
             None => mems.remove(deps.storage, &member_addr, height)?,
         };
 
         // return the diff
-        diffs.push(MemberDiff::new(member_addr, prev_weight, new_weight));
+        diffs.push(MemberDiff::new(member_addr, prev_points, new_points));
     }
 
     TOTAL.save(deps.storage, &total)?;
@@ -495,10 +495,10 @@ mod tests {
     const RESERVE: &str = "reserve";
     const SLASHER: &str = "slasher";
 
-    fn member<T: Into<String>>(addr: T, weight: u64) -> Member {
+    fn member<T: Into<String>>(addr: T, points: u64) -> Member {
         Member {
             addr: addr.into(),
-            points: weight,
+            points,
         }
     }
 
@@ -638,7 +638,7 @@ mod tests {
         voter4: Option<u64>,
         voter5: Option<u64>,
     ) {
-        let weight = |addr: &str| -> Option<u64> {
+        let points = |addr: &str| -> Option<u64> {
             let o: MemberResponse = app
                 .wrap()
                 .query_wasm_smart(
@@ -652,20 +652,20 @@ mod tests {
             o.points
         };
 
-        assert_eq!(weight(OWNER), owner);
-        assert_eq!(weight(VOTER1), voter1);
-        assert_eq!(weight(VOTER2), voter2);
-        assert_eq!(weight(VOTER3), voter3);
-        assert_eq!(weight(VOTER4), voter4);
-        assert_eq!(weight(VOTER5), voter5);
+        assert_eq!(points(OWNER), owner);
+        assert_eq!(points(VOTER1), voter1);
+        assert_eq!(points(VOTER2), voter2);
+        assert_eq!(points(VOTER3), voter3);
+        assert_eq!(points(VOTER4), voter4);
+        assert_eq!(points(VOTER5), voter5);
     }
 
     #[test]
     fn basic_init() {
         let stakers = vec![
-            member(OWNER, 88888888888), // 0 weight -> 0 mixed
-            member(VOTER1, 10000),      // 10000 stake, 100 weight -> 1000 mixed
-            member(VOTER3, 7500),       // 7500 stake, 300 weight -> 1500 mixed
+            member(OWNER, 88888888888), // 0 points -> 0 mixed
+            member(VOTER1, 10000),      // 10000 stake, 100 points -> 1000 mixed
+            member(VOTER3, 7500),       // 7500 stake, 300 points -> 1500 mixed
         ];
 
         let mut app = AppBuilder::new_custom().build(|router, _, storage| {
@@ -699,8 +699,8 @@ mod tests {
     #[test]
     fn update_with_upstream_change() {
         let stakers = vec![
-            member(VOTER1, 10000), // 10000 stake, 100 weight -> 1000 mixed
-            member(VOTER3, 7500),  // 7500 stake, 300 weight -> 1500 mixed
+            member(VOTER1, 10000), // 10000 stake, 100 points -> 1000 mixed
+            member(VOTER3, 7500),  // 7500 stake, 300 points -> 1500 mixed
             member(VOTER5, 50),    // below stake threshold -> None
         ];
 
@@ -751,7 +751,7 @@ mod tests {
         app.execute_contract(Addr::unchecked(VOTER5), staker_addr, &msg, &balance)
             .unwrap();
 
-        // check updated weights
+        // check updated points
         check_membership(
             &app,
             &mixer_addr,
@@ -782,7 +782,7 @@ mod tests {
         app.execute_contract(Addr::unchecked(OWNER), group_addr, &msg, &[])
             .unwrap();
 
-        // check updated weights
+        // check updated points
         check_membership(
             &app,
             &mixer_addr,
@@ -801,8 +801,8 @@ mod tests {
     #[test]
     fn hook_on_engagement() {
         let stakers = vec![
-            member(VOTER1, 10000), // 10000 stake, 100 weight -> 1000 mixed
-            member(VOTER3, 7500),  // 7500 stake, 300 weight -> 1500 mixed
+            member(VOTER1, 10000), // 10000 stake, 100 points -> 1000 mixed
+            member(VOTER3, 7500),  // 7500 stake, 300 points -> 1500 mixed
             member(VOTER5, 50),    // below stake threshold -> None
         ];
 
@@ -875,9 +875,9 @@ mod tests {
     #[test]
     fn slashing_works() {
         let stakers = vec![
-            member(VOTER1, 10000), // 10000 stake, 100 weight -> 1000 mixed
-            member(VOTER2, 20000), // 20000 stake, 200 weight -> 2000 mixed
-            member(VOTER3, 7500),  // 7500 stake, 300 weight -> 1500 mixed
+            member(VOTER1, 10000), // 10000 stake, 100 points -> 1000 mixed
+            member(VOTER2, 20000), // 20000 stake, 200 points -> 2000 mixed
+            member(VOTER3, 7500),  // 7500 stake, 300 points -> 1500 mixed
         ];
 
         let mut app = AppBuilder::new_custom().build(|router, _, storage| {
