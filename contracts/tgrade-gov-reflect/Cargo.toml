@@ -24,7 +24,7 @@ backtraces = ["cosmwasm-std/backtraces"]
 
 [dependencies]
 cosmwasm-std = "1.0.0-beta5"
-cw-storage-plus = "0.11.1"
+cw-storage-plus = "0.12.1"
 tg-bindings = { version = "0.6.2", path = "../../packages/bindings" }
 schemars = "0.8.1"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
