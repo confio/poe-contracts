@@ -2,9 +2,17 @@
 
 ## [Unreleased](https://github.com/confio/poe-contracts/tree/HEAD)
 
-[Full Changelog](https://github.com/confio/poe-contracts/compare/v0.6.0...HEAD)
+[Full Changelog](https://github.com/confio/poe-contracts/compare/v0.6.0-rc2...HEAD)
 
-## [v0.6.0](https://github.com/confio/poe-contracts/tree/v0.6.0) (2022-02-10)
+**Closed issues:**
+
+- Refactor local names to match new naming rules [\#86](https://github.com/confio/poe-contracts/issues/86)
+
+**Merged pull requests:**
+
+- Aligning local names to APIs [\#102](https://github.com/confio/poe-contracts/pull/102) ([hashedone](https://github.com/hashedone))
+
+## [v0.6.0-rc2](https://github.com/confio/poe-contracts/tree/v0.6.0) (2022-02-10)
 
 [Full Changelog](https://github.com/confio/poe-contracts/compare/v0.5.5...v0.6.0-rc2)
 
