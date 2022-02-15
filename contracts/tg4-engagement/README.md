@@ -35,8 +35,8 @@ pub struct Member {
 }
 ```
 
-Members are defined by an address and a points. This is transformed
-and stored under their `CanonicalAddr`, in a format defined in
+Members are defined by an address and points. This is transformed
+and stored under their `Addr`, in a format defined in
 [tg4 raw queries](../../packages/tg4/README.md#raw).
 
 Note that 0 *is an allowed points*. This doesn't give any voting rights, but
