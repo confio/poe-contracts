@@ -42,7 +42,7 @@ Members are defined by an address and a points. This is transformed
 and stored under their `CanonicalAddr`, in a format defined in
 [tg4 raw queries](../../packages/tg4/README.md#raw).
 
-Note that 0 *is an allowed points*. This doesn't give any voting rights, 
+Note that 0 *is an allowed number of points*. This doesn't give any voting rights, 
 but it does define this address is part of the group, which may be
 meaningful in some circumstances.
 
