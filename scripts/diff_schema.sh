@@ -83,7 +83,7 @@ do
   SR="$PARENT/schema-$RIGHT_TAG"
   if [ "$TOOL" = "diff" ]
   then
-    diff -u "$SL" "$SR"
+    { diff -u "$SL" "$SR" || true; }
   else
     for JL in "$SL"/*.json
     do

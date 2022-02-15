@@ -1,6 +1,6 @@
 [package]
 name = "tgrade-vesting-account"
-version = "0.6.0-rc2"
+version = "0.6.0"
 authors = ["Jakub Bogucki <jakub@confio.gmbh>"]
 edition = "2018"
 description = "Vesting Account as a contract"
@@ -16,20 +16,20 @@ crate-type = ["cdylib", "rlib"]
 library = []
 
 [dependencies]
-cosmwasm-std = "1.0.0-beta"
+cosmwasm-std = "1.0.0-beta5"
 cw-utils = "0.11.0"
 cw2 = "0.11.0"
 cw-storage-plus = "0.11.0"
 schemars = "0.8.1"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
-tg-bindings = { version = "0.6.0-rc2", path = "../../packages/bindings" }
-tg-utils = { version = "0.6.0-rc2", path = "../../packages/utils" }
+tg-bindings = { version = "0.6.0", path = "../../packages/bindings" }
+tg-utils = { version = "0.6.0", path = "../../packages/utils" }
 thiserror = "1"
 
 [dev-dependencies]
 anyhow = "1"
 assert_matches = "1"
 derivative = "2"
-cosmwasm-schema = "1.0.0-beta"
+cosmwasm-schema = "1.0.0-beta5"
 cw-multi-test = "0.11.0"
-tg-bindings-test = { version = "0.6.0-rc2", path = "../../packages/bindings-test" }
+tg-bindings-test = { version = "0.6.0", path = "../../packages/bindings-test" }
