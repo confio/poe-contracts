@@ -65,7 +65,7 @@ enum GroupConfig {
     /// Usa a tg4_stake contract as the valset group contract
     Stake {
         denom: String,
-        tokens_per_weight: Uint128,
+        tokens_per_points: Uint128,
     },
 }
 
@@ -88,7 +88,7 @@ pub struct SuiteBuilder {
     /// Base epoch reward, 100uscd by default
     #[derivative(Default(value = "coin(100, \"usdc\")"))]
     epoch_reward: Coin,
-    /// Validators weight scaling
+    /// Validators points scaling
     scaling: Option<u32>,
     /// Factor determining how accumulated fees affects base epoch reward
     fee_percentage: Decimal,
@@ -124,12 +124,12 @@ impl SuiteBuilder {
     }
 
     /// Use a tg4_engagement contract for membership.
-    /// Provide a list of members with assigned weights to initialize it with.
+    /// Provide a list of members with assigned points to initialize it with.
     pub fn with_engagement(mut self, members: &[(&str, u64)]) -> Self {
         self.group_config = GroupConfig::Engagement {
             members: members
                 .iter()
-                .map(|(addr, weight)| ((*addr).to_owned(), *weight))
+                .map(|(addr, points)| ((*addr).to_owned(), *points))
                 .collect(),
         };
 
@@ -141,11 +141,11 @@ impl SuiteBuilder {
     pub fn with_stake(
         mut self,
         denom: impl Into<String>,
-        tokens_per_weight: impl Into<Uint128>,
+        tokens_per_points: impl Into<Uint128>,
     ) -> Self {
         self.group_config = GroupConfig::Stake {
             denom: denom.into(),
-            tokens_per_weight: tokens_per_weight.into(),
+            tokens_per_points: tokens_per_points.into(),
         };
         self
     }
@@ -178,9 +178,9 @@ impl SuiteBuilder {
         let config = DistributionConfig {
             members: members
                 .iter()
-                .map(|(addr, weight)| Member {
+                .map(|(addr, points)| Member {
                     addr: (*addr).to_owned(),
-                    points: *weight,
+                    points: *points,
                 })
                 .collect(),
             halflife: halflife.into(),
@@ -227,10 +227,7 @@ impl SuiteBuilder {
 
                 let members = members
                     .into_iter()
-                    .map(|(addr, weight)| Member {
-                        addr,
-                        points: weight,
-                    })
+                    .map(|(addr, points)| Member { addr, points })
                     .collect();
 
                 app.instantiate_contract(
@@ -252,7 +249,7 @@ impl SuiteBuilder {
             }
             GroupConfig::Stake {
                 denom,
-                tokens_per_weight,
+                tokens_per_points,
             } => {
                 let stake_id = app.store_code(contract_stake());
                 app.instantiate_contract(
@@ -260,7 +257,7 @@ impl SuiteBuilder {
                     admin.clone(),
                     &tg4_stake::msg::InstantiateMsg {
                         denom,
-                        tokens_per_point: tokens_per_weight,
+                        tokens_per_point: tokens_per_points,
                         min_bond: Uint128::zero(),
                         unbonding_period: 0,
                         admin: Some(admin.to_string()),

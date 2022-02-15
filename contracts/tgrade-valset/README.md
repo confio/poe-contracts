@@ -51,11 +51,11 @@ in `InstantiateMsg`. The sum of these ratios needs to fit in the [0, 1] range. T
 be empty, in which case the whole reward ends up with the validators.
 
 When `validators_reward` is calculated, it is split between active validators.
-Active validators are up to `max_validators` validators with the highest weight,
-but with at least `min_weight`. `scaling` is an optional field which allows scaling
-the weight for Tendermint purposes (it should not affect reward splitting). When validators
+Active validators are up to `max_validators` validators with the highest points,
+but with at least `min_points`. `scaling` is an optional field which allows scaling
+the points for Tendermint purposes (it should not affect reward splitting). When validators
 are selected, then `cumulative_reward` is split between them, proportionally to
-the validators `weight`. All of `max_validators`, `min_weight`, and `scaling` are
+the validators `points`. All of `max_validators`, `min_points`, and `scaling` are
 configurable during instantiation. Splitting of `validators_reward` is realized by
 an external contract.
 
@@ -103,15 +103,15 @@ with the execution message:
 ```
 
 After this, another message would be sent to update validators and their
-weights:
+points:
 
 ```json
 {
   "update_members": {
     "remove": ["validator_to_be_removed"],
     "add": [{
-      "addr": "validator_with_weight_updated",
-      "weight": 10
+      "addr": "validator_with_points_updated",
+      "points": 10
     }]
   }
 }
@@ -166,7 +166,7 @@ this contract (and he also always can do that).
 
 Because only the `membership` contract is slashed by this implementation of `Slash`,
 the `membership` contract itself is responsible for taking care of aligning
-weight on validators and engagement contracts. However, as the rewards distribution
+points on validators and engagement contracts. However, as the rewards distribution
 is not recalculated until the next epoch, the slashing would not affect the current
 epoch.
 
@@ -179,13 +179,13 @@ pub struct InstantiateMsg {
     pub admin: Option<String>,
     /// Address of a cw4 contract with the raw membership used to feed the validator set
     pub membership: String,
-    /// Minimum weight needed by an address in `membership` to be considered for the validator set.
-    /// 0-weight members are always filtered out.
+    /// Minimum points needed by an address in `membership` to be considered for the validator set.
+    /// 0-points members are always filtered out.
     /// TODO: if we allow sub-1 scaling factors, determine if this is pre-/post- scaling
-    /// (use weight for cw4, power for Tendermint)
-    pub min_weight: u64,
+    /// (use points for cw4, power for Tendermint)
+    pub min_points: u64,
     /// The maximum number of validators that can be included in the Tendermint validator set.
-    /// If there are more validators than slots, we select the top N by membership weight
+    /// If there are more validators than slots, we select the top N by membership points
     /// descending. (In case of ties at the last slot, select by "first" Tendermint pubkey,
     /// lexicographically sorted).
     pub max_validators: u32,
@@ -205,8 +205,8 @@ pub struct InstantiateMsg {
     /// making this privileged/calling the EndBlockers, so that we have a non-empty validator set
     pub initial_keys: Vec<OperatorInitInfo>,
 
-    /// A scaling factor to multiply cw4-group weights to produce the Tendermint validator power
-    /// (TODO: should we allow this to reduce weight? Like 1/1000?)
+    /// A scaling factor to multiply cw4-group points to produce the Tendermint validator power
+    /// (TODO: should we allow this to reduce points? Like 1/1000?)
     pub scaling: Option<u32>,
 
     /// Percentage of total accumulated fees that is subtracted from tokens minted as rewards.

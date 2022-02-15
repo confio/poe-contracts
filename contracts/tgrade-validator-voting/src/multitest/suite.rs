@@ -57,10 +57,10 @@ impl SuiteBuilder {
         }
     }
 
-    pub fn with_group_member(mut self, addr: &str, weight: u64) -> Self {
+    pub fn with_group_member(mut self, addr: &str, points: u64) -> Self {
         self.group_members.push(Member {
             addr: addr.to_owned(),
-            points: weight,
+            points,
         });
         self
     }

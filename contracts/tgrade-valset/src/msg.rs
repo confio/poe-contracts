@@ -24,7 +24,7 @@ pub struct InstantiateMsg {
     /// (use points for cw4, power for Tendermint)
     pub min_points: u64,
     /// The maximum number of validators that can be included in the Tendermint validator set.
-    /// If there are more validators than slots, we select the top N by membership weight
+    /// If there are more validators than slots, we select the top N by membership points
     /// descending. (In case of ties at the last slot, select by "first" Tendermint pubkey,
     /// lexicographically sorted).
     pub max_validators: u32,
@@ -44,8 +44,8 @@ pub struct InstantiateMsg {
     /// making this privileged/calling the EndBlockers, so that we have a non-empty validator set
     pub initial_keys: Vec<OperatorInitInfo>,
 
-    /// A scaling factor to multiply cw4-group weights to produce the Tendermint validator power
-    /// (TODO: should we allow this to reduce weight? Like 1/1000?)
+    /// A scaling factor to multiply cw4-group points to produce the Tendermint validator power
+    /// (TODO: should we allow this to reduce points? Like 1/1000?)
     pub scaling: Option<u32>,
 
     /// Percentage of total accumulated fees that is subtracted from tokens minted as rewards.
@@ -98,7 +98,7 @@ impl InstantiateMsg {
             return Err(ContractError::InvalidEpoch {});
         }
         if self.min_points == 0 {
-            return Err(ContractError::InvalidMinWeight {});
+            return Err(ContractError::InvalidMinPoints {});
         }
         if self.max_validators == 0 {
             return Err(ContractError::InvalidMaxValidators {});
@@ -533,11 +533,11 @@ mod test {
         let err = invalid.validate().unwrap_err();
         assert_eq!(err, ContractError::InvalidScaling {});
 
-        // fails on 0 min weight
+        // fails on 0 min points
         let mut invalid = proper.clone();
         invalid.min_points = 0;
         let err = invalid.validate().unwrap_err();
-        assert_eq!(err, ContractError::InvalidMinWeight {});
+        assert_eq!(err, ContractError::InvalidMinPoints {});
 
         // fails on 0 max validators
         let mut invalid = proper.clone();

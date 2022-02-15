@@ -59,7 +59,7 @@ pub fn instantiate(
     msg.validate()?;
     let membership = Tg4Contract(deps.api.addr_validate(&msg.membership)?);
     membership
-        .total_weight(&deps.querier)
+        .total_points(&deps.querier)
         .map_err(|_| ContractError::InvalidTg4Contract {})?;
     let distribution_contracts = msg.distribution_contracts.validate(deps.api)?;
 
@@ -154,9 +154,9 @@ pub fn execute(
             admin.map(|admin| api.addr_validate(&admin)).transpose()?,
         )?),
         ExecuteMsg::UpdateConfig {
-            min_points: min_weight,
+            min_points,
             max_validators,
-        } => execute_update_config(deps, info, min_weight, max_validators),
+        } => execute_update_config(deps, info, min_points, max_validators),
 
         ExecuteMsg::RegisterValidatorKey { pubkey, metadata } => {
             execute_register_validator_key(deps, env, info, pubkey, metadata)
@@ -177,14 +177,14 @@ pub fn execute(
 fn execute_update_config(
     deps: DepsMut,
     info: MessageInfo,
-    min_weight: Option<u64>,
+    min_points: Option<u64>,
     max_validators: Option<u32>,
 ) -> Result<Response, ContractError> {
     ADMIN.assert_admin(deps.as_ref(), &info.sender)?;
 
     CONFIG.update::<_, StdError>(deps.storage, |mut cfg| {
-        if let Some(min_weight) = min_weight {
-            cfg.min_points = min_weight;
+        if let Some(min_points) = min_points {
+            cfg.min_points = min_points;
         }
         if let Some(max_validators) = max_validators {
             cfg.max_validators = max_validators;
@@ -742,7 +742,7 @@ fn calculate_validators(
 ) -> Result<(Vec<ValidatorInfo>, Vec<Addr>), ContractError> {
     let cfg = CONFIG.load(deps.storage)?;
 
-    let min_weight = max(cfg.min_points, 1);
+    let min_points = max(cfg.min_points, 1);
     let scaling: u64 = cfg.scaling.unwrap_or(1).into();
 
     // get all validators from the contract, filtered
@@ -757,7 +757,7 @@ fn calculate_validators(
 
         let filtered: Vec<_> = batch
             .into_iter()
-            .filter(|m| m.points >= min_weight)
+            .filter(|m| m.points >= min_points)
             .filter_map(|m| -> Option<StdResult<_>> {
                 // why do we allow Addr::unchecked here?
                 // all valid keys for `operators()` are already validated before insertion
@@ -877,8 +877,8 @@ pub fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> Result<Response, Co
     ensure_from_older_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
 
     CONFIG.update::<_, StdError>(deps.storage, |mut cfg| {
-        if let Some(min_weight) = msg.min_points {
-            cfg.min_points = min_weight;
+        if let Some(min_points) = msg.min_points {
+            cfg.min_points = min_points;
         }
         if let Some(max_validators) = msg.max_validators {
             cfg.max_validators = max_validators;
@@ -1048,9 +1048,9 @@ mod test {
     fn members(members: Vec<(&str, u64)>) -> Vec<Member> {
         members
             .into_iter()
-            .map(|(addr, weight)| Member {
+            .map(|(addr, points)| Member {
                 addr: addr.to_owned(),
-                points: weight,
+                points,
             })
             .collect()
     }

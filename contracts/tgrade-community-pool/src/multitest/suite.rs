@@ -34,7 +34,7 @@ pub struct SuiteBuilder {
     engagement_members: Vec<Member>,
     group_members: Vec<Member>,
     rules: VotingRules,
-    contract_weight: u64,
+    contract_points: u64,
     group_token: String,
 }
 
@@ -44,21 +44,21 @@ impl SuiteBuilder {
             engagement_members: vec![],
             group_members: vec![],
             rules: RulesBuilder::new().build(),
-            contract_weight: 0,
+            contract_points: 0,
             group_token: "GROUP".to_owned(),
         }
     }
 
-    pub fn with_group_member(mut self, addr: &str, weight: u64) -> Self {
+    pub fn with_group_member(mut self, addr: &str, points: u64) -> Self {
         self.group_members.push(Member {
             addr: addr.to_owned(),
-            points: weight,
+            points,
         });
         self
     }
 
-    pub fn with_community_pool_as_member(mut self, weight: u64) -> Self {
-        self.contract_weight = weight;
+    pub fn with_community_pool_as_member(mut self, points: u64) -> Self {
+        self.contract_points = points;
         self
     }
 
@@ -139,7 +139,7 @@ impl SuiteBuilder {
         )
         .unwrap();
 
-        if self.contract_weight > 0 {
+        if self.contract_points > 0 {
             app.execute_contract(
                 owner.clone(),
                 group_contract.clone(),
@@ -147,7 +147,7 @@ impl SuiteBuilder {
                     remove: vec![],
                     add: vec![Member {
                         addr: contract.to_string(),
-                        points: self.contract_weight,
+                        points: self.contract_points,
                     }],
                 },
                 &[],

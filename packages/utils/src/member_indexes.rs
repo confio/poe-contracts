@@ -12,7 +12,7 @@ pub const PREAUTH_SLASHING: Preauth = Preauth::new("tg4-preauth_slashing");
 pub const TOTAL: Item<u64> = Item::new(TOTAL_KEY);
 
 pub struct MemberIndexes<'a> {
-    // Weights (multi-)index (deserializing the (hidden) pk to Addr)
+    // Points (multi-)index (deserializing the (hidden) pk to Addr)
     pub points: MultiIndex<'a, u64, u64, Addr>,
 }
 
@@ -24,9 +24,9 @@ impl<'a> IndexList<u64> for MemberIndexes<'a> {
 }
 
 /// Indexed snapshot map for members.
-/// This allows to query the map members, sorted by weight.
-/// The weight index is a `MultiIndex`, as there can be multiple members with the same weight.
-/// The weight index is not snapshotted; only the current weights are indexed at any given time.
+/// This allows to query the map members, sorted by points.
+/// The points index is a `MultiIndex`, as there can be multiple members with the same points.
+/// The points index is not snapshotted; only the current points are indexed at any given time.
 pub fn members<'a>() -> IndexedSnapshotMap<'a, &'a Addr, u64, MemberIndexes<'a>> {
     let indexes = MemberIndexes {
         points: MultiIndex::new(|&w| w, tg4::MEMBERS_KEY, "members__points"),

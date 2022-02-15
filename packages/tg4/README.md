@@ -50,20 +50,20 @@ problem, but we cover how to instantiate that in
 
 ### Smart
 
-`TotalWeight{}` - Returns the total weight of all current members,
+`TotalPoints{}` - Returns the total points of all current members,
   this is very useful if some conditions are defined on a "percentage of members".
 
-`Member{addr, height}` - Returns the weight of this voter if they are a member of the
+`Member{addr, height}` - Returns the points of this voter if they are a member of the
   group (may be 0), or `None` if they are not a member of the group.
   If height is set, and the tg4 implementation supports snapshots,
-  this will return the weight of that member at
+  this will return the points of that member at
   the beginning of the block with the given height.
 
 `ListMembers{start_after, limit}` - Allows us to paginate over the list
-   of all members. 0-weight members will be included. Removed members will not.
+   of all members. 0-points members will be included. Removed members will not.
 
-`ListMembersByWeight{start_after, limit}` - Allows us to paginate over the list
-   of members, sorted by descending weight.
+`ListMembersByPoints{start_after, limit}` - Allows us to paginate over the list
+   of members, sorted by descending points.
 
 `Admin{}` - Returns the `admin` address, or `None` if unset.
 
@@ -100,8 +100,8 @@ call with the following format:
     "diffs": [
       {
         "addr": "cosmos1y3x7q772u8s25c5zve949fhanrhvmtnu484l8z",
-        "old_weight": 20,
-        "new_weight": 24
+        "old_points": 20,
+        "new_points": 24
       }
     ]
   }
@@ -109,9 +109,9 @@ call with the following format:
 ```
 
 See [hook.rs](./src/hook.rs) for full details. Note that this example
-shows an update or an existing member. `old_weight` will
+shows an update or an existing member. `old_points` will
 be missing if the address was added for the first time. And
-`new_weight` will be missing if the address was removed.
+`new_points` will be missing if the address was removed.
 
 The receiving contract must be able to handle the `MemberChangedHookMsg`
 and should only return an error if it wants to change the functionality

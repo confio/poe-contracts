@@ -4,11 +4,11 @@ This mixes two tg4 contracts.
 On init, you pass addresses to two tg4 contracts, and this one will
 register a listening hook on both. Following that, it will query both
 for their current state and use a mixing function to calculate the combined value.
-(We currently implement/optimized it with the assumption that `None` weight in
-either upstream group means a `None` weight in this group)
+(We currently implement/optimized it with the assumption that `None` points in
+either upstream group means a `None` points in this group)
 
 Every time one of the upstream contracts changes, it will use the mixing
-function again to recalculate the combined weight of the affected addresses.
+function again to recalculate the combined points of the affected addresses.
 
 Apart from tg4, both upstream contracts need to implement the slashing API.
 

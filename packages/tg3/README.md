@@ -72,7 +72,7 @@ in the spec but left open to the implementation.
 `Vote{proposal_id, vote}` - Given a proposal_id, you can
 vote yes, no, abstain or veto. Each signed may have a
 different "points" in the voting and they apply their
-entire weight on the vote.
+entire points on the vote.
 
 Many contracts (like typical multisig with absolute threshold)
 may consider veto and  abstain as no and just count yes votes.

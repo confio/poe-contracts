@@ -7,10 +7,10 @@ use tg4::Member;
 use tg_utils::{Duration, PreauthError};
 
 /// Helper constructor for a member
-fn member(addr: &str, weight: u64) -> Member {
+fn member(addr: &str, points: u64) -> Member {
     Member {
         addr: addr.to_owned(),
-        points: weight,
+        points,
     }
 }
 
@@ -178,7 +178,7 @@ mod funds_distribution {
     }
 
     #[test]
-    fn weight_changed_after_distribution() {
+    fn points_changed_after_distribution() {
         let members = vec![
             "member1".to_owned(),
             "member2".to_owned(),
@@ -204,12 +204,12 @@ mod funds_distribution {
         // member[0] => 6
         // member[1] => 0 (removed)
         // member[2] => 5
-        // total_weight => 11
+        // total_points => 11
         suite
             .modify_members(owner.as_str(), &[(&members[0], 6)], &[&members[1]])
             .unwrap();
 
-        // Ensure funds are withdrawn properly, considering old weights
+        // Ensure funds are withdrawn properly, considering old points
         suite.withdraw_funds(&members[0], None, None).unwrap();
         suite.withdraw_funds(&members[1], None, None).unwrap();
         suite.withdraw_funds(&members[2], None, None).unwrap();
@@ -220,7 +220,7 @@ mod funds_distribution {
         assert_eq!(suite.token_balance(&members[2]).unwrap(), 250);
         assert_eq!(suite.token_balance(&members[3]).unwrap(), 1100);
 
-        // Distribute tokens again to ensure distribution considers new weights
+        // Distribute tokens again to ensure distribution considers new points
         suite
             .distribute_funds(&members[3], None, &coins(1100, &denom))
             .unwrap();
@@ -237,7 +237,7 @@ mod funds_distribution {
     }
 
     #[test]
-    fn weight_changed_after_distribution_accumulated() {
+    fn points_changed_after_distribution_accumulated() {
         let members = vec![
             "member1".to_owned(),
             "member2".to_owned(),
@@ -263,17 +263,17 @@ mod funds_distribution {
         // member[0] => 6
         // member[1] => 0 (removed)
         // member[2] => 5
-        // total_weight => 11
+        // total_points => 11
         suite
             .modify_members(owner.as_str(), &[(&members[0], 6)], &[&members[1]])
             .unwrap();
 
-        // Distribute tokens again to ensure distribution considers new weights
+        // Distribute tokens again to ensure distribution considers new points
         suite
             .distribute_funds(&members[3], None, &coins(1100, &denom))
             .unwrap();
 
-        // Withdraws sums of both distributions, so it works when they were using different weights
+        // Withdraws sums of both distributions, so it works when they were using different points
         suite.withdraw_funds(&members[0], None, None).unwrap();
         suite.withdraw_funds(&members[1], None, None).unwrap();
         suite.withdraw_funds(&members[2], None, None).unwrap();
@@ -294,7 +294,7 @@ mod funds_distribution {
             "member4".to_owned(),
         ];
 
-        // Weights are set to be prime numbers, difficult to distribute over. All are mutually prime
+        // points are set to be prime numbers, difficult to distribute over. All are mutually prime
         // with distributed amount
         let mut suite = SuiteBuilder::new()
             .with_member(&members[0], 7)
@@ -343,7 +343,7 @@ mod funds_distribution {
             "member4".to_owned(),
         ];
 
-        // Weights are set to be prime numbers, difficult to distribute over. All are mutually prime
+        // points are set to be prime numbers, difficult to distribute over. All are mutually prime
         // with distributed amount
         let mut suite = SuiteBuilder::new()
             .with_member(&members[0], 7)
@@ -393,10 +393,10 @@ mod funds_distribution {
 
         let denom = suite.denom.clone();
 
-        // Pre-halflife split, total weights 1 + 2 + 5 = 8
-        // members[0], weight 1: 400 * 1 / 8 = 50
-        // members[1], weight 2: 400 * 2 / 8 = 100
-        // members[2], weight 5: 400 * 5 / 8 = 250
+        // Pre-halflife split, total points 1 + 2 + 5 = 8
+        // members[0], points 1: 400 * 1 / 8 = 50
+        // members[1], points 2: 400 * 2 / 8 = 100
+        // members[2], points 5: 400 * 5 / 8 = 250
         suite
             .distribute_funds(&members[3], None, &coins(400, &denom))
             .unwrap();
@@ -404,10 +404,10 @@ mod funds_distribution {
         suite.app.advance_seconds(125);
         suite.app.next_block().unwrap();
 
-        // Post-halflife split, total weights 1 + 1 + 2 = 4
-        // members[0], weight 1: 600 * 1 / 4 = 150
-        // members[1], weight 1: 600 * 1 / 4 = 150
-        // members[2], weight 2: 600 * 2 / 4 = 300
+        // Post-halflife split, total points 1 + 1 + 2 = 4
+        // members[0], points 1: 600 * 1 / 4 = 150
+        // members[1], points 1: 600 * 1 / 4 = 150
+        // members[2], points 2: 600 * 2 / 4 = 300
         suite
             .distribute_funds(&members[3], None, &coins(600, &denom))
             .unwrap();
@@ -572,8 +572,8 @@ mod slashing {
 
     #[test]
     fn slasher_slashes() {
-        // Initialize two members with equal weights of 10. Slash one of members. Ensure proper
-        // weights. Perform distribution and withdraw, ensure proper payouts.
+        // Initialize two members with equal points of 10. Slash one of members. Ensure proper
+        // points. Perform distribution and withdraw, ensure proper payouts.
         let members = vec!["member1", "member2", "member3"];
 
         let mut suite = SuiteBuilder::new()
@@ -617,8 +617,8 @@ mod slashing {
 
     #[test]
     fn admin_cant_slash() {
-        // Initialize two members with equal weights of 10. Slash one of members. Ensure proper
-        // weights. Perform distribution and withdraw, ensure proper payouts.
+        // Initialize two members with equal points of 10. Slash one of members. Ensure proper
+        // points. Perform distribution and withdraw, ensure proper payouts.
         let members = vec!["member1", "member2", "member3"];
 
         let mut suite = SuiteBuilder::new()
@@ -662,8 +662,8 @@ mod slashing {
 
     #[test]
     fn non_slasher_cant_slash() {
-        // Initialize two members with equal weights of 10. Slash one of members. Ensure proper
-        // weights. Perform distribution and withdraw, ensure proper payouts.
+        // Initialize two members with equal points of 10. Slash one of members. Ensure proper
+        // points. Perform distribution and withdraw, ensure proper payouts.
         let members = vec!["member1", "member2", "member3"];
 
         let mut suite = SuiteBuilder::new()
@@ -775,8 +775,8 @@ mod slashing {
 
     #[test]
     fn add_slasher_with_preauth() {
-        // Initialize two members with equal weights of 10. Slash one of members. Ensure proper
-        // weights. Perform distribution and withdraw, ensure proper payouts.
+        // Initialize two members with equal points of 10. Slash one of members. Ensure proper
+        // points. Perform distribution and withdraw, ensure proper payouts.
         let members = vec!["member1", "member2", "member3"];
 
         let mut suite = SuiteBuilder::new()
@@ -844,7 +844,7 @@ mod slashing {
     fn slashing_after_distribution() {
         // Perform full tokens distribution and withdrawal. Then slash one member. Perform another
         // full distribution and withdrawal. Ensure all funds are as expected (the second
-        // distribution rewards are splitted with aligned weights.
+        // distribution rewards are splitted with aligned points.
         let members = vec!["member1", "member2", "member3"];
 
         let mut suite = SuiteBuilder::new()
@@ -884,7 +884,7 @@ mod slashing {
 
     #[test]
     fn slashing_while_withdrawal_pending() {
-        // Perform tokens distribution, but don't withdraw funds. Then slash one member. Perform
+        // Perform rewards distribution, but don't withdraw funds. Then slash one member. Perform
         // another distribution, and withdraw all funds. Ensure funds are as expected.
         let members = vec!["member1", "member2", "member3"];
 

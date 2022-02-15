@@ -17,7 +17,7 @@ const PRECISION_FACTOR: u128 = 1_000_000_000;
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 pub struct Config {
     pub rules: VotingRules,
-    // Total weight and voters are queried from this contract
+    // Total points and voters are queried from this contract
     pub group_contract: Tg4Contract,
 }
 
@@ -90,7 +90,7 @@ impl<P> Proposal<P> {
             self.votes.yes >= votes_needed(opinions, threshold)
         } else if allow_end_early {
             // If not expired, we must assume all non-votes will be cast as No.
-            // We compare threshold against the total weight (minus abstain).
+            // We compare threshold against the total points (minus abstain).
             let possible_opinions = self.total_points - self.votes.abstain;
             self.votes.yes >= votes_needed(possible_opinions, threshold)
         } else {
@@ -210,7 +210,7 @@ impl Default for RulesBuilder {
     }
 }
 
-// weight of votes for each option
+// points of votes for each option
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 pub struct Votes {
     pub yes: u64,
@@ -226,34 +226,34 @@ impl Votes {
     }
 
     /// create it with a yes vote for this much
-    pub fn yes(init_weight: u64) -> Self {
+    pub fn yes(init_points: u64) -> Self {
         Votes {
-            yes: init_weight,
+            yes: init_points,
             no: 0,
             abstain: 0,
             veto: 0,
         }
     }
 
-    pub fn add_vote(&mut self, vote: Vote, weight: u64) {
+    pub fn add_vote(&mut self, vote: Vote, points: u64) {
         match vote {
-            Vote::Yes => self.yes += weight,
-            Vote::Abstain => self.abstain += weight,
-            Vote::No => self.no += weight,
-            Vote::Veto => self.veto += weight,
+            Vote::Yes => self.yes += points,
+            Vote::Abstain => self.abstain += points,
+            Vote::No => self.no += points,
+            Vote::Veto => self.veto += points,
         }
     }
 }
 
 // this is a helper function so Decimal works with u64 rather than Uint128
 // also, we must *round up* here, as we need 8, not 7 votes to reach 50% of 15 total
-fn votes_needed(weight: u64, percentage: Decimal) -> u64 {
-    let applied = percentage * Uint128::new(PRECISION_FACTOR * weight as u128);
+fn votes_needed(points: u64, percentage: Decimal) -> u64 {
+    let applied = percentage * Uint128::new(PRECISION_FACTOR * points as u128);
     // Divide by PRECISION_FACTOR, rounding up to the nearest integer
     ((applied.u128() + PRECISION_FACTOR - 1) / PRECISION_FACTOR) as u64
 }
 
-// we cast a ballot with our chosen vote and a given weight
+// we cast a ballot with our chosen vote and a given points
 // stored under the key that voted
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 pub struct Ballot {

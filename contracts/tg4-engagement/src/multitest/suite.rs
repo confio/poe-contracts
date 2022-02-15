@@ -23,9 +23,9 @@ pub fn contract_engagement() -> Box<dyn Contract<TgradeMsg>> {
 pub fn expected_members(members: Vec<(&str, u64)>) -> Vec<Member> {
     members
         .into_iter()
-        .map(|(addr, weight)| Member {
+        .map(|(addr, points)| Member {
             addr: addr.to_owned(),
-            points: weight,
+            points,
         })
         .collect()
 }
@@ -42,10 +42,10 @@ pub struct SuiteBuilder {
 }
 
 impl SuiteBuilder {
-    pub fn with_member(mut self, addr: &str, weight: u64) -> Self {
+    pub fn with_member(mut self, addr: &str, points: u64) -> Self {
         self.members.push(Member {
             addr: addr.to_owned(),
-            points: weight,
+            points,
         });
         self
     }
@@ -209,9 +209,9 @@ impl Suite {
     ) -> AnyResult<AppResponse> {
         let add = add
             .iter()
-            .map(|(addr, weight)| Member {
+            .map(|(addr, points)| Member {
                 addr: (*addr).to_owned(),
-                points: *weight,
+                points: *points,
             })
             .collect();
 

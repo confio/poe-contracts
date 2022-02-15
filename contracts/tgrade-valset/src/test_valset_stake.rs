@@ -21,14 +21,14 @@ const OPERATOR_FUNDS: u128 = 1_000;
 
 // Stake contract config
 const STAKE_OWNER: &str = "admin";
-const TOKENS_PER_WEIGHT: u128 = 100;
+const TOKENS_PER_POINT: u128 = 100;
 const BOND_DENOM: &str = "tgrade";
 const MIN_BOND: u128 = 100;
 
 // Valset contract config
 // these control how many pubkeys get set in the valset init
 const PREREGISTER_MEMBERS: u32 = 24;
-const MIN_WEIGHT: u64 = 2;
+const MIN_POINTS: u64 = 2;
 
 // 500 usdc per block
 const REWARD_AMOUNT: u128 = 50_000;
@@ -52,14 +52,14 @@ pub fn instantiate_valset(
     app: &mut BasicApp<TgradeMsg>,
     stake: &Addr,
     max_validators: u32,
-    min_weight: u64,
+    min_points: u64,
 ) -> Addr {
     let engagement_id = app.store_code(contract_engagement());
     let valset_id = app.store_code(contract_valset());
     let msg = init_msg(
         &stake.to_string(),
         max_validators,
-        min_weight,
+        min_points,
         engagement_id,
     );
     app.instantiate_contract(
@@ -78,7 +78,7 @@ fn instantiate_stake(app: &mut BasicApp<TgradeMsg>) -> Addr {
     let admin = Some(STAKE_OWNER.into());
     let msg = tg4_stake::msg::InstantiateMsg {
         denom: BOND_DENOM.to_owned(),
-        tokens_per_weight: Uint128::new(TOKENS_PER_WEIGHT),
+        tokens_per_point: Uint128::new(TOKENS_PER_POINT),
         min_bond: Uint128::new(MIN_BOND),
         unbonding_period: 1234,
         admin: admin.clone(),
@@ -101,7 +101,7 @@ fn instantiate_stake(app: &mut BasicApp<TgradeMsg>) -> Addr {
 fn init_msg(
     stake_addr: &str,
     max_validators: u32,
-    min_weight: u64,
+    min_points: u64,
     validator_group_code_id: u64,
 ) -> InstantiateMsg {
     let members = addrs(PREREGISTER_MEMBERS)
@@ -111,7 +111,7 @@ fn init_msg(
     InstantiateMsg {
         admin: None,
         membership: stake_addr.into(),
-        min_weight,
+        min_points,
         max_validators,
         epoch_length: EPOCH_LENGTH,
         epoch_reward: epoch_reward(),
@@ -167,7 +167,7 @@ fn init_and_query_state() {
         cfg,
         Config {
             membership: Tg4Contract(stake_addr),
-            min_weight: 5,
+            min_points: 5,
             max_validators: 10,
             scaling: None,
             epoch_reward: epoch_reward(),
@@ -243,7 +243,7 @@ fn simulate_validators() {
     // make a simple stake
     let stake_addr = instantiate_stake(&mut app);
     // make a valset that references it (this does init)
-    let valset_addr = instantiate_valset(&mut app, &stake_addr, 10, MIN_WEIGHT);
+    let valset_addr = instantiate_valset(&mut app, &stake_addr, 10, MIN_POINTS);
 
     // what do we expect?
     // 1..24 have pubkeys registered, we take the top 10, but none have stake yet, so zero
@@ -253,11 +253,11 @@ fn simulate_validators() {
         .unwrap();
     assert_eq!(0, active.validators.len());
 
-    // One member bonds needed tokens to have enough weight
+    // One member bonds needed tokens to have enough points
     let op1_addr = &operators[0];
 
     // First, he does not bond enough tokens
-    let stake = cosmwasm_std::coins(TOKENS_PER_WEIGHT * MIN_WEIGHT as u128 - 1u128, BOND_DENOM);
+    let stake = cosmwasm_std::coins(TOKENS_PER_POINT * MIN_POINTS as u128 - 1u128, BOND_DENOM);
     bond(&mut app, op1_addr, &stake_addr, &stake);
 
     // what do we expect?
@@ -283,14 +283,14 @@ fn simulate_validators() {
     let expected: Vec<_> = vec![ValidatorInfo {
         operator: op1_addr.clone(),
         validator_pubkey: valid_operator(op1_addr.as_ref()).validator_pubkey,
-        power: MIN_WEIGHT,
+        power: MIN_POINTS,
     }];
     assert_eq!(expected, active.validators);
 
     // Other member bonds twice the minimum amount
     let op2_addr = &operators[1];
 
-    let stake = cosmwasm_std::coins(TOKENS_PER_WEIGHT * MIN_WEIGHT as u128 * 2u128, BOND_DENOM);
+    let stake = cosmwasm_std::coins(TOKENS_PER_POINT * MIN_POINTS as u128 * 2u128, BOND_DENOM);
     bond(&mut app, op2_addr, &stake_addr, &stake);
 
     // what do we expect?
@@ -306,12 +306,12 @@ fn simulate_validators() {
         ValidatorInfo {
             operator: op2_addr.clone(),
             validator_pubkey: valid_operator(op2_addr.as_ref()).validator_pubkey,
-            power: MIN_WEIGHT * 2,
+            power: MIN_POINTS * 2,
         },
         ValidatorInfo {
             operator: op1_addr.clone(),
             validator_pubkey: valid_operator(op1_addr.as_ref()).validator_pubkey,
-            power: MIN_WEIGHT,
+            power: MIN_POINTS,
         },
     ];
     assert_eq!(expected, active.validators);
@@ -320,7 +320,7 @@ fn simulate_validators() {
     let op3_addr = &operators[2];
 
     let stake = cosmwasm_std::coins(
-        TOKENS_PER_WEIGHT * MIN_WEIGHT as u128 * 3u128 - 1u128,
+        TOKENS_PER_POINT * MIN_POINTS as u128 * 3u128 - 1u128,
         BOND_DENOM,
     );
     bond(&mut app, op3_addr, &stake_addr, &stake);
@@ -338,17 +338,17 @@ fn simulate_validators() {
         ValidatorInfo {
             operator: op3_addr.clone(),
             validator_pubkey: valid_operator(op3_addr.as_ref()).validator_pubkey,
-            power: MIN_WEIGHT * 3 - 1,
+            power: MIN_POINTS * 3 - 1,
         },
         ValidatorInfo {
             operator: op2_addr.clone(),
             validator_pubkey: valid_operator(op2_addr.as_ref()).validator_pubkey,
-            power: MIN_WEIGHT * 2,
+            power: MIN_POINTS * 2,
         },
         ValidatorInfo {
             operator: op1_addr.clone(),
             validator_pubkey: valid_operator(op1_addr.as_ref()).validator_pubkey,
-            power: MIN_WEIGHT,
+            power: MIN_POINTS,
         },
     ];
     assert_eq!(expected, active.validators);
@@ -370,12 +370,12 @@ fn simulate_validators() {
         ValidatorInfo {
             operator: op3_addr.clone(),
             validator_pubkey: valid_operator(op3_addr.as_ref()).validator_pubkey,
-            power: MIN_WEIGHT * 3 - 1,
+            power: MIN_POINTS * 3 - 1,
         },
         ValidatorInfo {
             operator: op2_addr.clone(),
             validator_pubkey: valid_operator(op2_addr.as_ref()).validator_pubkey,
-            power: MIN_WEIGHT * 2,
+            power: MIN_POINTS * 2,
         },
     ];
     assert_eq!(expected, active.validators);

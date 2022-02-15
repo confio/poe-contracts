@@ -86,13 +86,13 @@ impl Tg4Contract {
         Ok(res.hooks)
     }
 
-    /// Read the total weight
-    pub fn total_weight(&self, querier: &QuerierWrapper) -> StdResult<u64> {
+    /// Read the total points
+    pub fn total_points(&self, querier: &QuerierWrapper) -> StdResult<u64> {
         let query = self.encode_raw_query(TOTAL_KEY.as_bytes());
         querier.query(&query)
     }
 
-    /// Check if this address is a member, and if so, with which weight
+    /// Check if this address is a member, and if so, with which points
     pub fn is_member(&self, querier: &QuerierWrapper, addr: &Addr) -> StdResult<Option<u64>> {
         let path = member_key(addr.as_ref());
         let query = self.encode_raw_query(path);
@@ -124,19 +124,19 @@ impl Tg4Contract {
     pub fn is_voting_member(&self, querier: &QuerierWrapper, member: &str) -> StdResult<u64> {
         self.is_member(querier, &Addr::unchecked(member))?.map_or(
             Err(StdError::generic_err("Unauthorized: not member of a group")),
-            |member_weight| {
-                if member_weight < 1 {
+            |member_points| {
+                if member_points < 1 {
                     Err(StdError::generic_err(
                         "Unauthorized: member doesn't have voting power",
                     ))
                 } else {
-                    Ok(member_weight)
+                    Ok(member_points)
                 }
             },
         )
     }
 
-    /// Check if this address was a member, and if its weight is >= 1
+    /// Check if this address was a member, and if its points is >= 1
     pub fn was_voting_member<T: Into<String>>(
         &self,
         querier: &QuerierWrapper,
@@ -148,20 +148,20 @@ impl Tg4Contract {
                 "Unauthorized: wasn't member of a group at block height: {}",
                 height
             ))),
-            |member_weight| {
-                if member_weight < 1 {
+            |member_points| {
+                if member_points < 1 {
                     Err(StdError::generic_err(format!(
                         "Unauthorized: member didn't have voting power at block height: {}",
                         height
                     )))
                 } else {
-                    Ok(member_weight)
+                    Ok(member_points)
                 }
             },
         )
     }
 
-    /// Return the member's weight at the given snapshot - requires a smart query
+    /// Return the member's points at the given snapshot - requires a smart query
     pub fn member_at_height<T: Into<String>>(
         &self,
         querier: &QuerierWrapper,

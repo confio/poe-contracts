@@ -25,7 +25,7 @@ impl Halflife {
     }
 }
 
-/// How much points is the worth of single token in token distribution.
+/// How much points is the worth of single token in rewards distribution.
 /// The scaling is performed to have better precision of fixed point division.
 /// This value is not actually the scaling itself, but how much bits value should be shifted
 /// (for way more efficient division).
@@ -61,9 +61,9 @@ pub struct WithdrawAdjustment {
     pub delegated: Addr,
 }
 
-/// Tokens distribution data
+/// Rewards distribution data
 pub const DISTRIBUTION: Item<Distribution> = Item::new("distribution");
-/// Information how to exactly adjust tokens while withdrawal
+/// Information how to exactly adjust rewards while withdrawal
 pub const WITHDRAW_ADJUSTMENT: Map<&Addr, WithdrawAdjustment> = Map::new("withdraw_adjustment");
 
 #[cfg(test)]
