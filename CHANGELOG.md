@@ -2,11 +2,21 @@
 
 ## [Unreleased](https://github.com/confio/poe-contracts/tree/HEAD)
 
-[Full Changelog](https://github.com/confio/poe-contracts/compare/v0.6.0-rc2...HEAD)
+[Full Changelog](https://github.com/confio/poe-contracts/compare/v0.6.0...HEAD)
 
 ## [v0.6.0](https://github.com/confio/poe-contracts/tree/v0.6.0) (2022-02-15)
 
 [Full Changelog](https://github.com/confio/poe-contracts/compare/v0.6.0-rc2...v0.6.0)
+
+**Breaking changes:**
+
+- Rename `Tg4Contract::total_weight` to `Tg4Contract::total_points` in `packages/tg4`.
+
+- Some `Response` `attributes` renaming in `tg4-engagement`:
+  - "distribute_tokens" -> "distribute_rewards"
+  - "withdraw_tokens" -> "withdraw_rewards"
+  - "token" -> "rewards"
+  -  "weight" -> "points"
 
 **Closed issues:**
 
