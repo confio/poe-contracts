@@ -1,20 +1,24 @@
+use crate::ContractError::Unauthorized;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    attr, to_binary, Addr, Binary, Deps, DepsMut, Env, MessageInfo, Order, Response, StdResult,
-    SubMsg,
+    attr, to_binary, Addr, Binary, Deps, DepsMut, Env, MessageInfo, Order, StdResult,
 };
 use cw2::set_contract_version;
 use cw_storage_plus::Bound;
 use cw_utils::maybe_addr;
 use tg4::{
-    Member, MemberChangedHookMsg, MemberDiff, MemberListResponse, MemberResponse,
+    HooksResponse, Member, MemberChangedHookMsg, MemberDiff, MemberListResponse, MemberResponse,
     TotalPointsResponse,
 };
+use tg_bindings::TgradeMsg;
 
 use crate::error::ContractError;
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
 use crate::state::{ADMIN, HOOKS, MEMBERS, TOTAL};
+
+pub type Response = cosmwasm_std::Response<TgradeMsg>;
+pub type SubMsg = cosmwasm_std::SubMsg<TgradeMsg>;
 
 // version info for migration info
 const CONTRACT_NAME: &str = "crates.io:tg4-group";
@@ -76,12 +80,8 @@ pub fn execute(
         ExecuteMsg::UpdateMembers { add, remove } => {
             execute_update_members(deps, env, info, add, remove)
         }
-        ExecuteMsg::AddHook { addr } => {
-            Ok(HOOKS.execute_add_hook(&ADMIN, deps, info, api.addr_validate(&addr)?)?)
-        }
-        ExecuteMsg::RemoveHook { addr } => {
-            Ok(HOOKS.execute_remove_hook(&ADMIN, deps, info, api.addr_validate(&addr)?)?)
-        }
+        ExecuteMsg::AddHook { addr } => execute_add_hook(deps, info, addr),
+        ExecuteMsg::RemoveHook { addr } => execute_remove_hook(deps, info, addr),
     }
 }
 
@@ -108,6 +108,52 @@ pub fn execute_update_members(
     Ok(Response::new()
         .add_submessages(messages)
         .add_attributes(attributes))
+}
+
+pub fn execute_add_hook(
+    deps: DepsMut,
+    info: MessageInfo,
+    hook: String,
+) -> Result<Response, ContractError> {
+    // Same as cw4-group guard: being admin
+    if !ADMIN.is_admin(deps.as_ref(), &info.sender)? {
+        return Err(Unauthorized {});
+    }
+
+    // add the hook
+    HOOKS.add_hook(deps.storage, deps.api.addr_validate(&hook)?)?;
+
+    // response
+    let res = Response::new()
+        .add_attribute("action", "add_hook")
+        .add_attribute("hook", hook)
+        .add_attribute("sender", info.sender);
+    Ok(res)
+}
+
+pub fn execute_remove_hook(
+    deps: DepsMut,
+    info: MessageInfo,
+    hook: String,
+) -> Result<Response, ContractError> {
+    // custom guard: self-removal OR being admin
+    let hook_addr = deps.api.addr_validate(&hook)?;
+    if info.sender != hook_addr && !ADMIN.is_admin(deps.as_ref(), &info.sender)? {
+        // return Err(ContractError::Unauthorized(
+        //     "Hook address is not same as sender's or sender is not an admin".to_owned(),
+        // ));
+        return Err(ContractError::Unauthorized {});
+    }
+
+    // remove the hook
+    HOOKS.remove_hook(deps.storage, hook_addr)?;
+
+    // response
+    let resp = Response::new()
+        .add_attribute("action", "remove_hook")
+        .add_attribute("hook", hook)
+        .add_attribute("sender", info.sender);
+    Ok(resp)
 }
 
 // the logic from execute_update_members extracted for easier import
@@ -161,7 +207,10 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
         }
         QueryMsg::TotalPoints {} => to_binary(&query_total_points(deps)?),
         QueryMsg::Admin {} => to_binary(&ADMIN.query_admin(deps)?),
-        QueryMsg::Hooks {} => to_binary(&HOOKS.query_hooks(deps)?),
+        QueryMsg::Hooks {} => {
+            let hooks = HOOKS.list_hooks(deps.storage)?;
+            to_binary(&HooksResponse { hooks })
+        }
     }
 }
 
