@@ -2,7 +2,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use cosmwasm_std::{Addr, BlockInfo, Decimal, StdResult, Storage, Uint128};
-use cw_storage_plus::{Item, Map};
+use cw_storage_plus::{Index, IndexList, IndexedMap, Item, Map, MultiIndex, PrimaryKey};
 use tg3::{Status, Vote};
 use tg4::Tg4Contract;
 use tg_utils::Expiration;
@@ -257,8 +257,138 @@ fn votes_needed(points: u64, percentage: Decimal) -> u64 {
 // stored under the key that voted
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 pub struct Ballot {
+    pub voter: Addr,
+    pub proposal_id: u64,
     pub points: u64,
     pub vote: Vote,
+}
+
+struct BallotIndexes<'a> {
+    pub voter: MultiIndex<'a, Addr, Ballot>,
+}
+
+impl<'a> IndexList<Ballot> for BallotIndexes<'a> {
+    fn get_indexes(&'_ self) -> Box<dyn Iterator<Item = &'_ dyn Index<Ballot>> + '_> {
+        let v: Vec<&dyn Index<Ballot>> = vec![&self.voter];
+        Box::new(v.into_iter())
+    }
+}
+
+pub fn ballots() -> Ballots<'static> {
+    Ballots::new("ballots", "ballots__proposal_id")
+}
+
+pub struct Ballots<'a> {
+    ballots: IndexedMap<'a, (u64, &'a Addr), Ballot, BallotIndexes<'a>>,
+}
+
+use cw_utils::maybe_addr;
+use tg3::{
+    VoteInfo, VoteListResponse
+};
+use cosmwasm_std::{Order, Deps};
+use cw_storage_plus::Bound;
+
+impl<'a> Ballots<'a> {
+    pub fn new(storage_key: &'a str, release_subkey: &'a str) -> Self {
+        let indexes = BallotIndexes {
+            voter: MultiIndex::new(|ballot| ballot.voter.clone(), storage_key, release_subkey),
+        };
+        let ballots = IndexedMap::new(storage_key, indexes);
+
+        Self { ballots }
+    }
+
+    pub fn create_ballot(
+        &self,
+        storage: &mut dyn Storage,
+        addr: &Addr,
+        proposal_id: u64,
+        points: u64,
+        vote: Vote,
+    ) -> StdResult<()> {
+        self.ballots.update(
+            storage,
+            (proposal_id, addr),
+            move |ballot| -> StdResult<_> {
+                match ballot {
+                    Some(mut ballot) => {
+                        ballot.voter = addr.clone();
+                        ballot.points = points;
+                        ballot.vote = vote;
+                        Ok(ballot)
+                    }
+                    None => Ok(Ballot {
+                        voter: addr.clone(),
+                        proposal_id,
+                        points,
+                        vote,
+                    }),
+                }
+            },
+        )?;
+        Ok(())
+    }
+
+    pub fn query_votes(
+        &self,
+        deps: Deps,
+        proposal_id: u64,
+        start_after: Option<String>,
+        limit: usize,
+    ) -> StdResult<VoteListResponse> {
+        let addr = maybe_addr(deps.api, start_after)?;
+        let start = addr.map(|addr| Bound::exclusive(addr.as_ref()));
+
+        let votes: StdResult<Vec<_>> = self
+            .ballots
+            .prefix(proposal_id)
+            .range(deps.storage, start, None, Order::Ascending)
+            .take(limit)
+            .map(|item| {
+                let (voter, ballot) = item?;
+                Ok(VoteInfo {
+                    proposal_id,
+                    voter: voter.into(),
+                    vote: ballot.vote,
+                    points: ballot.points,
+                })
+            })
+            .collect();
+
+        Ok(VoteListResponse { votes: votes? })
+    }
+
+    pub fn query_votes_by_voter(
+        &self,
+        deps: Deps,
+        voter: String,
+        start_after: Option<u64>,
+        limit: usize,
+    ) -> StdResult<VoteListResponse> {
+        let start = start_after.map(Bound::exclusive_int);
+        let voter_addr = deps.api.addr_validate(&voter)?;
+
+        let votes: StdResult<Vec<_>> = self
+            .ballots
+            .idx
+            .voter
+            .prefix(voter_addr)
+            .range(deps.storage, start, None, Order::Ascending)
+            .take(limit)
+            .map(|item| {
+                let (_, ballot) = item?;
+                Ok(VoteInfo {
+                    proposal_id: ballot.proposal_id,
+                    voter: voter.clone(),
+                    vote: ballot.vote,
+                    points: ballot.points,
+                })
+            })
+            .collect();
+
+        Ok(VoteListResponse { votes: votes? })
+    }
 }
 
 // unique items

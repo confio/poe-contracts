@@ -11,7 +11,7 @@ pub use error::ContractError;
 use state::{
     next_id, proposals, Ballot, Config, Proposal, ProposalListResponse, ProposalResponse,
     TextProposalListResponse, Votes, VotingRules, BALLOTS, BALLOTS_BY_VOTER, CONFIG,
-    TEXT_PROPOSALS,
+    TEXT_PROPOSALS, ballots,
 };
 
 use cosmwasm_std::{
@@ -103,15 +103,16 @@ where
     proposals().save(deps.storage, id, &prop)?;
 
     // add the first yes vote from voter
-    save_ballot(
-        deps.storage,
-        id,
-        &info.sender,
-        Ballot {
-            points: vote_power,
-            vote: Vote::Yes,
-        },
-    )?;
+    ballots().create_ballot(deps.storage, &info.sender, id, vote_power, Vote::Yes)?;
+    // save_ballot(
+    //     deps.storage,
+    //     id,
+    //     &info.sender,
+    //     Ballot {
+    //         points: vote_power,
+    //         vote: Vote::Yes,
+    //     },
+    // )?;
 
     let resp = msg::ProposalCreationResponse { proposal_id: id };
 
@@ -154,15 +155,16 @@ where
     {
         return Err(ContractError::AlreadyVoted {});
     }
-    save_ballot(
-        deps.storage,
-        proposal_id,
-        &info.sender,
-        Ballot {
-            points: vote_power,
-            vote,
-        },
-    )?;
+    ballots().create_ballot(deps.storage, &info.sender, proposal_id, vote_power, vote)?;
+    // save_ballot(
+    //     deps.storage,
+    //     proposal_id,
+    //     &info.sender,
+    //     Ballot {
+    //         points: vote_power,
+    //         vote,
+    //     },
+    // )?;
 
     // update vote tally
     prop.votes.add_vote(vote, vote_power);
