@@ -4,6 +4,15 @@
 
 [Full Changelog](https://github.com/confio/poe-contracts/compare/v0.6.0...HEAD)
 
+**Closed issues:**
+
+- Release cw-plus 0.12.0 [\#89](https://github.com/confio/poe-contracts/issues/89)
+- Add API migration guide [\#70](https://github.com/confio/poe-contracts/issues/70)
+
+**Merged pull requests:**
+
+- Add `tg4-group` contract [\#105](https://github.com/confio/poe-contracts/pull/105) ([maurolacy](https://github.com/maurolacy))
+
 ## [v0.6.0](https://github.com/confio/poe-contracts/tree/v0.6.0) (2022-02-15)
 
 [Full Changelog](https://github.com/confio/poe-contracts/compare/v0.6.0-rc2...v0.6.0)
