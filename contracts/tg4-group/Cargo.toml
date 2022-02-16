@@ -28,8 +28,6 @@ library = []
 [dependencies]
 cw-utils = "0.11.1"
 cw2 = "0.11.1"
-tg-bindings = { version = "0.6.1", path = "../../packages/bindings" }
-tg-utils = { version = "0.6.1", path = "../../packages/utils" }
 tg4 = { version = "0.6.1", path = "../../packages/tg4" }
 cw-controllers = "0.11.1"
 cw-storage-plus = "0.11.1"
