@@ -4,6 +4,7 @@ workflows:
   test:
     jobs:
       - contract_tg4_engagement
+      - contract_tg4_group
       - contract_tg4_mixer
       - contract_tg4_stake
       - contract_tgrade_community_pool
@@ -64,6 +65,33 @@ jobs:
             - /usr/local/cargo/registry
             - target
           key: cargocache-tg4-engagement-rust:1.58.1-{{ checksum "~/project/Cargo.lock" }}
+
+  contract_tg4_group:
+    docker:
+      - image: rust:1.58.1
+    working_directory: ~/project/contracts/tg4-group
+    steps:
+      - checkout:
+          path: ~/project
+      - run:
+          name: Version information
+          command: rustc --version; cargo --version; rustup --version
+      - restore_cache:
+          keys:
+            - cargocache-tg4-group-rust:1.58.1-{{ checksum "~/project/Cargo.lock" }}
+      - run:
+          name: Unit Tests
+          environment:
+            RUST_BACKTRACE: 1
+          command: cargo unit-test --locked
+      - run:
+          name: Build and run schema generator
+          command: cargo schema --locked
+      - save_cache:
+          paths:
+            - /usr/local/cargo/registry
+            - target
+          key: cargocache-tg4-group-rust:1.58.1-{{ checksum "~/project/Cargo.lock" }}
 
   contract_tg4_mixer:
     docker:
