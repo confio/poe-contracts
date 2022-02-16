@@ -3,28 +3,28 @@ use serde::{Deserialize, Serialize};
 use std::ops::Deref;
 
 use cosmwasm_std::{to_binary, Addr, CosmosMsg, StdResult, WasmMsg};
-use cw4::{Cw4Contract, Member};
+use tg4::{Tg4Contract, Member};
 
 use crate::msg::ExecuteMsg;
 
-/// Cw4GroupContract is a wrapper around Cw4Contract that provides a lot of helpers
-/// for working with cw4-group contracts.
+/// Tg4GroupContract is a wrapper around Tg4Contract that provides a lot of helpers
+/// for working with tg4-group contracts.
 ///
-/// It extends Cw4Contract to add the extra calls from cw4-group.
+/// It extends Tg4Contract to add the extra calls from tg4-group.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-pub struct Cw4GroupContract(pub Cw4Contract);
+pub struct Tg4GroupContract(pub Tg4Contract);
 
-impl Deref for Cw4GroupContract {
-    type Target = Cw4Contract;
+impl Deref for Tg4GroupContract {
+    type Target = Tg4Contract;
 
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
-impl Cw4GroupContract {
+impl Tg4GroupContract {
     pub fn new(addr: Addr) -> Self {
-        Cw4GroupContract(Cw4Contract(addr))
+        Tg4GroupContract(Tg4Contract(addr))
     }
 
     fn encode_msg(&self, msg: ExecuteMsg) -> StdResult<CosmosMsg> {

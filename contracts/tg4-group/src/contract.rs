@@ -5,7 +5,7 @@ use cosmwasm_std::{
     SubMsg,
 };
 use cw2::set_contract_version;
-use cw4::{
+use tg4::{
     Member, MemberChangedHookMsg, MemberDiff, MemberListResponse, MemberResponse,
     TotalWeightResponse,
 };
@@ -17,7 +17,7 @@ use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
 use crate::state::{ADMIN, HOOKS, MEMBERS, TOTAL};
 
 // version info for migration info
-const CONTRACT_NAME: &str = "crates.io:cw4-group";
+const CONTRACT_NAME: &str = "crates.io:tg4-group";
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 // Note, you can use StdResult in some functions where you do not
@@ -211,7 +211,7 @@ mod tests {
     use super::*;
     use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
     use cosmwasm_std::{from_slice, Api, OwnedDeps, Querier, Storage};
-    use cw4::{member_key, TOTAL_KEY};
+    use tg4::{member_key, TOTAL_KEY};
     use cw_controllers::{AdminError, HookError};
 
     const INIT_ADMIN: &str = "juan";
