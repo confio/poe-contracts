@@ -23,10 +23,6 @@ pub enum ExecuteMsg {
         remove: Vec<String>,
         add: Vec<Member>,
     },
-    /// Add a new hook to be informed of all membership changes. Must be called by Admin
-    AddHook { addr: String },
-    /// Remove a hook. Must be called by Admin
-    RemoveHook { addr: String },
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
@@ -46,6 +42,4 @@ pub enum QueryMsg {
         addr: String,
         at_height: Option<u64>,
     },
-    /// Shows all registered hooks. Returns HooksResponse.
-    Hooks {},
 }
