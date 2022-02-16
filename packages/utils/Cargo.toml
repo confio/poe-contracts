@@ -1,6 +1,6 @@
 [package]
 name = "tg-utils"
-version = "0.6.0"
+version = "0.6.1"
 authors = ["Ethan Frey <ethanfrey@users.noreply.github.com>"]
 edition = "2018"
 description = "Tgrade Utils: helpers for various contracts"
@@ -12,13 +12,13 @@ license = "Apache-2.0"
 
 [dependencies]
 cosmwasm-std = "1.0.0-beta5"
-cw-utils = "0.11.0"
-cw-controllers = "0.11.0"
-cw-storage-plus = "0.11.0"
-cw2 = "0.11.0"
+cw-utils = "0.11.1"
+cw-controllers = "0.11.1"
+cw-storage-plus = "0.11.1"
+cw2 = "0.11.1"
 schemars = "0.8.1"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
-tg4 = { path = "../tg4", version = "0.6.0" }
-tg-bindings = { path = "../bindings", version = "0.6.0" }
+tg4 = { path = "../tg4", version = "0.6.1" }
+tg-bindings = { path = "../bindings", version = "0.6.1" }
 thiserror = { version = "1.0.21" }
 semver = "1"
