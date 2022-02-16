@@ -480,6 +480,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "cw4"
+version = "0.11.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "41445666e3f6284c72f569b2240bb52d0add94bb448e169d30ae28fe000cfaeb"
+dependencies = [
+ "cosmwasm-std",
+ "cw-storage-plus",
+ "schemars",
+ "serde",
+]
+
+[[package]]
 name = "darling"
 version = "0.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1589,10 +1601,9 @@ dependencies = [
  "cw-storage-plus",
  "cw-utils",
  "cw2",
+ "cw4",
  "schemars",
  "serde",
- "tg-bindings",
- "tg-utils",
  "tg4",
  "thiserror",
 ]
