@@ -3,6 +3,7 @@ name = "tgrade-gov-reflect"
 version = "0.6.1"
 authors = ["Ethan Frey <ethanfrey@users.noreply.github.com>"]
 edition = "2018"
+description = "Implementing tgrade-gov-reflect voting contract"
 repository = "https://github.com/confio/poe-contracts"
 homepage = "https://tgrade.finance"
 license = "Apache-2.0"
