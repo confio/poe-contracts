@@ -7,10 +7,9 @@ use cosmwasm_std::{
 use cw2::set_contract_version;
 use cw_storage_plus::Bound;
 use cw_utils::maybe_addr;
-use tg4::{
-    Member, MemberChangedHookMsg, MemberDiff, MemberListResponse, MemberResponse,
-    TotalPointsResponse,
-};
+
+use cw4::{MemberChangedHookMsg, MemberDiff};
+use tg4::{Member, MemberListResponse, MemberResponse, TotalPointsResponse};
 
 use crate::error::ContractError;
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
