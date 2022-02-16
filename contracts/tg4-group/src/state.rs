@@ -1,7 +1,7 @@
 use cosmwasm_std::Addr;
-use tg4::TOTAL_KEY;
 use cw_controllers::{Admin, Hooks};
 use cw_storage_plus::{Item, SnapshotMap, Strategy};
+use tg4::TOTAL_KEY;
 
 pub const ADMIN: Admin = Admin::new("admin");
 pub const HOOKS: Hooks = Hooks::new("tg4-hooks");

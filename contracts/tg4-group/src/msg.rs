@@ -34,8 +34,8 @@ pub enum ExecuteMsg {
 pub enum QueryMsg {
     /// Return AdminResponse
     Admin {},
-    /// Return TotalWeightResponse
-    TotalWeight {},
+    /// Return TotalPointsResponse
+    TotalPoints {},
     /// Returns MembersListResponse
     ListMembers {
         start_after: Option<String>,

@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::ops::Deref;
 
 use cosmwasm_std::{to_binary, Addr, CosmosMsg, StdResult, WasmMsg};
-use tg4::{Tg4Contract, Member};
+use tg4::{Member, Tg4Contract};
 
 use crate::msg::ExecuteMsg;
 

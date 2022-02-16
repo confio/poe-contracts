@@ -5,12 +5,12 @@ use cosmwasm_std::{
     SubMsg,
 };
 use cw2::set_contract_version;
-use tg4::{
-    Member, MemberChangedHookMsg, MemberDiff, MemberListResponse, MemberResponse,
-    TotalWeightResponse,
-};
 use cw_storage_plus::Bound;
 use cw_utils::maybe_addr;
+use tg4::{
+    Member, MemberChangedHookMsg, MemberDiff, MemberListResponse, MemberResponse,
+    TotalPointsResponse,
+};
 
 use crate::error::ContractError;
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
@@ -49,9 +49,9 @@ pub fn create(
 
     let mut total = 0u64;
     for member in members.into_iter() {
-        total += member.weight;
+        total += member.points;
         let member_addr = deps.api.addr_validate(&member.addr)?;
-        MEMBERS.save(deps.storage, &member_addr, &member.weight, height)?;
+        MEMBERS.save(deps.storage, &member_addr, &member.points, height)?;
     }
     TOTAL.save(deps.storage, &total)?;
 
@@ -128,9 +128,9 @@ pub fn update_members(
         let add_addr = deps.api.addr_validate(&add.addr)?;
         MEMBERS.update(deps.storage, &add_addr, height, |old| -> StdResult<_> {
             total -= old.unwrap_or_default();
-            total += add.weight;
-            diffs.push(MemberDiff::new(add.addr, old, Some(add.weight)));
-            Ok(add.weight)
+            total += add.points;
+            diffs.push(MemberDiff::new(add.addr, old, Some(add.points)));
+            Ok(add.points)
         })?;
     }
 
@@ -138,9 +138,9 @@ pub fn update_members(
         let remove_addr = deps.api.addr_validate(&remove)?;
         let old = MEMBERS.may_load(deps.storage, &remove_addr)?;
         // Only process this if they were actually in the list before
-        if let Some(weight) = old {
-            diffs.push(MemberDiff::new(remove, Some(weight), None));
-            total -= weight;
+        if let Some(points) = old {
+            diffs.push(MemberDiff::new(remove, Some(points), None));
+            total -= points;
             MEMBERS.remove(deps.storage, &remove_addr, height)?;
         }
     }
@@ -159,24 +159,24 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
         QueryMsg::ListMembers { start_after, limit } => {
             to_binary(&list_members(deps, start_after, limit)?)
         }
-        QueryMsg::TotalWeight {} => to_binary(&query_total_weight(deps)?),
+        QueryMsg::TotalPoints {} => to_binary(&query_total_points(deps)?),
         QueryMsg::Admin {} => to_binary(&ADMIN.query_admin(deps)?),
         QueryMsg::Hooks {} => to_binary(&HOOKS.query_hooks(deps)?),
     }
 }
 
-fn query_total_weight(deps: Deps) -> StdResult<TotalWeightResponse> {
-    let weight = TOTAL.load(deps.storage)?;
-    Ok(TotalWeightResponse { weight })
+fn query_total_points(deps: Deps) -> StdResult<TotalPointsResponse> {
+    let points = TOTAL.load(deps.storage)?;
+    Ok(TotalPointsResponse { points })
 }
 
 fn query_member(deps: Deps, addr: String, height: Option<u64>) -> StdResult<MemberResponse> {
     let addr = deps.api.addr_validate(&addr)?;
-    let weight = match height {
+    let points = match height {
         Some(h) => MEMBERS.may_load_at_height(deps.storage, &addr, h),
         None => MEMBERS.may_load(deps.storage, &addr),
     }?;
-    Ok(MemberResponse { weight })
+    Ok(MemberResponse { points })
 }
 
 // settings for pagination
@@ -196,9 +196,9 @@ fn list_members(
         .range(deps.storage, start, None, Order::Ascending)
         .take(limit)
         .map(|item| {
-            item.map(|(addr, weight)| Member {
+            item.map(|(addr, points)| Member {
                 addr: addr.into(),
-                weight,
+                points,
             })
         })
         .collect::<StdResult<_>>()?;
@@ -211,8 +211,8 @@ mod tests {
     use super::*;
     use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
     use cosmwasm_std::{from_slice, Api, OwnedDeps, Querier, Storage};
-    use tg4::{member_key, TOTAL_KEY};
     use cw_controllers::{AdminError, HookError};
+    use tg4::{member_key, TOTAL_KEY};
 
     const INIT_ADMIN: &str = "juan";
     const USER1: &str = "somebody";
@@ -225,11 +225,11 @@ mod tests {
             members: vec![
                 Member {
                     addr: USER1.into(),
-                    weight: 11,
+                    points: 11,
                 },
                 Member {
                     addr: USER2.into(),
-                    weight: 6,
+                    points: 6,
                 },
             ],
         };
@@ -246,8 +246,8 @@ mod tests {
         let res = ADMIN.query_admin(deps.as_ref()).unwrap();
         assert_eq!(Some(INIT_ADMIN.into()), res.admin);
 
-        let res = query_total_weight(deps.as_ref()).unwrap();
-        assert_eq!(17, res.weight);
+        let res = query_total_points(deps.as_ref()).unwrap();
+        assert_eq!(17, res.points);
     }
 
     #[test]
@@ -256,13 +256,13 @@ mod tests {
         do_instantiate(deps.as_mut());
 
         let member1 = query_member(deps.as_ref(), USER1.into(), None).unwrap();
-        assert_eq!(member1.weight, Some(11));
+        assert_eq!(member1.points, Some(11));
 
         let member2 = query_member(deps.as_ref(), USER2.into(), None).unwrap();
-        assert_eq!(member2.weight, Some(6));
+        assert_eq!(member2.points, Some(6));
 
         let member3 = query_member(deps.as_ref(), USER3.into(), None).unwrap();
-        assert_eq!(member3.weight, None);
+        assert_eq!(member3.points, None);
 
         let members = list_members(deps.as_ref(), None, None).unwrap();
         assert_eq!(members.members.len(), 2);
@@ -271,33 +271,33 @@ mod tests {
 
     fn assert_users<S: Storage, A: Api, Q: Querier>(
         deps: &OwnedDeps<S, A, Q>,
-        user1_weight: Option<u64>,
-        user2_weight: Option<u64>,
-        user3_weight: Option<u64>,
+        user1_points: Option<u64>,
+        user2_points: Option<u64>,
+        user3_points: Option<u64>,
         height: Option<u64>,
     ) {
         let member1 = query_member(deps.as_ref(), USER1.into(), height).unwrap();
-        assert_eq!(member1.weight, user1_weight);
+        assert_eq!(member1.points, user1_points);
 
         let member2 = query_member(deps.as_ref(), USER2.into(), height).unwrap();
-        assert_eq!(member2.weight, user2_weight);
+        assert_eq!(member2.points, user2_points);
 
         let member3 = query_member(deps.as_ref(), USER3.into(), height).unwrap();
-        assert_eq!(member3.weight, user3_weight);
+        assert_eq!(member3.points, user3_points);
 
         // this is only valid if we are not doing a historical query
         if height.is_none() {
             // compute expected metrics
-            let weights = vec![user1_weight, user2_weight, user3_weight];
-            let sum: u64 = weights.iter().map(|x| x.unwrap_or_default()).sum();
-            let count = weights.iter().filter(|x| x.is_some()).count();
+            let points = vec![user1_points, user2_points, user3_points];
+            let sum: u64 = points.iter().map(|x| x.unwrap_or_default()).sum();
+            let count = points.iter().filter(|x| x.is_some()).count();
 
             // TODO: more detailed compare?
             let members = list_members(deps.as_ref(), None, None).unwrap();
             assert_eq!(count, members.members.len());
 
-            let total = query_total_weight(deps.as_ref()).unwrap();
-            assert_eq!(sum, total.weight); // 17 - 11 + 15 = 21
+            let total = query_total_points(deps.as_ref()).unwrap();
+            assert_eq!(sum, total.points); // 17 - 11 + 15 = 21
         }
     }
 
@@ -309,7 +309,7 @@ mod tests {
         // add a new one and remove existing one
         let add = vec![Member {
             addr: USER3.into(),
-            weight: 15,
+            points: 15,
         }];
         let remove = vec![USER1.into()];
 
@@ -358,7 +358,7 @@ mod tests {
         // add a new one and remove existing one
         let add = vec![Member {
             addr: USER1.into(),
-            weight: 4,
+            points: 4,
         }];
         let remove = vec![USER3.into()];
 
@@ -385,11 +385,11 @@ mod tests {
         let add = vec![
             Member {
                 addr: USER1.into(),
-                weight: 20,
+                points: 20,
             },
             Member {
                 addr: USER3.into(),
-                weight: 5,
+                points: 5,
             },
         ];
         let remove = vec![USER1.into()];
@@ -504,11 +504,11 @@ mod tests {
         let add = vec![
             Member {
                 addr: USER1.into(),
-                weight: 20,
+                points: 20,
             },
             Member {
                 addr: USER3.into(),
-                weight: 5,
+                points: 5,
             },
         ];
         let remove = vec![USER2.into()];
