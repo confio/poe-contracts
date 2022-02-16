@@ -260,8 +260,9 @@ mod tests {
     use super::*;
     use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
     use cosmwasm_std::{from_slice, Api, OwnedDeps, Querier, Storage};
-    use cw_controllers::{AdminError, HookError};
+    use cw_controllers::AdminError;
     use tg4::{member_key, TOTAL_KEY};
+    use tg_utils::HookError;
 
     const INIT_ADMIN: &str = "juan";
     const USER1: &str = "somebody";
@@ -462,8 +463,8 @@ mod tests {
         let mut deps = mock_dependencies();
         do_instantiate(deps.as_mut());
 
-        let hooks = HOOKS.query_hooks(deps.as_ref()).unwrap();
-        assert!(hooks.hooks.is_empty());
+        let hooks = HOOKS.list_hooks(&deps.storage).unwrap();
+        assert!(hooks.is_empty());
 
         let contract1 = String::from("hook1");
         let contract2 = String::from("hook2");
@@ -481,7 +482,7 @@ mod tests {
             add_msg.clone(),
         )
         .unwrap_err();
-        assert_eq!(err, HookError::Admin(AdminError::NotAdmin {}).into());
+        assert_eq!(err, ContractError::Unauthorized {});
 
         // admin can add it, and it appears in the query
         let admin_info = mock_info(INIT_ADMIN, &[]);
@@ -492,8 +493,8 @@ mod tests {
             add_msg.clone(),
         )
         .unwrap();
-        let hooks = HOOKS.query_hooks(deps.as_ref()).unwrap();
-        assert_eq!(hooks.hooks, vec![contract1.clone()]);
+        let hooks = HOOKS.list_hooks(&deps.storage).unwrap();
+        assert_eq!(hooks, vec![contract1.clone()]);
 
         // cannot remove a non-registered contract
         let remove_msg = ExecuteMsg::RemoveHook {
@@ -507,8 +508,8 @@ mod tests {
             addr: contract2.clone(),
         };
         let _ = execute(deps.as_mut(), mock_env(), admin_info.clone(), add_msg2).unwrap();
-        let hooks = HOOKS.query_hooks(deps.as_ref()).unwrap();
-        assert_eq!(hooks.hooks, vec![contract1.clone(), contract2.clone()]);
+        let hooks = HOOKS.list_hooks(&deps.storage).unwrap();
+        assert_eq!(hooks, vec![contract1.clone(), contract2.clone()]);
 
         // cannot re-add an existing contract
         let err = execute(deps.as_mut(), mock_env(), admin_info.clone(), add_msg).unwrap_err();
@@ -517,12 +518,12 @@ mod tests {
         // non-admin cannot remove
         let remove_msg = ExecuteMsg::RemoveHook { addr: contract1 };
         let err = execute(deps.as_mut(), mock_env(), user_info, remove_msg.clone()).unwrap_err();
-        assert_eq!(err, HookError::Admin(AdminError::NotAdmin {}).into());
+        assert_eq!(err, ContractError::Unauthorized {});
 
         // remove the original
         let _ = execute(deps.as_mut(), mock_env(), admin_info, remove_msg).unwrap();
-        let hooks = HOOKS.query_hooks(deps.as_ref()).unwrap();
-        assert_eq!(hooks.hooks, vec![contract2]);
+        let hooks = HOOKS.list_hooks(&deps.storage).unwrap();
+        assert_eq!(hooks, vec![contract2]);
     }
 
     #[test]
@@ -530,8 +531,8 @@ mod tests {
         let mut deps = mock_dependencies();
         do_instantiate(deps.as_mut());
 
-        let hooks = HOOKS.query_hooks(deps.as_ref()).unwrap();
-        assert!(hooks.hooks.is_empty());
+        let hooks = HOOKS.list_hooks(&deps.storage).unwrap();
+        assert!(hooks.is_empty());
 
         let contract1 = String::from("hook1");
         let contract2 = String::from("hook2");
