@@ -23,10 +23,10 @@ library = []
 benches = [ "cosmwasm-vm" ]
 
 [dependencies]
-cw-utils = "0.11.0"
-cw2 = "0.11.0"
-cw20 = "0.11.0"
-cw-storage-plus = "0.11.0"
+cw-utils = "0.11.1"
+cw2 = "0.11.1"
+cw20 = "0.11.1"
+cw-storage-plus = "0.11.1"
 tg4 = { path = "../../packages/tg4", version = "0.6.1" }
 tg-utils = { path = "../../packages/utils", version = "0.6.1" }
 tg-bindings = { path = "../../packages/bindings", version = "0.6.1" }
@@ -42,7 +42,7 @@ rust_decimal_macros = { version = "1.16", default-features = false }
 cosmwasm-vm = { version = "1.0.0-beta5", optional = true }
 
 [dev-dependencies]
-cw-multi-test = { version = "0.11.0" }
+cw-multi-test = { version = "0.11.1" }
 cosmwasm-schema = { version = "1.0.0-beta5" }
 # version's workaround for issue with cyclic dependencies during cargo publish
 # https://github.com/rust-lang/cargo/issues/4242
