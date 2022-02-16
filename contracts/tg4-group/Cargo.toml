@@ -1,7 +1,7 @@
 [package]
 name = "tg4-group"
 version = "0.6.0"
-authors = ["Ethan Frey <ethanfrey@users.noreply.github.com>"]
+authors = ["Mauro Lacy <mauro@confio.gmbh>"]
 edition = "2018"
 description = "Simple tg4 implementation of group membership controlled by admin"
 license = "Apache-2.0"
