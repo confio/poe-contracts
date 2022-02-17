@@ -431,6 +431,7 @@ fn jailing_duration_start_is_provided() {
 
     suite.advance_seconds(100).unwrap();
     let time2 = suite.app().block_info().time;
+    suite.jail(&admin, members[1], Duration::new(3600)).unwrap();
     assert_eq!(time2, time1.plus_seconds(100));
     assert_eq!(time1, jail_start(suite.validator(members[0])));
     assert_eq!(time2, jail_start(suite.validator(members[1])));
