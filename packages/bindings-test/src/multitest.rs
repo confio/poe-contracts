@@ -10,7 +10,7 @@ use thiserror::Error;
 use cosmwasm_std::testing::{MockApi, MockStorage};
 use cosmwasm_std::{
     from_slice, to_binary, Addr, Api, Binary, BlockInfo, Coin, CustomQuery, Empty, Order, Querier,
-    StdError, StdResult, Storage, Timestamp,
+    QuerierResult, StdError, StdResult, Storage, Timestamp,
 };
 use cw_multi_test::{
     App, AppResponse, BankKeeper, BankSudo, BasicAppBuilder, CosmosRouter, Executor, Module,
@@ -320,6 +320,12 @@ impl Deref for TgradeApp {
 impl DerefMut for TgradeApp {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
+    }
+}
+
+impl Querier for TgradeApp {
+    fn raw_query(&self, bin_request: &[u8]) -> QuerierResult {
+        self.0.raw_query(bin_request)
     }
 }
 
