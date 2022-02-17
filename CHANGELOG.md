@@ -2,7 +2,15 @@
 
 ## [Unreleased](https://github.com/confio/poe-contracts/tree/HEAD)
 
-[Full Changelog](https://github.com/confio/poe-contracts/compare/v0.6.1...HEAD)
+[Full Changelog](https://github.com/confio/poe-contracts/compare/v0.6.2...HEAD)
+
+## [v0.6.2](https://github.com/confio/poe-contracts/tree/v0.6.2) (2022-02-18)
+
+[Full Changelog](https://github.com/confio/poe-contracts/compare/v0.6.1...v0.6.2)
+
+**Merged pull requests:**
+
+- Decustomize `tg4-group` [\#109](https://github.com/confio/poe-contracts/pull/109) ([maurolacy](https://github.com/maurolacy))
 
 ## [v0.6.1](https://github.com/confio/poe-contracts/tree/v0.6.1) (2022-02-16)
 
