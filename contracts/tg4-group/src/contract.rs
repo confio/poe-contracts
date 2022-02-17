@@ -1,24 +1,19 @@
-use crate::ContractError::Unauthorized;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    attr, to_binary, Addr, Binary, Deps, DepsMut, Env, MessageInfo, Order, StdResult,
+    attr, to_binary, Addr, Binary, Deps, DepsMut, Env, MessageInfo, Order, Response, StdResult,
+    SubMsg,
 };
 use cw2::set_contract_version;
 use cw_storage_plus::Bound;
 use cw_utils::maybe_addr;
-use tg4::{
-    HooksResponse, Member, MemberChangedHookMsg, MemberDiff, MemberListResponse, MemberResponse,
-    TotalPointsResponse,
-};
-use tg_bindings::TgradeMsg;
+
+use cw4::{MemberChangedHookMsg, MemberDiff};
+use tg4::{Member, MemberListResponse, MemberResponse, TotalPointsResponse};
 
 use crate::error::ContractError;
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
 use crate::state::{ADMIN, HOOKS, MEMBERS, TOTAL};
-
-pub type Response = cosmwasm_std::Response<TgradeMsg>;
-pub type SubMsg = cosmwasm_std::SubMsg<TgradeMsg>;
 
 // version info for migration info
 const CONTRACT_NAME: &str = "crates.io:tg4-group";
@@ -80,8 +75,12 @@ pub fn execute(
         ExecuteMsg::UpdateMembers { add, remove } => {
             execute_update_members(deps, env, info, add, remove)
         }
-        ExecuteMsg::AddHook { addr } => execute_add_hook(deps, info, addr),
-        ExecuteMsg::RemoveHook { addr } => execute_remove_hook(deps, info, addr),
+        ExecuteMsg::AddHook { addr } => {
+            Ok(HOOKS.execute_add_hook(&ADMIN, deps, info, api.addr_validate(&addr)?)?)
+        }
+        ExecuteMsg::RemoveHook { addr } => {
+            Ok(HOOKS.execute_remove_hook(&ADMIN, deps, info, api.addr_validate(&addr)?)?)
+        }
     }
 }
 
@@ -108,52 +107,6 @@ pub fn execute_update_members(
     Ok(Response::new()
         .add_submessages(messages)
         .add_attributes(attributes))
-}
-
-pub fn execute_add_hook(
-    deps: DepsMut,
-    info: MessageInfo,
-    hook: String,
-) -> Result<Response, ContractError> {
-    // Same as cw4-group guard: being admin
-    if !ADMIN.is_admin(deps.as_ref(), &info.sender)? {
-        return Err(Unauthorized {});
-    }
-
-    // add the hook
-    HOOKS.add_hook(deps.storage, deps.api.addr_validate(&hook)?)?;
-
-    // response
-    let res = Response::new()
-        .add_attribute("action", "add_hook")
-        .add_attribute("hook", hook)
-        .add_attribute("sender", info.sender);
-    Ok(res)
-}
-
-pub fn execute_remove_hook(
-    deps: DepsMut,
-    info: MessageInfo,
-    hook: String,
-) -> Result<Response, ContractError> {
-    // custom guard: self-removal OR being admin
-    let hook_addr = deps.api.addr_validate(&hook)?;
-    if info.sender != hook_addr && !ADMIN.is_admin(deps.as_ref(), &info.sender)? {
-        // return Err(ContractError::Unauthorized(
-        //     "Hook address is not same as sender's or sender is not an admin".to_owned(),
-        // ));
-        return Err(ContractError::Unauthorized {});
-    }
-
-    // remove the hook
-    HOOKS.remove_hook(deps.storage, hook_addr)?;
-
-    // response
-    let resp = Response::new()
-        .add_attribute("action", "remove_hook")
-        .add_attribute("hook", hook)
-        .add_attribute("sender", info.sender);
-    Ok(resp)
 }
 
 // the logic from execute_update_members extracted for easier import
@@ -207,10 +160,7 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
         }
         QueryMsg::TotalPoints {} => to_binary(&query_total_points(deps)?),
         QueryMsg::Admin {} => to_binary(&ADMIN.query_admin(deps)?),
-        QueryMsg::Hooks {} => {
-            let hooks = HOOKS.list_hooks(deps.storage)?;
-            to_binary(&HooksResponse { hooks })
-        }
+        QueryMsg::Hooks {} => to_binary(&HOOKS.query_hooks(deps)?),
     }
 }
 
@@ -260,9 +210,8 @@ mod tests {
     use super::*;
     use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
     use cosmwasm_std::{from_slice, Api, OwnedDeps, Querier, Storage};
-    use cw_controllers::AdminError;
+    use cw_controllers::{AdminError, HookError};
     use tg4::{member_key, TOTAL_KEY};
-    use tg_utils::HookError;
 
     const INIT_ADMIN: &str = "juan";
     const USER1: &str = "somebody";
@@ -463,8 +412,8 @@ mod tests {
         let mut deps = mock_dependencies();
         do_instantiate(deps.as_mut());
 
-        let hooks = HOOKS.list_hooks(&deps.storage).unwrap();
-        assert!(hooks.is_empty());
+        let hooks = HOOKS.query_hooks(deps.as_ref()).unwrap();
+        assert!(hooks.hooks.is_empty());
 
         let contract1 = String::from("hook1");
         let contract2 = String::from("hook2");
@@ -482,7 +431,7 @@ mod tests {
             add_msg.clone(),
         )
         .unwrap_err();
-        assert_eq!(err, ContractError::Unauthorized {});
+        assert_eq!(err, HookError::Admin(AdminError::NotAdmin {}).into());
 
         // admin can add it, and it appears in the query
         let admin_info = mock_info(INIT_ADMIN, &[]);
@@ -493,8 +442,8 @@ mod tests {
             add_msg.clone(),
         )
         .unwrap();
-        let hooks = HOOKS.list_hooks(&deps.storage).unwrap();
-        assert_eq!(hooks, vec![contract1.clone()]);
+        let hooks = HOOKS.query_hooks(deps.as_ref()).unwrap();
+        assert_eq!(hooks.hooks, vec![contract1.clone()]);
 
         // cannot remove a non-registered contract
         let remove_msg = ExecuteMsg::RemoveHook {
@@ -508,8 +457,8 @@ mod tests {
             addr: contract2.clone(),
         };
         let _ = execute(deps.as_mut(), mock_env(), admin_info.clone(), add_msg2).unwrap();
-        let hooks = HOOKS.list_hooks(&deps.storage).unwrap();
-        assert_eq!(hooks, vec![contract1.clone(), contract2.clone()]);
+        let hooks = HOOKS.query_hooks(deps.as_ref()).unwrap();
+        assert_eq!(hooks.hooks, vec![contract1.clone(), contract2.clone()]);
 
         // cannot re-add an existing contract
         let err = execute(deps.as_mut(), mock_env(), admin_info.clone(), add_msg).unwrap_err();
@@ -518,12 +467,12 @@ mod tests {
         // non-admin cannot remove
         let remove_msg = ExecuteMsg::RemoveHook { addr: contract1 };
         let err = execute(deps.as_mut(), mock_env(), user_info, remove_msg.clone()).unwrap_err();
-        assert_eq!(err, ContractError::Unauthorized {});
+        assert_eq!(err, HookError::Admin(AdminError::NotAdmin {}).into());
 
         // remove the original
         let _ = execute(deps.as_mut(), mock_env(), admin_info, remove_msg).unwrap();
-        let hooks = HOOKS.list_hooks(&deps.storage).unwrap();
-        assert_eq!(hooks, vec![contract2]);
+        let hooks = HOOKS.query_hooks(deps.as_ref()).unwrap();
+        assert_eq!(hooks.hooks, vec![contract2]);
     }
 
     #[test]
@@ -531,8 +480,8 @@ mod tests {
         let mut deps = mock_dependencies();
         do_instantiate(deps.as_mut());
 
-        let hooks = HOOKS.list_hooks(&deps.storage).unwrap();
-        assert!(hooks.is_empty());
+        let hooks = HOOKS.query_hooks(deps.as_ref()).unwrap();
+        assert!(hooks.hooks.is_empty());
 
         let contract1 = String::from("hook1");
         let contract2 = String::from("hook2");
