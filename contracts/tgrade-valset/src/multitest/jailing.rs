@@ -1,8 +1,9 @@
 use crate::error::ContractError;
-use crate::msg::JailingEnd;
+use crate::msg::{JailingEnd, ValidatorResponse};
 
 use super::helpers::{assert_active_validators, assert_operators, members_init};
 use super::suite::SuiteBuilder;
+use cosmwasm_std::{StdResult, Timestamp};
 use cw_controllers::AdminError;
 use tg_utils::{Duration, Expiration, JailingDuration};
 
@@ -409,4 +410,28 @@ fn list_jailed_validators_with_pagination() {
     assert_eq!(operators.len(), 2);
     assert_eq!(operators[0].operator, members[3]);
     assert_eq!(operators[1].operator, members[4]);
+}
+
+#[test]
+fn jailing_duration_start_is_provided() {
+    let members = vec!["member1", "member2"];
+    let mut suite = SuiteBuilder::new()
+        .with_engagement(&members_init(&members, &[2, 3, 5, 8, 10]))
+        .with_operators(&members)
+        .build();
+    let admin = suite.admin().to_owned();
+
+    fn jail_start(val: StdResult<ValidatorResponse>) -> Timestamp {
+        val.unwrap().validator.unwrap().jailed_until.unwrap().start
+    }
+
+    let time1 = suite.app().block_info().time;
+    suite.jail(&admin, members[0], Duration::new(3600)).unwrap();
+    assert_eq!(time1, jail_start(suite.validator(members[0])));
+
+    suite.advance_seconds(100).unwrap();
+    let time2 = suite.app().block_info().time;
+    assert_eq!(time2, time1.plus_seconds(100));
+    assert_eq!(time1, jail_start(suite.validator(members[0])));
+    assert_eq!(time2, jail_start(suite.validator(members[1])));
 }
