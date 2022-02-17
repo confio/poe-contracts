@@ -1,5 +1,5 @@
 use crate::error::ContractError;
-use crate::msg::JailingPeriod;
+use crate::msg::JailingEnd;
 
 use super::helpers::{assert_active_validators, assert_operators, members_init};
 use super::suite::SuiteBuilder;
@@ -37,7 +37,7 @@ fn only_admin_can_jail() {
         ))
     );
 
-    let jailed_until = JailingPeriod::Until(Duration::new(3600).after(&suite.app().block_info()));
+    let jailed_until = JailingEnd::Until(Duration::new(3600).after(&suite.app().block_info()));
 
     // Non-admin cannot jail forever
     let err = suite
@@ -67,7 +67,7 @@ fn only_admin_can_jail() {
         &suite.list_validators(None, None).unwrap(),
         &[
             (members[0], None),
-            (members[1], Some(JailingPeriod::Forever {})),
+            (members[1], Some(JailingEnd::Forever {})),
             (members[2], Some(jailed_until)),
             (members[3], None),
         ],
@@ -109,7 +109,7 @@ fn admin_can_unjail_almost_anyone() {
         &suite.list_validators(None, None).unwrap(),
         &[
             (members[0], None),
-            (members[1], Some(JailingPeriod::Forever {})),
+            (members[1], Some(JailingEnd::Forever {})),
             (members[2], None),
             (members[3], None),
         ],
@@ -130,7 +130,7 @@ fn anyone_can_unjail_self_after_period() {
     suite.jail(&admin, members[1], Duration::new(3600)).unwrap();
     suite.jail(&admin, members[2], Duration::new(3600)).unwrap();
 
-    let jailed_until = JailingPeriod::Until(Duration::new(3600).after(&suite.app().block_info()));
+    let jailed_until = JailingEnd::Until(Duration::new(3600).after(&suite.app().block_info()));
 
     // Move a little bit forward, so some time passed, but not eough for any jailing to
     // expire
@@ -240,7 +240,7 @@ fn auto_unjail() {
 
     let admin = suite.admin().to_owned();
 
-    let jailed_until = JailingPeriod::Until(Duration::new(3600).after(&suite.app().block_info()));
+    let jailed_until = JailingEnd::Until(Duration::new(3600).after(&suite.app().block_info()));
 
     // Jailing some operators to begin with
     suite.jail(&admin, members[0], Duration::new(3600)).unwrap();
@@ -256,7 +256,7 @@ fn auto_unjail() {
         &suite.list_validators(None, None).unwrap(),
         &[
             (members[0], Some(jailed_until)),
-            (members[1], Some(JailingPeriod::Forever {})),
+            (members[1], Some(JailingEnd::Forever {})),
             (members[2], None),
             (members[3], None),
         ],
@@ -276,7 +276,7 @@ fn auto_unjail() {
         &suite.list_validators(None, None).unwrap(),
         &[
             (members[0], None),
-            (members[1], Some(JailingPeriod::Forever {})),
+            (members[1], Some(JailingEnd::Forever {})),
             (members[2], None),
             (members[3], None),
         ],

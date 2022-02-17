@@ -9,7 +9,7 @@ use tg_utils::{Expiration, JailingDuration};
 
 use crate::error::ContractError;
 use crate::state::{DistributionContract, OperatorInfo, ValidatorInfo, ValidatorSlashing};
-use cosmwasm_std::{Addr, Api, BlockInfo, Coin, Decimal};
+use cosmwasm_std::{Addr, Api, BlockInfo, Coin, Decimal, Timestamp};
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 pub struct InstantiateMsg {
@@ -396,24 +396,37 @@ impl OperatorResponse {
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+pub struct JailingPeriod {
+    pub start: Timestamp,
+    pub end: JailingEnd,
+}
+
+#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
-pub enum JailingPeriod {
+pub enum JailingEnd {
     Until(Expiration),
     Forever {},
 }
 
 impl JailingPeriod {
     pub fn from_duration(duration: JailingDuration, block: &BlockInfo) -> Self {
-        match duration {
-            JailingDuration::Duration(duration) => Self::Until(duration.after(block)),
-            JailingDuration::Forever {} => Self::Forever {},
+        Self {
+            start: block.time,
+            end: match duration {
+                JailingDuration::Duration(duration) => JailingEnd::Until(duration.after(block)),
+                JailingDuration::Forever {} => JailingEnd::Forever {},
+            },
         }
     }
 
+    pub fn is_forever(&self) -> bool {
+        matches!(self.end, JailingEnd::Forever {})
+    }
+
     pub fn is_expired(&self, block: &BlockInfo) -> bool {
-        match self {
-            Self::Forever {} => false,
-            Self::Until(expires) => expires.is_expired(block),
+        match self.end {
+            JailingEnd::Forever {} => false,
+            JailingEnd::Until(expires) => expires.is_expired(block),
         }
     }
 }

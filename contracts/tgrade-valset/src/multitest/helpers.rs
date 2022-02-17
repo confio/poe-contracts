@@ -1,7 +1,7 @@
 use cosmwasm_std::Binary;
 use tg_bindings::Pubkey;
 
-use crate::msg::{JailingPeriod, OperatorResponse};
+use crate::msg::{JailingEnd, OperatorResponse};
 use crate::state::ValidatorInfo;
 
 // Converts address to valid public key
@@ -42,11 +42,11 @@ pub fn assert_active_validators(received: &[ValidatorInfo], expected: &[(&str, u
 /// completely ignored, therefore as expected value vector of `(addr, jailed_until)` are taken.
 /// Also order of operators should not matter, so proper sorting is also handled.
 #[track_caller]
-pub fn assert_operators(received: &[OperatorResponse], expected: &[(&str, Option<JailingPeriod>)]) {
+pub fn assert_operators(received: &[OperatorResponse], expected: &[(&str, Option<JailingEnd>)]) {
     let mut received: Vec<_> = received
         .iter()
         .cloned()
-        .map(|operator| (operator.operator, operator.jailed_until))
+        .map(|operator| (operator.operator, operator.jailed_until.map(|j| j.end)))
         .collect();
 
     let mut expected: Vec<_> = expected
