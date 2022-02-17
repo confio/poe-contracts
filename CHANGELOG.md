@@ -4,6 +4,10 @@
 
 [Full Changelog](https://github.com/confio/poe-contracts/compare/v0.6.1...HEAD)
 
+**Merged pull requests:**
+
+- Decustomize `tg4-group` [\#109](https://github.com/confio/poe-contracts/pull/109) ([maurolacy](https://github.com/maurolacy))
+
 ## [v0.6.1](https://github.com/confio/poe-contracts/tree/v0.6.1) (2022-02-16)
 
 [Full Changelog](https://github.com/confio/poe-contracts/compare/v0.6.0...v0.6.1)
