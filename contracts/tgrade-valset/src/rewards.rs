@@ -1,7 +1,7 @@
 use crate::msg::{DistributionMsg, RewardsDistribution};
 use crate::state::Config;
 use cosmwasm_std::{
-    coins, to_binary, Addr, Coin, CustomQuery, DepsMut, Env, StdResult, SubMsg, Uint128, WasmMsg,
+    coins, to_binary, Coin, CustomQuery, DepsMut, Env, StdResult, SubMsg, Uint128, WasmMsg,
 };
 use tg_bindings::TgradeMsg;
 
