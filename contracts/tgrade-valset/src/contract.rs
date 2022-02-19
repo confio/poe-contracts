@@ -17,7 +17,7 @@ use cw_utils::{maybe_addr, parse_reply_instantiate_data};
 use tg4::{Member, Tg4Contract};
 use tg_bindings::{
     request_privileges, Ed25519Pubkey, Evidence, EvidenceType, Privilege, PrivilegeChangeMsg,
-    Pubkey, TgradeMsg, TgradeSudoMsg, ValidatorDiff, ValidatorUpdate,
+    Pubkey, TgradeMsg, TgradeQuery, TgradeSudoMsg, ValidatorDiff, ValidatorUpdate,
 };
 use tg_utils::{ensure_from_older_version, JailingDuration, SlashMsg, ADMIN};
 
@@ -45,8 +45,8 @@ pub type Response = cosmwasm_std::Response<TgradeMsg>;
 pub type SubMsg = cosmwasm_std::SubMsg<TgradeMsg>;
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn instantiate<Q: CustomQuery>(
-    deps: DepsMut<Q>,
+pub fn instantiate(
+    deps: DepsMut<TgradeQuery>,
     env: Env,
     _info: MessageInfo,
     msg: InstantiateMsg,
@@ -139,8 +139,8 @@ pub fn instantiate<Q: CustomQuery>(
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn execute<Q: CustomQuery>(
-    deps: DepsMut<Q>,
+pub fn execute(
+    deps: DepsMut<TgradeQuery>,
     env: Env,
     info: MessageInfo,
     msg: ExecuteMsg,
@@ -398,11 +398,7 @@ fn execute_simulate_validators<Q: CustomQuery>(
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn query<Q: CustomQuery>(
-    deps: Deps<Q>,
-    env: Env,
-    msg: QueryMsg,
-) -> Result<Binary, ContractError> {
+pub fn query(deps: Deps<TgradeQuery>, env: Env, msg: QueryMsg) -> Result<Binary, ContractError> {
     use QueryMsg::*;
     match msg {
         Configuration {} => Ok(to_binary(&CONFIG.load(deps.storage)?)?),
@@ -612,8 +608,8 @@ fn list_validator_slashing<Q: CustomQuery>(
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn sudo<Q: CustomQuery>(
-    deps: DepsMut<Q>,
+pub fn sudo(
+    deps: DepsMut<TgradeQuery>,
     env: Env,
     msg: TgradeSudoMsg,
 ) -> Result<Response, ContractError> {
@@ -881,8 +877,8 @@ fn calculate_diff(
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn migrate<Q: CustomQuery>(
-    deps: DepsMut<Q>,
+pub fn migrate(
+    deps: DepsMut<TgradeQuery>,
     _env: Env,
     msg: MigrateMsg,
 ) -> Result<Response, ContractError> {
@@ -1003,11 +999,7 @@ fn begin_block<Q: CustomQuery>(
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn reply<Q: CustomQuery>(
-    deps: DepsMut<Q>,
-    env: Env,
-    msg: Reply,
-) -> Result<Response, ContractError> {
+pub fn reply(deps: DepsMut<TgradeQuery>, env: Env, msg: Reply) -> Result<Response, ContractError> {
     match msg.id {
         REWARDS_INIT_REPLY_ID => rewards_instantiate_reply(deps, env, msg),
         _ => Err(ContractError::UnrecognisedReply(msg.id)),
