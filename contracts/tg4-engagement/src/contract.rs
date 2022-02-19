@@ -21,7 +21,7 @@ use crate::state::{
     Distribution, Halflife, WithdrawAdjustment, DISTRIBUTION, HALFLIFE, PREAUTH_SLASHING,
     SHARES_SHIFT, SLASHERS, WITHDRAW_ADJUSTMENT,
 };
-use tg_bindings::{request_privileges, Privilege, PrivilegeChangeMsg, TgradeMsg};
+use tg_bindings::{request_privileges, Privilege, PrivilegeChangeMsg, TgradeMsg, TgradeQuery};
 use tg_utils::{
     ensure_from_older_version, members, validate_portion, Duration, ADMIN, HOOKS, PREAUTH_HOOKS,
     TOTAL,
@@ -37,8 +37,8 @@ const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 // Note, you can use StdResult in some functions where you do not
 // make use of the custom errors
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn instantiate<Q: CustomQuery>(
-    deps: DepsMut<Q>,
+pub fn instantiate(
+    deps: DepsMut<TgradeQuery>,
     env: Env,
     _info: MessageInfo,
     msg: InstantiateMsg,
@@ -119,8 +119,8 @@ pub fn create<Q: CustomQuery>(
 
 // And declare a custom Error variant for the ones where you will want to make use of it
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn execute<Q: CustomQuery>(
-    deps: DepsMut<Q>,
+pub fn execute(
+    deps: DepsMut<TgradeQuery>,
     env: Env,
     info: MessageInfo,
     msg: ExecuteMsg,
@@ -606,11 +606,7 @@ pub fn apply_points_correction<Q: CustomQuery>(
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn sudo<Q: CustomQuery>(
-    deps: DepsMut<Q>,
-    env: Env,
-    msg: SudoMsg,
-) -> Result<Response, ContractError> {
+pub fn sudo(deps: DepsMut<TgradeQuery>, env: Env, msg: SudoMsg) -> Result<Response, ContractError> {
     match msg {
         SudoMsg::UpdateMember(member) => sudo_add_member(deps, env, member),
         SudoMsg::PrivilegeChange(PrivilegeChangeMsg::Promoted {}) => privilege_promote(deps),
@@ -697,7 +693,7 @@ fn end_block<Q: CustomQuery>(mut deps: DepsMut<Q>, env: Env) -> Result<Response,
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn query<Q: CustomQuery>(deps: Deps<Q>, env: Env, msg: QueryMsg) -> StdResult<Binary> {
+pub fn query(deps: Deps<TgradeQuery>, env: Env, msg: QueryMsg) -> StdResult<Binary> {
     use QueryMsg::*;
     match msg {
         Member {
@@ -901,10 +897,11 @@ mod tests {
 
     use crate::i128::Int128;
 
-    use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
+    use cosmwasm_std::testing::{mock_env, mock_info, MockApi, MockQuerier, MockStorage};
     use cosmwasm_std::{from_slice, Api, OwnedDeps, Querier, StdError, Storage};
     use cw_controllers::AdminError;
     use cw_storage_plus::Map;
+    use std::marker::PhantomData;
     use tg4::{member_key, TOTAL_KEY};
     use tg_utils::{HookError, PreauthError};
 
@@ -916,13 +913,22 @@ mod tests {
     const USER3: &str = "USER3";
     const HALFLIFE: u64 = 180 * 24 * 60 * 60;
 
+    fn mock_dependencies() -> OwnedDeps<MockStorage, MockApi, MockQuerier, TgradeQuery> {
+        OwnedDeps {
+            storage: MockStorage::default(),
+            api: MockApi::default(),
+            querier: MockQuerier::default(),
+            custom_query_type: PhantomData,
+        }
+    }
+
     fn mock_env_height(height_offset: u64) -> Env {
         let mut env = mock_env();
         env.block.height += height_offset;
         env
     }
 
-    fn do_instantiate(deps: DepsMut) {
+    fn do_instantiate(deps: DepsMut<TgradeQuery>) {
         let msg = InstantiateMsg {
             admin: Some(INIT_ADMIN.into()),
             members: vec![
@@ -1196,7 +1202,7 @@ mod tests {
 
     #[track_caller]
     fn assert_users<S: Storage, A: Api, Q: Querier>(
-        deps: &OwnedDeps<S, A, Q>,
+        deps: &OwnedDeps<S, A, Q, TgradeQuery>,
         user1_points: Option<u64>,
         user2_points: Option<u64>,
         user3_points: Option<u64>,
