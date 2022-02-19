@@ -6,7 +6,7 @@ use cosmwasm_std::{
 };
 
 use cw2::set_contract_version;
-use tg_bindings::TgradeMsg;
+use tg_bindings::{TgradeMsg, TgradeQuery};
 use tg_utils::ensure_from_older_version;
 
 use crate::msg::{ExecuteMsg, InstantiateMsg, Proposal, QueryMsg};
@@ -27,8 +27,8 @@ const CONTRACT_NAME: &str = "crates.io:tgrade_community-pool";
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn instantiate<Q: CustomQuery>(
-    deps: DepsMut<Q>,
+pub fn instantiate(
+    deps: DepsMut<TgradeQuery>,
     _env: Env,
     _info: MessageInfo,
     msg: InstantiateMsg,
@@ -38,8 +38,8 @@ pub fn instantiate<Q: CustomQuery>(
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn execute<Q: CustomQuery>(
-    deps: DepsMut<Q>,
+pub fn execute(
+    deps: DepsMut<TgradeQuery>,
     env: Env,
     info: MessageInfo,
     msg: ExecuteMsg,
@@ -51,12 +51,13 @@ pub fn execute<Q: CustomQuery>(
             proposal,
         } => execute_propose(deps, env, info, title, description, proposal),
         ExecuteMsg::Vote { proposal_id, vote } => {
-            execute_vote::<Proposal, Q>(deps, env, info, proposal_id, vote)
+            execute_vote::<Proposal, TgradeQuery>(deps, env, info, proposal_id, vote)
                 .map_err(ContractError::from)
         }
         ExecuteMsg::Execute { proposal_id } => execute_execute(deps, env, info, proposal_id),
         ExecuteMsg::Close { proposal_id } => {
-            execute_close::<Proposal, Q>(deps, env, info, proposal_id).map_err(ContractError::from)
+            execute_close::<Proposal, TgradeQuery>(deps, env, info, proposal_id)
+                .map_err(ContractError::from)
         }
         ExecuteMsg::WithdrawEngagementRewards {} => execute_withdraw_engagement_rewards(deps, info),
         ExecuteMsg::DistributeRewards {} => Ok(Response::new()),
@@ -153,19 +154,17 @@ fn align_limit(limit: Option<u32>) -> usize {
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn query<Q: CustomQuery>(deps: Deps<Q>, env: Env, msg: QueryMsg) -> StdResult<Binary> {
+pub fn query(deps: Deps<TgradeQuery>, env: Env, msg: QueryMsg) -> StdResult<Binary> {
     use QueryMsg::*;
 
     match msg {
         Rules {} => to_binary(&query_rules(deps)?),
-        Proposal { proposal_id } => to_binary(&query_proposal::<crate::msg::Proposal, Q>(
-            deps,
-            env,
-            proposal_id,
-        )?),
+        Proposal { proposal_id } => to_binary(
+            &query_proposal::<crate::msg::Proposal, TgradeQuery>(deps, env, proposal_id)?,
+        ),
         Vote { proposal_id, voter } => to_binary(&query_vote(deps, proposal_id, voter)?),
         ListProposals { start_after, limit } => {
-            to_binary(&list_proposals::<crate::msg::Proposal, Q>(
+            to_binary(&list_proposals::<crate::msg::Proposal, TgradeQuery>(
                 deps,
                 env,
                 start_after,
@@ -175,7 +174,7 @@ pub fn query<Q: CustomQuery>(deps: Deps<Q>, env: Env, msg: QueryMsg) -> StdResul
         ReverseProposals {
             start_before,
             limit,
-        } => to_binary(&reverse_proposals::<crate::msg::Proposal, Q>(
+        } => to_binary(&reverse_proposals::<crate::msg::Proposal, TgradeQuery>(
             deps,
             env,
             start_before,
@@ -219,13 +218,20 @@ pub fn migrate(deps: DepsMut, _env: Env, _msg: Empty) -> Result<Response, Contra
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::marker::PhantomData;
 
-    use cosmwasm_std::{
-        from_slice,
-        testing::{mock_dependencies, mock_env},
-        Addr, Decimal,
-    };
+    use cosmwasm_std::testing::{MockApi, MockQuerier, MockStorage};
+    use cosmwasm_std::{from_slice, testing::mock_env, Addr, Decimal, OwnedDeps};
     use tg_voting_contract::state::VotingRules;
+
+    fn mock_dependencies() -> OwnedDeps<MockStorage, MockApi, MockQuerier, TgradeQuery> {
+        OwnedDeps {
+            storage: MockStorage::default(),
+            api: MockApi::default(),
+            querier: MockQuerier::default(),
+            custom_query_type: PhantomData,
+        }
+    }
 
     #[test]
     fn query_group_contract() {
