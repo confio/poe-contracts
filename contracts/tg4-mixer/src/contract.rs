@@ -1,15 +1,15 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    to_binary, Addr, Binary, Decimal, Deps, DepsMut, Empty, Env, MessageInfo, Order, StdError,
-    StdResult,
+    to_binary, Addr, Binary, CustomQuery, Decimal, Deps, DepsMut, Empty, Env, MessageInfo, Order,
+    StdError, StdResult,
 };
 
 use cw2::set_contract_version;
 use cw_storage_plus::Bound;
 use cw_utils::maybe_addr;
 
-use tg_bindings::TgradeMsg;
+use tg_bindings::{TgradeMsg, TgradeQuery};
 use tg_utils::{
     ensure_from_older_version, members, validate_portion, SlashMsg, HOOKS, PREAUTH_HOOKS,
     PREAUTH_SLASHING, SLASHERS, TOTAL,
@@ -37,7 +37,7 @@ const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
-    deps: DepsMut,
+    deps: DepsMut<TgradeQuery>,
     env: Env,
     _info: MessageInfo,
     msg: InstantiateMsg,
@@ -80,7 +80,10 @@ pub fn instantiate(
     Ok(res)
 }
 
-fn verify_tg4_input(deps: Deps, addr: &str) -> Result<Tg4Contract, ContractError> {
+fn verify_tg4_input<Q: CustomQuery>(
+    deps: Deps<Q>,
+    addr: &str,
+) -> Result<Tg4Contract, ContractError> {
     let contract = Tg4Contract(deps.api.addr_validate(addr)?);
     if !contract.is_tg4(&deps.querier) {
         return Err(ContractError::NotTg4(addr.into()));
@@ -90,8 +93,8 @@ fn verify_tg4_input(deps: Deps, addr: &str) -> Result<Tg4Contract, ContractError
 
 const QUERY_LIMIT: Option<u32> = Some(30);
 
-fn initialize_members(
-    deps: DepsMut,
+fn initialize_members<Q: CustomQuery>(
+    deps: DepsMut<Q>,
     groups: Groups,
     poe_function: &dyn PoEFunction,
     height: u64,
@@ -123,7 +126,7 @@ fn initialize_members(
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn execute(
-    deps: DepsMut,
+    deps: DepsMut<TgradeQuery>,
     env: Env,
     info: MessageInfo,
     msg: ExecuteMsg,
@@ -138,8 +141,8 @@ pub fn execute(
     }
 }
 
-pub fn execute_member_changed(
-    mut deps: DepsMut,
+pub fn execute_member_changed<Q: CustomQuery>(
+    mut deps: DepsMut<Q>,
     env: Env,
     info: MessageInfo,
     changes: MemberChangedHookMsg,
@@ -184,8 +187,8 @@ pub fn execute_member_changed(
 }
 
 // the logic from execute_update_members extracted for easier re-usability
-pub fn update_members(
-    deps: DepsMut,
+pub fn update_members<Q: CustomQuery>(
+    deps: DepsMut<Q>,
     height: u64,
     query_group: Tg4Contract,
     changes: Vec<MemberDiff>,
@@ -226,8 +229,8 @@ pub fn update_members(
     Ok(MemberChangedHookMsg { diffs })
 }
 
-pub fn execute_add_hook(
-    deps: DepsMut,
+pub fn execute_add_hook<Q: CustomQuery>(
+    deps: DepsMut<Q>,
     info: MessageInfo,
     hook: String,
 ) -> Result<Response, ContractError> {
@@ -245,8 +248,8 @@ pub fn execute_add_hook(
     Ok(res)
 }
 
-pub fn execute_remove_hook(
-    deps: DepsMut,
+pub fn execute_remove_hook<Q: CustomQuery>(
+    deps: DepsMut<Q>,
     info: MessageInfo,
     hook: String,
 ) -> Result<Response, ContractError> {
@@ -269,8 +272,8 @@ pub fn execute_remove_hook(
     Ok(res)
 }
 
-pub fn execute_add_slasher(
-    deps: DepsMut,
+pub fn execute_add_slasher<Q: CustomQuery>(
+    deps: DepsMut<Q>,
     info: MessageInfo,
     slasher: String,
 ) -> Result<Response, ContractError> {
@@ -288,8 +291,8 @@ pub fn execute_add_slasher(
     Ok(res)
 }
 
-pub fn execute_remove_slasher(
-    deps: DepsMut,
+pub fn execute_remove_slasher<Q: CustomQuery>(
+    deps: DepsMut<Q>,
     info: MessageInfo,
     slasher: String,
 ) -> Result<Response, ContractError> {
@@ -312,8 +315,8 @@ pub fn execute_remove_slasher(
     Ok(res)
 }
 
-pub fn execute_slash(
-    deps: DepsMut,
+pub fn execute_slash<Q: CustomQuery>(
+    deps: DepsMut<Q>,
     _env: Env,
     info: MessageInfo,
     addr: String,
@@ -344,7 +347,7 @@ pub fn execute_slash(
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
+pub fn query(deps: Deps<TgradeQuery>, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     use QueryMsg::*;
     match msg {
         Member {
@@ -382,12 +385,12 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     }
 }
 
-fn query_total_points(deps: Deps) -> StdResult<TotalPointsResponse> {
+fn query_total_points<Q: CustomQuery>(deps: Deps<Q>) -> StdResult<TotalPointsResponse> {
     let points = TOTAL.load(deps.storage)?;
     Ok(TotalPointsResponse { points })
 }
 
-fn query_groups(deps: Deps) -> StdResult<GroupsResponse> {
+fn query_groups<Q: CustomQuery>(deps: Deps<Q>) -> StdResult<GroupsResponse> {
     let groups = GROUPS.load(deps.storage)?;
     Ok(GroupsResponse {
         left: groups.left.0.into(),
@@ -395,7 +398,11 @@ fn query_groups(deps: Deps) -> StdResult<GroupsResponse> {
     })
 }
 
-fn query_member(deps: Deps, addr: String, height: Option<u64>) -> StdResult<MemberResponse> {
+fn query_member<Q: CustomQuery>(
+    deps: Deps<Q>,
+    addr: String,
+    height: Option<u64>,
+) -> StdResult<MemberResponse> {
     let addr = deps.api.addr_validate(&addr)?;
     let points = match height {
         Some(h) => members().may_load_at_height(deps.storage, &addr, h),
@@ -408,8 +415,8 @@ fn query_member(deps: Deps, addr: String, height: Option<u64>) -> StdResult<Memb
 const MAX_LIMIT: u32 = 100;
 const DEFAULT_LIMIT: u32 = 30;
 
-fn list_members(
-    deps: Deps,
+fn list_members<Q: CustomQuery>(
+    deps: Deps<Q>,
     start_after: Option<String>,
     limit: Option<u32>,
 ) -> StdResult<MemberListResponse> {
@@ -432,8 +439,8 @@ fn list_members(
     Ok(MemberListResponse { members: members? })
 }
 
-fn list_members_by_points(
-    deps: Deps,
+fn list_members_by_points<Q: CustomQuery>(
+    deps: Deps<Q>,
     start_after: Option<Member>,
     limit: Option<u32>,
 ) -> StdResult<MemberListResponse> {
@@ -462,8 +469,8 @@ fn list_members_by_points(
     Ok(MemberListResponse { members: members? })
 }
 
-pub fn query_mixer_function(
-    deps: Deps,
+pub fn query_mixer_function<Q: CustomQuery>(
+    deps: Deps<Q>,
     stake: u64,
     engagement: u64,
     poe_function: Option<PoEFunctionType>,
@@ -478,7 +485,11 @@ pub fn query_mixer_function(
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn migrate(deps: DepsMut, _env: Env, _msg: Empty) -> Result<Response, ContractError> {
+pub fn migrate(
+    deps: DepsMut<TgradeQuery>,
+    _env: Env,
+    _msg: Empty,
+) -> Result<Response, ContractError> {
     ensure_from_older_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
     Ok(Response::new())
 }
@@ -489,7 +500,7 @@ mod tests {
     use crate::msg::PoEFunctionType;
     use cosmwasm_std::{coins, Addr, BankMsg, Uint128};
     use cw_multi_test::{next_block, AppBuilder, BasicApp, Contract, ContractWrapper, Executor};
-    use tg_bindings::TgradeMsg;
+    use tg_bindings::{TgradeMsg, TgradeQuery};
 
     const STAKE_DENOM: &str = "utgd";
     const OWNER: &str = "owner";
@@ -508,7 +519,7 @@ mod tests {
         }
     }
 
-    pub fn contract_mixer() -> Box<dyn Contract<TgradeMsg>> {
+    pub fn contract_mixer() -> Box<dyn Contract<TgradeMsg, TgradeQuery>> {
         let contract = ContractWrapper::new(
             crate::contract::execute,
             crate::contract::instantiate,
@@ -517,7 +528,7 @@ mod tests {
         Box::new(contract)
     }
 
-    pub fn contract_group() -> Box<dyn Contract<TgradeMsg>> {
+    pub fn contract_group() -> Box<dyn Contract<TgradeMsg, TgradeQuery>> {
         let contract = ContractWrapper::new(
             tg4_engagement::contract::execute,
             tg4_engagement::contract::instantiate,
@@ -526,7 +537,7 @@ mod tests {
         Box::new(contract)
     }
 
-    pub fn contract_staking() -> Box<dyn Contract<TgradeMsg>> {
+    pub fn contract_staking() -> Box<dyn Contract<TgradeMsg, TgradeQuery>> {
         let contract = ContractWrapper::new(
             tg4_stake::contract::execute,
             tg4_stake::contract::instantiate,
@@ -536,7 +547,7 @@ mod tests {
     }
 
     // uploads code and returns address of group contract
-    fn instantiate_group(app: &mut BasicApp<TgradeMsg>, members: Vec<Member>) -> Addr {
+    fn instantiate_group(app: &mut BasicApp<TgradeMsg, TgradeQuery>, members: Vec<Member>) -> Addr {
         let admin = Some(OWNER.into());
         let group_id = app.store_code(contract_group());
         let msg = tg4_engagement::msg::InstantiateMsg {
@@ -552,7 +563,10 @@ mod tests {
     }
 
     // uploads code and returns address of group contract
-    fn instantiate_staking(app: &mut BasicApp<TgradeMsg>, stakers: Vec<Member>) -> Addr {
+    fn instantiate_staking(
+        app: &mut BasicApp<TgradeMsg, TgradeQuery>,
+        stakers: Vec<Member>,
+    ) -> Addr {
         let admin = Some(OWNER.into());
         let group_id = app.store_code(contract_staking());
         let msg = tg4_stake::msg::InstantiateMsg {
@@ -591,7 +605,11 @@ mod tests {
         contract
     }
 
-    fn instantiate_mixer(app: &mut BasicApp<TgradeMsg>, left: &Addr, right: &Addr) -> Addr {
+    fn instantiate_mixer(
+        app: &mut BasicApp<TgradeMsg, TgradeQuery>,
+        left: &Addr,
+        right: &Addr,
+    ) -> Addr {
         let flex_id = app.store_code(contract_mixer());
         let msg = crate::msg::InstantiateMsg {
             left_group: left.to_string(),
@@ -609,7 +627,10 @@ mod tests {
     /// and connectioning them all to the mixer.
     ///
     /// Returns (mixer address, group address, staking address).
-    fn setup_test_case(app: &mut BasicApp<TgradeMsg>, stakers: Vec<Member>) -> (Addr, Addr, Addr) {
+    fn setup_test_case(
+        app: &mut BasicApp<TgradeMsg, TgradeQuery>,
+        stakers: Vec<Member>,
+    ) -> (Addr, Addr, Addr) {
         // 1. Instantiate group contract with members (and OWNER as admin)
         let members = vec![
             member(OWNER, 0),
@@ -635,7 +656,7 @@ mod tests {
 
     #[allow(clippy::too_many_arguments)]
     fn check_membership(
-        app: &BasicApp<TgradeMsg>,
+        app: &BasicApp<TgradeMsg, TgradeQuery>,
         mixer_addr: &Addr,
         owner: Option<u64>,
         voter1: Option<u64>,
