@@ -10,7 +10,7 @@ use tg_bindings_test::TgradeApp;
 use tg_utils::Duration;
 
 fn contract_engagement() -> Box<dyn Contract<TgradeMsg, TgradeQuery>> {
-    let contract = ContractWrapper::::new(
+    let contract = ContractWrapper::new(
         crate::contract::execute,
         crate::contract::instantiate,
         crate::contract::query,
