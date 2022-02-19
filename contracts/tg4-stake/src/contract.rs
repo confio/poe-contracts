@@ -11,7 +11,9 @@ use cw_utils::maybe_addr;
 use tg4::{
     HooksResponse, Member, MemberChangedHookMsg, MemberDiff, MemberListResponse, MemberResponse,
 };
-use tg_bindings::{request_privileges, Privilege, PrivilegeChangeMsg, TgradeMsg, TgradeSudoMsg};
+use tg_bindings::{
+    request_privileges, Privilege, PrivilegeChangeMsg, TgradeMsg, TgradeQuery, TgradeSudoMsg,
+};
 use tg_utils::{
     ensure_from_older_version, members, validate_portion, Duration, ADMIN, HOOKS, PREAUTH_HOOKS,
     PREAUTH_SLASHING, SLASHERS, TOTAL,
@@ -34,8 +36,8 @@ const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 // Note, you can use StdResult in some functions where you do not
 // make use of the custom errors
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn instantiate<Q: CustomQuery>(
-    mut deps: DepsMut<Q>,
+pub fn instantiate(
+    mut deps: DepsMut<TgradeQuery>,
     _env: Env,
     _info: MessageInfo,
     msg: InstantiateMsg,
@@ -70,8 +72,8 @@ pub fn instantiate<Q: CustomQuery>(
 
 // And declare a custom Error variant for the ones where you will want to make use of it
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn execute<Q: CustomQuery>(
-    deps: DepsMut<Q>,
+pub fn execute(
+    deps: DepsMut<TgradeQuery>,
     env: Env,
     info: MessageInfo,
     msg: ExecuteMsg,
@@ -393,8 +395,8 @@ fn coins_to_string(coins: &[Coin]) -> String {
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn sudo<Q: CustomQuery>(
-    deps: DepsMut<Q>,
+pub fn sudo(
+    deps: DepsMut<TgradeQuery>,
     env: Env,
     msg: TgradeSudoMsg,
 ) -> Result<Response, ContractError> {
@@ -448,7 +450,7 @@ fn release_expired_claims<Q: CustomQuery>(
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn query<Q: CustomQuery>(deps: Deps<Q>, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
+pub fn query(deps: Deps<TgradeQuery>, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     use QueryMsg::*;
     match msg {
         Configuration {} => to_binary(&CONFIG.load(deps.storage)?),
@@ -586,8 +588,8 @@ fn list_members_by_points<Q: CustomQuery>(
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn migrate<Q: CustomQuery>(
-    deps: DepsMut<Q>,
+pub fn migrate(
+    deps: DepsMut<TgradeQuery>,
     _env: Env,
     _msg: Empty,
 ) -> Result<Response, ContractError> {
@@ -598,10 +600,11 @@ pub fn migrate<Q: CustomQuery>(
 #[cfg(test)]
 mod tests {
     use crate::claim::Claim;
-    use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
+    use cosmwasm_std::testing::{mock_env, mock_info, MockApi, MockQuerier, MockStorage};
     use cosmwasm_std::{
-        from_slice, CosmosMsg, OverflowError, OverflowOperation, StdError, Storage,
+        from_slice, CosmosMsg, OverflowError, OverflowOperation, OwnedDeps, StdError, Storage,
     };
+    use std::marker::PhantomData;
     use tg4::{member_key, TOTAL_KEY};
     use tg_utils::{Expiration, HookError, PreauthError, SlasherError};
 
@@ -618,12 +621,21 @@ mod tests {
     const MIN_BOND: Uint128 = Uint128::new(5_000);
     const UNBONDING_DURATION: u64 = 100;
 
-    fn default_instantiate(deps: DepsMut) {
+    fn mock_dependencies() -> OwnedDeps<MockStorage, MockApi, MockQuerier, TgradeQuery> {
+        OwnedDeps {
+            storage: MockStorage::default(),
+            api: MockApi::default(),
+            querier: MockQuerier::default(),
+            custom_query_type: PhantomData,
+        }
+    }
+
+    fn default_instantiate(deps: DepsMut<TgradeQuery>) {
         do_instantiate(deps, TOKENS_PER_POINT, MIN_BOND, UNBONDING_DURATION, 0)
     }
 
     fn do_instantiate(
-        deps: DepsMut,
+        deps: DepsMut<TgradeQuery>,
         tokens_per_point: Uint128,
         min_bond: Uint128,
         unbonding_period: u64,
@@ -643,7 +655,13 @@ mod tests {
         instantiate(deps, mock_env(), info, msg).unwrap();
     }
 
-    fn bond(mut deps: DepsMut, user1: u128, user2: u128, user3: u128, height_delta: u64) {
+    fn bond(
+        mut deps: DepsMut<TgradeQuery>,
+        user1: u128,
+        user2: u128,
+        user3: u128,
+        height_delta: u64,
+    ) {
         let mut env = mock_env();
         env.block.height += height_delta;
 
@@ -657,7 +675,7 @@ mod tests {
     }
 
     fn unbond(
-        mut deps: DepsMut,
+        mut deps: DepsMut<TgradeQuery>,
         user1: u128,
         user2: u128,
         user3: u128,
@@ -716,7 +734,7 @@ mod tests {
         assert_eq!(res.unbonding_period, Duration::new(UNBONDING_DURATION));
     }
 
-    fn get_member(deps: Deps, addr: String, at_height: Option<u64>) -> Option<u64> {
+    fn get_member(deps: Deps<TgradeQuery>, addr: String, at_height: Option<u64>) -> Option<u64> {
         let raw = query(deps, mock_env(), QueryMsg::Member { addr, at_height }).unwrap();
         let res: MemberResponse = from_slice(&raw).unwrap();
         res.points
@@ -724,7 +742,7 @@ mod tests {
 
     // this tests the member queries
     fn assert_users(
-        deps: Deps,
+        deps: Deps<TgradeQuery>,
         user1_points: Option<u64>,
         user2_points: Option<u64>,
         user3_points: Option<u64>,
@@ -762,7 +780,12 @@ mod tests {
     }
 
     // this tests the member queries
-    fn assert_stake(deps: Deps, user1_stake: u128, user2_stake: u128, user3_stake: u128) {
+    fn assert_stake(
+        deps: Deps<TgradeQuery>,
+        user1_stake: u128,
+        user2_stake: u128,
+        user3_stake: u128,
+    ) {
         let stake1 = query_staked(deps, USER1.into()).unwrap();
         assert_eq!(stake1.stake, coin(user1_stake, DENOM));
 
@@ -1015,7 +1038,7 @@ mod tests {
 
     #[track_caller]
     fn get_claims(
-        deps: Deps,
+        deps: Deps<TgradeQuery>,
         addr: Addr,
         limit: Option<u32>,
         start_after: Option<Expiration>,
@@ -1289,21 +1312,21 @@ mod tests {
     mod slash {
         use super::*;
 
-        fn query_is_slasher(deps: Deps, env: Env, addr: String) -> StdResult<bool> {
+        fn query_is_slasher(deps: Deps<TgradeQuery>, env: Env, addr: String) -> StdResult<bool> {
             let msg = QueryMsg::IsSlasher { addr };
             let raw = query(deps, env, msg)?;
             let is_slasher: bool = from_slice(&raw)?;
             Ok(is_slasher)
         }
 
-        fn query_list_slashers(deps: Deps, env: Env) -> StdResult<Vec<String>> {
+        fn query_list_slashers(deps: Deps<TgradeQuery>, env: Env) -> StdResult<Vec<String>> {
             let msg = QueryMsg::ListSlashers {};
             let raw = query(deps, env, msg)?;
             let slashers: Vec<String> = from_slice(&raw)?;
             Ok(slashers)
         }
 
-        fn add_slasher(deps: DepsMut) -> String {
+        fn add_slasher(deps: DepsMut<TgradeQuery>) -> String {
             let slasher = String::from("slasher");
             let add_msg = ExecuteMsg::AddSlasher {
                 addr: slasher.clone(),
@@ -1314,7 +1337,7 @@ mod tests {
             slasher
         }
 
-        fn remove_slasher(deps: DepsMut, slasher: &str) {
+        fn remove_slasher(deps: DepsMut<TgradeQuery>, slasher: &str) {
             let add_msg = ExecuteMsg::RemoveSlasher {
                 addr: slasher.to_string(),
             };
@@ -1323,7 +1346,7 @@ mod tests {
         }
 
         fn slash(
-            deps: DepsMut,
+            deps: DepsMut<TgradeQuery>,
             slasher: &str,
             addr: &str,
             portion: Decimal,
@@ -1751,7 +1774,7 @@ mod tests {
 
         use super::*;
 
-        fn do_instantiate(deps: DepsMut, limit: u64) {
+        fn do_instantiate(deps: DepsMut<TgradeQuery>, limit: u64) {
             super::do_instantiate(deps, TOKENS_PER_POINT, MIN_BOND, UNBONDING_DURATION, limit)
         }
 
