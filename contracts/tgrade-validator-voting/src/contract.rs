@@ -8,7 +8,7 @@ use cosmwasm_std::{
 use cw2::set_contract_version;
 use tg_bindings::{
     request_privileges, BlockParams, ConsensusParams, EvidenceParams, GovProposal, Privilege,
-    PrivilegeChangeMsg, TgradeMsg, TgradeSudoMsg,
+    PrivilegeChangeMsg, TgradeMsg, TgradeQuery, TgradeSudoMsg,
 };
 use tg_utils::ensure_from_older_version;
 
@@ -30,8 +30,8 @@ const CONTRACT_NAME: &str = "crates.io:tgrade_validator_voting_proposals";
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn instantiate<Q: CustomQuery>(
-    deps: DepsMut<Q>,
+pub fn instantiate(
+    deps: DepsMut<TgradeQuery>,
     _env: Env,
     _info: MessageInfo,
     msg: InstantiateMsg,
@@ -41,8 +41,8 @@ pub fn instantiate<Q: CustomQuery>(
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn execute<Q: CustomQuery>(
-    deps: DepsMut<Q>,
+pub fn execute(
+    deps: DepsMut<TgradeQuery>,
     env: Env,
     info: MessageInfo,
     msg: ExecuteMsg,
@@ -72,12 +72,12 @@ pub fn execute<Q: CustomQuery>(
                 .map_err(ContractError::from)
         }
         Vote { proposal_id, vote } => {
-            execute_vote::<ValidatorProposal, Q>(deps, env, info, proposal_id, vote)
+            execute_vote::<ValidatorProposal, TgradeQuery>(deps, env, info, proposal_id, vote)
                 .map_err(ContractError::from)
         }
         Execute { proposal_id } => execute_execute(deps, env, info, proposal_id),
         Close { proposal_id } => {
-            execute_close::<ValidatorProposal, Q>(deps, env, info, proposal_id)
+            execute_close::<ValidatorProposal, TgradeQuery>(deps, env, info, proposal_id)
                 .map_err(ContractError::from)
         }
     }
@@ -205,27 +205,29 @@ fn align_limit(limit: Option<u32>) -> usize {
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn query<Q: CustomQuery>(deps: Deps<Q>, env: Env, msg: QueryMsg) -> StdResult<Binary> {
+pub fn query(deps: Deps<TgradeQuery>, env: Env, msg: QueryMsg) -> StdResult<Binary> {
     use QueryMsg::*;
 
     match msg {
         Rules {} => to_binary(&query_rules(deps)?),
-        Proposal { proposal_id } => to_binary(&query_proposal::<ValidatorProposal, Q>(
+        Proposal { proposal_id } => to_binary(&query_proposal::<ValidatorProposal, TgradeQuery>(
             deps,
             env,
             proposal_id,
         )?),
         Vote { proposal_id, voter } => to_binary(&query_vote(deps, proposal_id, voter)?),
-        ListProposals { start_after, limit } => to_binary(&list_proposals::<ValidatorProposal, Q>(
-            deps,
-            env,
-            start_after,
-            align_limit(limit),
-        )?),
+        ListProposals { start_after, limit } => {
+            to_binary(&list_proposals::<ValidatorProposal, TgradeQuery>(
+                deps,
+                env,
+                start_after,
+                align_limit(limit),
+            )?)
+        }
         ReverseProposals {
             start_before,
             limit,
-        } => to_binary(&reverse_proposals::<ValidatorProposal, Q>(
+        } => to_binary(&reverse_proposals::<ValidatorProposal, TgradeQuery>(
             deps,
             env,
             start_before,
@@ -261,8 +263,8 @@ pub fn query<Q: CustomQuery>(deps: Deps<Q>, env: Env, msg: QueryMsg) -> StdResul
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn sudo<Q: CustomQuery>(
-    _deps: DepsMut<Q>,
+pub fn sudo(
+    _deps: DepsMut<TgradeQuery>,
     _env: Env,
     msg: TgradeSudoMsg,
 ) -> Result<Response, ContractError> {
@@ -293,10 +295,12 @@ pub fn migrate(deps: DepsMut, _env: Env, _msg: Empty) -> Result<Response, Contra
 
 #[cfg(test)]
 mod tests {
+    use cosmwasm_std::testing::{MockApi, MockQuerier, MockStorage};
     use cosmwasm_std::{
-        testing::{mock_dependencies, mock_env, mock_info},
-        Addr, CosmosMsg, Decimal, SubMsg,
+        testing::{mock_env, mock_info},
+        Addr, CosmosMsg, Decimal, OwnedDeps, SubMsg,
     };
+    use std::marker::PhantomData;
     use tg_utils::Expiration;
     use tg_voting_contract::state::{proposals, Proposal, Votes, VotingRules};
 
@@ -305,6 +309,15 @@ mod tests {
 
     #[derive(serde::Serialize)]
     struct DummyMigrateMsg {}
+
+    fn mock_dependencies() -> OwnedDeps<MockStorage, MockApi, MockQuerier, TgradeQuery> {
+        OwnedDeps {
+            storage: MockStorage::default(),
+            api: MockApi::default(),
+            querier: MockQuerier::default(),
+            custom_query_type: PhantomData,
+        }
+    }
 
     #[test]
     fn register_migrate() {

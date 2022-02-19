@@ -85,8 +85,6 @@ fn migrate<Q: CustomQuery>(
 }
 
 pub fn contract() -> Box<dyn Contract<TgradeMsg, TgradeQuery>> {
-    let contract =
-        ContractWrapper::<_, _, _, _, _, _, _, TgradeQuery>::new(execute, instantiate, query)
-            .with_migrate(migrate);
+    let contract = ContractWrapper::new(execute, instantiate, query).with_migrate(migrate);
     Box::new(contract)
 }
