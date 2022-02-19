@@ -1,18 +1,16 @@
 use crate::{error::ContractError, msg::*, state::*};
 
-use cosmwasm_std::{coin, Addr, CosmosMsg, CustomQuery, Timestamp, Uint128};
+use cosmwasm_std::{coin, Addr, CosmosMsg, Timestamp, Uint128};
 use cw_multi_test::{AppResponse, Contract, ContractWrapper, CosmosRouter, Executor};
-use tg_bindings::TgradeMsg;
+use tg_bindings::{TgradeMsg, TgradeQuery};
 use tg_bindings_test::TgradeApp;
 use tg_utils::Expiration;
 
 use anyhow::Result as AnyResult;
 use derivative::Derivative;
-use serde::de::DeserializeOwned;
 
-pub fn contract_vesting<Q: 'static + CustomQuery + DeserializeOwned>(
-) -> Box<dyn Contract<TgradeMsg, Q>> {
-    let contract = ContractWrapper::<_, _, _, _, _, _, _, Q>::new(
+pub fn contract_vesting() -> Box<dyn Contract<TgradeMsg, TgradeQuery>> {
+    let contract = ContractWrapper::new(
         crate::contract::execute,
         crate::contract::instantiate,
         crate::contract::query,

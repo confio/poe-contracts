@@ -12,7 +12,7 @@ use crate::msg::{
     QueryMsg, TokenInfoResponse,
 };
 use crate::state::{VestingAccount, VestingPlan, VESTING_ACCOUNT};
-use tg_bindings::TgradeMsg;
+use tg_bindings::{TgradeMsg, TgradeQuery};
 
 pub type Response = cosmwasm_std::Response<TgradeMsg>;
 pub type SubMsg = cosmwasm_std::SubMsg<TgradeMsg>;
@@ -22,8 +22,8 @@ const CONTRACT_NAME: &str = "crates.io:vesting-contract";
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn instantiate<Q: CustomQuery>(
-    deps: DepsMut<Q>,
+pub fn instantiate(
+    deps: DepsMut<TgradeQuery>,
     _env: Env,
     info: MessageInfo,
     msg: InstantiateMsg,
@@ -56,8 +56,8 @@ fn create_vesting_account<Q: CustomQuery>(
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn execute<Q: CustomQuery>(
-    deps: DepsMut<Q>,
+pub fn execute(
+    deps: DepsMut<TgradeQuery>,
     env: Env,
     info: MessageInfo,
     msg: ExecuteMsg,
@@ -342,7 +342,7 @@ mod helpers {
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn query<Q: CustomQuery>(deps: Deps<Q>, env: Env, msg: QueryMsg) -> StdResult<Binary> {
+pub fn query(deps: Deps<TgradeQuery>, env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
         QueryMsg::AccountInfo {} => to_binary(&account_info(deps)?),
         QueryMsg::TokenInfo {} => to_binary(&token_info(deps, &env)?),
@@ -402,12 +402,11 @@ fn can_execute<Q: CustomQuery>(deps: Deps<Q>, sender: String) -> StdResult<CanEx
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::marker::PhantomData;
 
     use assert_matches::assert_matches;
 
-    use cosmwasm_std::testing::{
-        mock_dependencies, mock_env, mock_info, MockApi, MockQuerier, MockStorage,
-    };
+    use cosmwasm_std::testing::{mock_env, mock_info, MockApi, MockQuerier, MockStorage};
     use cosmwasm_std::{from_binary, Coin, MessageInfo, OwnedDeps, Timestamp};
     use tg_utils::Expiration;
 
@@ -420,6 +419,15 @@ mod tests {
     const DEFAULT_RELEASE: u64 = 1571797419 + 100;
 
     const VESTING_DENOM: &str = "vesting";
+
+    fn mock_dependencies() -> OwnedDeps<MockStorage, MockApi, MockQuerier, TgradeQuery> {
+        OwnedDeps {
+            storage: MockStorage::default(),
+            api: MockApi::default(),
+            querier: MockQuerier::default(),
+            custom_query_type: PhantomData,
+        }
+    }
 
     struct SuiteBuilder {
         recipient: Addr,
@@ -480,7 +488,7 @@ mod tests {
     }
 
     struct Suite {
-        deps: OwnedDeps<MockStorage, MockApi, MockQuerier>,
+        deps: OwnedDeps<MockStorage, MockApi, MockQuerier, TgradeQuery>,
         env: Env,
     }
 
