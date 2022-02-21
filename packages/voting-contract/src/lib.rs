@@ -9,9 +9,9 @@ use serde::Serialize;
 
 pub use error::ContractError;
 use state::{
-    next_id, proposals, Ballot, Config, Proposal, ProposalListResponse, ProposalResponse,
+    ballots, next_id, proposals, Ballot, Config, Proposal, ProposalListResponse, ProposalResponse,
     TextProposalListResponse, Votes, VotingRules, BALLOTS, BALLOTS_BY_VOTER, CONFIG,
-    TEXT_PROPOSALS, ballots,
+    TEXT_PROPOSALS,
 };
 
 use cosmwasm_std::{

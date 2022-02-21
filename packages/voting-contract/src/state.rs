@@ -282,12 +282,10 @@ pub struct Ballots<'a> {
     ballots: IndexedMap<'a, (u64, &'a Addr), Ballot, BallotIndexes<'a>>,
 }
 
-use cw_utils::maybe_addr;
-use tg3::{
-    VoteInfo, VoteListResponse
-};
-use cosmwasm_std::{Order, Deps};
+use cosmwasm_std::{Deps, Order};
 use cw_storage_plus::Bound;
+use cw_utils::maybe_addr;
+use tg3::{VoteInfo, VoteListResponse, VoteResponse};
 
 impl<'a> Ballots<'a> {
     pub fn new(storage_key: &'a str, release_subkey: &'a str) -> Self {
@@ -306,18 +304,13 @@ impl<'a> Ballots<'a> {
         proposal_id: u64,
         points: u64,
         vote: Vote,
-    ) -> StdResult<()> {
+    ) -> Result<(), ContractError> {
         self.ballots.update(
             storage,
             (proposal_id, addr),
-            move |ballot| -> StdResult<_> {
+            move |ballot| -> Result<_, ContractError> {
                 match ballot {
-                    Some(mut ballot) => {
-                        ballot.voter = addr.clone();
-                        ballot.points = points;
-                        ballot.vote = vote;
-                        Ok(ballot)
-                    }
+                    Some(_) => Err(ContractError::AlreadyVoted {}),
                     None => Ok(Ballot {
                         voter: addr.clone(),
                         proposal_id,
@@ -328,6 +321,25 @@ impl<'a> Ballots<'a> {
             },
         )?;
         Ok(())
+    }
+
+    pub fn query_vote(
+        &self,
+        deps: Deps,
+        proposal_id: u64,
+        voter: String,
+    ) -> StdResult<VoteResponse> {
+        let voter_addr = deps.api.addr_validate(&voter)?;
+        let prop = self
+            .ballots
+            .may_load(deps.storage, (proposal_id, &voter_addr))?;
+        let vote = prop.map(|b| VoteInfo {
+            proposal_id,
+            voter,
+            vote: b.vote,
+            points: b.points,
+        });
+        Ok(VoteResponse { vote })
     }
 
     pub fn query_votes(
@@ -380,7 +392,7 @@ impl<'a> Ballots<'a> {
                 let (_, ballot) = item?;
                 Ok(VoteInfo {
                     proposal_id: ballot.proposal_id,
-                    voter: voter.clone(),
+                    voter: ballot.voter.into(),
                     vote: ballot.vote,
                     points: ballot.points,
                 })
