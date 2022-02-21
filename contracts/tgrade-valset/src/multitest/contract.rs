@@ -368,7 +368,7 @@ fn update_metadata_invalid_metadata() {
 mod instantiate {
     use cosmwasm_std::{coin, Addr, Decimal, Uint128};
     use cw_multi_test::{AppBuilder, BasicApp, Executor};
-    use tg_bindings::TgradeMsg;
+    use tg_bindings::{TgradeMsg, TgradeQuery};
 
     use crate::error::ContractError;
     use crate::msg::{
@@ -380,7 +380,8 @@ mod instantiate {
 
     #[test]
     fn instantiate_invalid_metadata() {
-        let mut app: BasicApp<TgradeMsg> = AppBuilder::new_custom().build(|_, _, _| ());
+        let mut app: BasicApp<TgradeMsg, TgradeQuery> =
+            AppBuilder::new_custom().build(|_, _, _| ());
 
         let stake_id = app.store_code(contract_stake());
         let admin = "steakhouse owner".to_owned();

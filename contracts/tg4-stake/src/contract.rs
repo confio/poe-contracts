@@ -1,17 +1,19 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    coin, coins, to_binary, Addr, BankMsg, Binary, Coin, Decimal, Deps, DepsMut, Empty, Env,
-    MessageInfo, Order, StdResult, Storage, Uint128,
+    coin, coins, to_binary, Addr, BankMsg, Binary, Coin, CustomQuery, Decimal, Deps, DepsMut,
+    Empty, Env, MessageInfo, Order, StdResult, Storage, Uint128,
 };
 
 use cw2::set_contract_version;
-use cw_storage_plus::{Bound, PrimaryKey};
+use cw_storage_plus::Bound;
 use cw_utils::maybe_addr;
 use tg4::{
     HooksResponse, Member, MemberChangedHookMsg, MemberDiff, MemberListResponse, MemberResponse,
 };
-use tg_bindings::{request_privileges, Privilege, PrivilegeChangeMsg, TgradeMsg, TgradeSudoMsg};
+use tg_bindings::{
+    request_privileges, Privilege, PrivilegeChangeMsg, TgradeMsg, TgradeQuery, TgradeSudoMsg,
+};
 use tg_utils::{
     ensure_from_older_version, members, validate_portion, Duration, ADMIN, HOOKS, PREAUTH_HOOKS,
     PREAUTH_SLASHING, SLASHERS, TOTAL,
@@ -35,7 +37,7 @@ const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 // make use of the custom errors
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
-    mut deps: DepsMut,
+    mut deps: DepsMut<TgradeQuery>,
     _env: Env,
     _info: MessageInfo,
     msg: InstantiateMsg,
@@ -71,7 +73,7 @@ pub fn instantiate(
 // And declare a custom Error variant for the ones where you will want to make use of it
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn execute(
-    deps: DepsMut,
+    deps: DepsMut<TgradeQuery>,
     env: Env,
     info: MessageInfo,
     msg: ExecuteMsg,
@@ -94,8 +96,8 @@ pub fn execute(
     }
 }
 
-pub fn execute_add_hook(
-    deps: DepsMut,
+pub fn execute_add_hook<Q: CustomQuery>(
+    deps: DepsMut<Q>,
     info: MessageInfo,
     hook: String,
 ) -> Result<Response, ContractError> {
@@ -115,8 +117,8 @@ pub fn execute_add_hook(
     Ok(res)
 }
 
-pub fn execute_remove_hook(
-    deps: DepsMut,
+pub fn execute_remove_hook<Q: CustomQuery>(
+    deps: DepsMut<Q>,
     info: MessageInfo,
     hook: String,
 ) -> Result<Response, ContractError> {
@@ -139,7 +141,11 @@ pub fn execute_remove_hook(
     Ok(res)
 }
 
-pub fn execute_bond(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Response, ContractError> {
+pub fn execute_bond<Q: CustomQuery>(
+    deps: DepsMut<Q>,
+    env: Env,
+    info: MessageInfo,
+) -> Result<Response, ContractError> {
     let cfg = CONFIG.load(deps.storage)?;
     let amount = validate_funds(&info.funds, &cfg.denom)?;
 
@@ -157,8 +163,8 @@ pub fn execute_bond(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
     Ok(res)
 }
 
-pub fn execute_unbond(
-    deps: DepsMut,
+pub fn execute_unbond<Q: CustomQuery>(
+    deps: DepsMut<Q>,
     env: Env,
     info: MessageInfo,
     amount: Uint128,
@@ -196,8 +202,8 @@ pub fn execute_unbond(
     Ok(res)
 }
 
-pub fn execute_add_slasher(
-    deps: DepsMut,
+pub fn execute_add_slasher<Q: CustomQuery>(
+    deps: DepsMut<Q>,
     info: MessageInfo,
     slasher: String,
 ) -> Result<Response, ContractError> {
@@ -217,8 +223,8 @@ pub fn execute_add_slasher(
     Ok(res)
 }
 
-pub fn execute_remove_slasher(
-    deps: DepsMut,
+pub fn execute_remove_slasher<Q: CustomQuery>(
+    deps: DepsMut<Q>,
     info: MessageInfo,
     slasher: String,
 ) -> Result<Response, ContractError> {
@@ -241,8 +247,8 @@ pub fn execute_remove_slasher(
     Ok(res)
 }
 
-pub fn execute_slash(
-    deps: DepsMut,
+pub fn execute_slash<Q: CustomQuery>(
+    deps: DepsMut<Q>,
     env: Env,
     info: MessageInfo,
     addr: String,
@@ -354,8 +360,8 @@ fn calc_points(stake: Uint128, cfg: &Config) -> Option<u64> {
     }
 }
 
-pub fn execute_claim(
-    deps: DepsMut,
+pub fn execute_claim<Q: CustomQuery>(
+    deps: DepsMut<Q>,
     env: Env,
     info: MessageInfo,
 ) -> Result<Response, ContractError> {
@@ -389,7 +395,11 @@ fn coins_to_string(coins: &[Coin]) -> String {
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn sudo(deps: DepsMut, env: Env, msg: TgradeSudoMsg) -> Result<Response, ContractError> {
+pub fn sudo(
+    deps: DepsMut<TgradeQuery>,
+    env: Env,
+    msg: TgradeSudoMsg,
+) -> Result<Response, ContractError> {
     match msg {
         TgradeSudoMsg::PrivilegeChange(PrivilegeChangeMsg::Promoted {}) => privilege_promote(deps),
         TgradeSudoMsg::EndBlock {} => end_block(deps, env),
@@ -397,7 +407,7 @@ pub fn sudo(deps: DepsMut, env: Env, msg: TgradeSudoMsg) -> Result<Response, Con
     }
 }
 
-fn privilege_promote(deps: DepsMut) -> Result<Response, ContractError> {
+fn privilege_promote<Q: CustomQuery>(deps: DepsMut<Q>) -> Result<Response, ContractError> {
     let config = CONFIG.load(deps.storage)?;
 
     if config.auto_return_limit > 0 {
@@ -408,7 +418,7 @@ fn privilege_promote(deps: DepsMut) -> Result<Response, ContractError> {
     }
 }
 
-fn end_block(deps: DepsMut, env: Env) -> Result<Response, ContractError> {
+fn end_block<Q: CustomQuery>(deps: DepsMut<Q>, env: Env) -> Result<Response, ContractError> {
     let mut resp = Response::new();
 
     let config = CONFIG.load(deps.storage)?;
@@ -420,8 +430,8 @@ fn end_block(deps: DepsMut, env: Env) -> Result<Response, ContractError> {
     Ok(resp)
 }
 
-fn release_expired_claims(
-    deps: DepsMut,
+fn release_expired_claims<Q: CustomQuery>(
+    deps: DepsMut<Q>,
     env: Env,
     config: Config,
 ) -> Result<Vec<SubMsg>, ContractError> {
@@ -440,7 +450,7 @@ fn release_expired_claims(
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
+pub fn query(deps: Deps<TgradeQuery>, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     use QueryMsg::*;
     match msg {
         Configuration {} => to_binary(&CONFIG.load(deps.storage)?),
@@ -489,13 +499,13 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     }
 }
 
-fn query_total_points(deps: Deps) -> StdResult<TotalPointsResponse> {
+fn query_total_points<Q: CustomQuery>(deps: Deps<Q>) -> StdResult<TotalPointsResponse> {
     let points = TOTAL.load(deps.storage)?;
     let denom = CONFIG.load(deps.storage)?.denom;
     Ok(TotalPointsResponse { points, denom })
 }
 
-pub fn query_staked(deps: Deps, addr: String) -> StdResult<StakedResponse> {
+pub fn query_staked<Q: CustomQuery>(deps: Deps<Q>, addr: String) -> StdResult<StakedResponse> {
     let addr = deps.api.addr_validate(&addr)?;
     let stake = STAKE.may_load(deps.storage, &addr)?.unwrap_or_default();
     let config = CONFIG.load(deps.storage)?;
@@ -505,7 +515,11 @@ pub fn query_staked(deps: Deps, addr: String) -> StdResult<StakedResponse> {
     })
 }
 
-fn query_member(deps: Deps, addr: String, height: Option<u64>) -> StdResult<MemberResponse> {
+fn query_member<Q: CustomQuery>(
+    deps: Deps<Q>,
+    addr: String,
+    height: Option<u64>,
+) -> StdResult<MemberResponse> {
     let addr = deps.api.addr_validate(&addr)?;
     let points = match height {
         Some(h) => members().may_load_at_height(deps.storage, &addr, h),
@@ -518,14 +532,14 @@ fn query_member(deps: Deps, addr: String, height: Option<u64>) -> StdResult<Memb
 const MAX_LIMIT: u32 = 100;
 const DEFAULT_LIMIT: u32 = 30;
 
-fn list_members(
-    deps: Deps,
+fn list_members<Q: CustomQuery>(
+    deps: Deps<Q>,
     start_after: Option<String>,
     limit: Option<u32>,
 ) -> StdResult<MemberListResponse> {
     let limit = limit.unwrap_or(DEFAULT_LIMIT).min(MAX_LIMIT) as usize;
     let addr = maybe_addr(deps.api, start_after)?;
-    let start = addr.map(|addr| Bound::exclusive(addr.as_ref()));
+    let start = addr.as_ref().map(Bound::exclusive);
 
     let members: StdResult<Vec<_>> = members()
         .range(deps.storage, start, None, Order::Ascending)
@@ -542,13 +556,19 @@ fn list_members(
     Ok(MemberListResponse { members: members? })
 }
 
-fn list_members_by_points(
-    deps: Deps,
+fn list_members_by_points<Q: CustomQuery>(
+    deps: Deps<Q>,
     start_after: Option<Member>,
     limit: Option<u32>,
 ) -> StdResult<MemberListResponse> {
     let limit = limit.unwrap_or(DEFAULT_LIMIT).min(MAX_LIMIT) as usize;
-    let start = start_after.map(|m| Bound::exclusive((m.points, m.addr.as_str()).joined_key()));
+    let start = start_after
+        .map(|m| {
+            deps.api
+                .addr_validate(&m.addr)
+                .map(|addr| Bound::exclusive((m.points, addr)))
+        })
+        .transpose()?;
 
     let members: StdResult<Vec<_>> = members()
         .idx
@@ -568,7 +588,11 @@ fn list_members_by_points(
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn migrate(deps: DepsMut, _env: Env, _msg: Empty) -> Result<Response, ContractError> {
+pub fn migrate(
+    deps: DepsMut<TgradeQuery>,
+    _env: Env,
+    _msg: Empty,
+) -> Result<Response, ContractError> {
     ensure_from_older_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
     Ok(Response::new())
 }
@@ -576,7 +600,7 @@ pub fn migrate(deps: DepsMut, _env: Env, _msg: Empty) -> Result<Response, Contra
 #[cfg(test)]
 mod tests {
     use crate::claim::Claim;
-    use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
+    use cosmwasm_std::testing::{mock_env, mock_info};
     use cosmwasm_std::{
         from_slice, CosmosMsg, OverflowError, OverflowOperation, StdError, Storage,
     };
@@ -586,6 +610,7 @@ mod tests {
     use crate::error::ContractError;
 
     use super::*;
+    use tg_bindings_test::mock_deps_tgrade;
 
     const INIT_ADMIN: &str = "juan";
     const USER1: &str = "user1";
@@ -596,12 +621,12 @@ mod tests {
     const MIN_BOND: Uint128 = Uint128::new(5_000);
     const UNBONDING_DURATION: u64 = 100;
 
-    fn default_instantiate(deps: DepsMut) {
+    fn default_instantiate(deps: DepsMut<TgradeQuery>) {
         do_instantiate(deps, TOKENS_PER_POINT, MIN_BOND, UNBONDING_DURATION, 0)
     }
 
     fn do_instantiate(
-        deps: DepsMut,
+        deps: DepsMut<TgradeQuery>,
         tokens_per_point: Uint128,
         min_bond: Uint128,
         unbonding_period: u64,
@@ -621,7 +646,13 @@ mod tests {
         instantiate(deps, mock_env(), info, msg).unwrap();
     }
 
-    fn bond(mut deps: DepsMut, user1: u128, user2: u128, user3: u128, height_delta: u64) {
+    fn bond(
+        mut deps: DepsMut<TgradeQuery>,
+        user1: u128,
+        user2: u128,
+        user3: u128,
+        height_delta: u64,
+    ) {
         let mut env = mock_env();
         env.block.height += height_delta;
 
@@ -635,7 +666,7 @@ mod tests {
     }
 
     fn unbond(
-        mut deps: DepsMut,
+        mut deps: DepsMut<TgradeQuery>,
         user1: u128,
         user2: u128,
         user3: u128,
@@ -659,7 +690,7 @@ mod tests {
 
     #[test]
     fn proper_instantiation() {
-        let mut deps = mock_dependencies();
+        let mut deps = mock_deps_tgrade();
         default_instantiate(deps.as_mut());
 
         // it worked, let's query the state
@@ -686,7 +717,7 @@ mod tests {
 
     #[test]
     fn unbonding_period_query_works() {
-        let mut deps = mock_dependencies();
+        let mut deps = mock_deps_tgrade();
         default_instantiate(deps.as_mut());
 
         let raw = query(deps.as_ref(), mock_env(), QueryMsg::UnbondingPeriod {}).unwrap();
@@ -694,7 +725,7 @@ mod tests {
         assert_eq!(res.unbonding_period, Duration::new(UNBONDING_DURATION));
     }
 
-    fn get_member(deps: Deps, addr: String, at_height: Option<u64>) -> Option<u64> {
+    fn get_member(deps: Deps<TgradeQuery>, addr: String, at_height: Option<u64>) -> Option<u64> {
         let raw = query(deps, mock_env(), QueryMsg::Member { addr, at_height }).unwrap();
         let res: MemberResponse = from_slice(&raw).unwrap();
         res.points
@@ -702,7 +733,7 @@ mod tests {
 
     // this tests the member queries
     fn assert_users(
-        deps: Deps,
+        deps: Deps<TgradeQuery>,
         user1_points: Option<u64>,
         user2_points: Option<u64>,
         user3_points: Option<u64>,
@@ -740,7 +771,12 @@ mod tests {
     }
 
     // this tests the member queries
-    fn assert_stake(deps: Deps, user1_stake: u128, user2_stake: u128, user3_stake: u128) {
+    fn assert_stake(
+        deps: Deps<TgradeQuery>,
+        user1_stake: u128,
+        user2_stake: u128,
+        user3_stake: u128,
+    ) {
         let stake1 = query_staked(deps, USER1.into()).unwrap();
         assert_eq!(stake1.stake, coin(user1_stake, DENOM));
 
@@ -753,7 +789,7 @@ mod tests {
 
     #[test]
     fn bond_stake_adds_membership() {
-        let mut deps = mock_dependencies();
+        let mut deps = mock_deps_tgrade();
         default_instantiate(deps.as_mut());
         let height = mock_env().block.height;
 
@@ -783,7 +819,7 @@ mod tests {
 
     #[test]
     fn try_member_queries() {
-        let mut deps = mock_dependencies();
+        let mut deps = mock_deps_tgrade();
         default_instantiate(deps.as_mut());
 
         bond(deps.as_mut(), 12_000, 7_500, 4_000, 1);
@@ -851,7 +887,7 @@ mod tests {
 
     #[test]
     fn try_list_members_by_points() {
-        let mut deps = mock_dependencies();
+        let mut deps = mock_deps_tgrade();
         default_instantiate(deps.as_mut());
 
         bond(deps.as_mut(), 11_000, 6_500, 5_000, 1);
@@ -926,7 +962,7 @@ mod tests {
 
     #[test]
     fn unbond_stake_update_membership() {
-        let mut deps = mock_dependencies();
+        let mut deps = mock_deps_tgrade();
         default_instantiate(deps.as_mut());
         let height = mock_env().block.height;
 
@@ -971,7 +1007,7 @@ mod tests {
     #[test]
     fn raw_queries_work() {
         // add will over-write and remove have no effect
-        let mut deps = mock_dependencies();
+        let mut deps = mock_deps_tgrade();
         default_instantiate(deps.as_mut());
         // Set values as (11, 6, None)
         bond(deps.as_mut(), 11_000, 6_000, 0, 1);
@@ -993,7 +1029,7 @@ mod tests {
 
     #[track_caller]
     fn get_claims(
-        deps: Deps,
+        deps: Deps<TgradeQuery>,
         addr: Addr,
         limit: Option<u32>,
         start_after: Option<Expiration>,
@@ -1005,7 +1041,7 @@ mod tests {
 
     #[test]
     fn unbond_claim_workflow() {
-        let mut deps = mock_dependencies();
+        let mut deps = mock_deps_tgrade();
         default_instantiate(deps.as_mut());
 
         // create some data
@@ -1189,7 +1225,7 @@ mod tests {
     #[test]
     fn add_remove_hooks() {
         // add will over-write and remove have no effect
-        let mut deps = mock_dependencies();
+        let mut deps = mock_deps_tgrade();
         default_instantiate(deps.as_mut());
 
         let hooks = HOOKS.list_hooks(&deps.storage).unwrap();
@@ -1267,21 +1303,21 @@ mod tests {
     mod slash {
         use super::*;
 
-        fn query_is_slasher(deps: Deps, env: Env, addr: String) -> StdResult<bool> {
+        fn query_is_slasher(deps: Deps<TgradeQuery>, env: Env, addr: String) -> StdResult<bool> {
             let msg = QueryMsg::IsSlasher { addr };
             let raw = query(deps, env, msg)?;
             let is_slasher: bool = from_slice(&raw)?;
             Ok(is_slasher)
         }
 
-        fn query_list_slashers(deps: Deps, env: Env) -> StdResult<Vec<String>> {
+        fn query_list_slashers(deps: Deps<TgradeQuery>, env: Env) -> StdResult<Vec<String>> {
             let msg = QueryMsg::ListSlashers {};
             let raw = query(deps, env, msg)?;
             let slashers: Vec<String> = from_slice(&raw)?;
             Ok(slashers)
         }
 
-        fn add_slasher(deps: DepsMut) -> String {
+        fn add_slasher(deps: DepsMut<TgradeQuery>) -> String {
             let slasher = String::from("slasher");
             let add_msg = ExecuteMsg::AddSlasher {
                 addr: slasher.clone(),
@@ -1292,7 +1328,7 @@ mod tests {
             slasher
         }
 
-        fn remove_slasher(deps: DepsMut, slasher: &str) {
+        fn remove_slasher(deps: DepsMut<TgradeQuery>, slasher: &str) {
             let add_msg = ExecuteMsg::RemoveSlasher {
                 addr: slasher.to_string(),
             };
@@ -1301,7 +1337,7 @@ mod tests {
         }
 
         fn slash(
-            deps: DepsMut,
+            deps: DepsMut<TgradeQuery>,
             slasher: &str,
             addr: &str,
             portion: Decimal,
@@ -1341,7 +1377,7 @@ mod tests {
 
         #[test]
         fn add_remove_slashers() {
-            let mut deps = mock_dependencies();
+            let mut deps = mock_deps_tgrade();
             let env = mock_env();
             default_instantiate(deps.as_mut());
 
@@ -1427,7 +1463,7 @@ mod tests {
 
         #[test]
         fn slashing_nonexisting_member() {
-            let mut deps = mock_dependencies();
+            let mut deps = mock_deps_tgrade();
             default_instantiate(deps.as_mut());
 
             // confirm address doesn't return true on slasher query
@@ -1446,7 +1482,7 @@ mod tests {
 
         #[test]
         fn slashing_bonded_tokens_works() {
-            let mut deps = mock_dependencies();
+            let mut deps = mock_deps_tgrade();
             default_instantiate(deps.as_mut());
             let cfg = CONFIG.load(&deps.storage).unwrap();
             let slasher = add_slasher(deps.as_mut());
@@ -1466,7 +1502,7 @@ mod tests {
 
         #[test]
         fn slashing_claims_works() {
-            let mut deps = mock_dependencies();
+            let mut deps = mock_deps_tgrade();
             default_instantiate(deps.as_mut());
             let cfg = CONFIG.load(&deps.storage).unwrap();
             let slasher = add_slasher(deps.as_mut());
@@ -1506,7 +1542,7 @@ mod tests {
 
         #[test]
         fn random_user_cannot_slash() {
-            let mut deps = mock_dependencies();
+            let mut deps = mock_deps_tgrade();
             default_instantiate(deps.as_mut());
             let _slasher = add_slasher(deps.as_mut());
 
@@ -1525,7 +1561,7 @@ mod tests {
 
         #[test]
         fn admin_cannot_slash() {
-            let mut deps = mock_dependencies();
+            let mut deps = mock_deps_tgrade();
             default_instantiate(deps.as_mut());
             let _slasher = add_slasher(deps.as_mut());
 
@@ -1544,7 +1580,7 @@ mod tests {
 
         #[test]
         fn removed_slasher_cannot_slash() {
-            let mut deps = mock_dependencies();
+            let mut deps = mock_deps_tgrade();
             default_instantiate(deps.as_mut());
 
             // Add, then remove a slasher
@@ -1567,7 +1603,7 @@ mod tests {
 
     #[test]
     fn hooks_fire() {
-        let mut deps = mock_dependencies();
+        let mut deps = mock_deps_tgrade();
         default_instantiate(deps.as_mut());
 
         let hooks = HOOKS.list_hooks(&deps.storage).unwrap();
@@ -1635,7 +1671,7 @@ mod tests {
 
     #[test]
     fn only_bond_valid_coins() {
-        let mut deps = mock_dependencies();
+        let mut deps = mock_deps_tgrade();
         default_instantiate(deps.as_mut());
 
         // cannot bond with 0 coins
@@ -1662,7 +1698,7 @@ mod tests {
     #[test]
     fn ensure_bonding_edge_cases() {
         // use min_bond 0, tokens_per_points 500
-        let mut deps = mock_dependencies();
+        let mut deps = mock_deps_tgrade();
         do_instantiate(deps.as_mut(), Uint128::new(100), Uint128::zero(), 5, 0);
 
         // setting 50 tokens, gives us Some(0) points
@@ -1677,7 +1713,7 @@ mod tests {
 
     #[test]
     fn paginated_claim_query() {
-        let mut deps = mock_dependencies();
+        let mut deps = mock_deps_tgrade();
         default_instantiate(deps.as_mut());
 
         // create some data
@@ -1729,7 +1765,7 @@ mod tests {
 
         use super::*;
 
-        fn do_instantiate(deps: DepsMut, limit: u64) {
+        fn do_instantiate(deps: DepsMut<TgradeQuery>, limit: u64) {
             super::do_instantiate(deps, TOKENS_PER_POINT, MIN_BOND, UNBONDING_DURATION, limit)
         }
 
@@ -1788,7 +1824,7 @@ mod tests {
 
         #[test]
         fn single_claim() {
-            let mut deps = mock_dependencies();
+            let mut deps = mock_deps_tgrade();
             do_instantiate(deps.as_mut(), 2);
 
             bond(deps.as_mut(), 12_000, 7_500, 4_000, 1);
@@ -1805,7 +1841,7 @@ mod tests {
 
         #[test]
         fn multiple_users_claims() {
-            let mut deps = mock_dependencies();
+            let mut deps = mock_deps_tgrade();
             do_instantiate(deps.as_mut(), 4);
 
             bond(deps.as_mut(), 12_000, 7_500, 4_000, 1);
@@ -1823,7 +1859,7 @@ mod tests {
 
         #[test]
         fn single_user_multiple_claims() {
-            let mut deps = mock_dependencies();
+            let mut deps = mock_deps_tgrade();
             do_instantiate(deps.as_mut(), 3);
 
             bond(deps.as_mut(), 12_000, 7_500, 4_000, 1);
@@ -1841,7 +1877,7 @@ mod tests {
 
         #[test]
         fn only_expired_claims() {
-            let mut deps = mock_dependencies();
+            let mut deps = mock_deps_tgrade();
             do_instantiate(deps.as_mut(), 3);
 
             bond(deps.as_mut(), 12_000, 7_500, 4_000, 1);
@@ -1866,7 +1902,7 @@ mod tests {
 
         #[test]
         fn claim_returned_once() {
-            let mut deps = mock_dependencies();
+            let mut deps = mock_deps_tgrade();
             do_instantiate(deps.as_mut(), 5);
 
             bond(deps.as_mut(), 12_000, 7_500, 4_000, 1);
@@ -1902,7 +1938,7 @@ mod tests {
 
         #[test]
         fn up_to_limit_claims_returned() {
-            let mut deps = mock_dependencies();
+            let mut deps = mock_deps_tgrade();
             do_instantiate(deps.as_mut(), 2);
 
             bond(deps.as_mut(), 12_000, 7_500, 4_000, 1);
@@ -1955,7 +1991,7 @@ mod tests {
 
         #[test]
         fn unbound_with_invalid_denom_fails() {
-            let mut deps = mock_dependencies();
+            let mut deps = mock_deps_tgrade();
             do_instantiate(deps.as_mut(), 2);
 
             bond(deps.as_mut(), 5_000, 0, 0, 1);

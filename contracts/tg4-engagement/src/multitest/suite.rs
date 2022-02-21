@@ -5,11 +5,11 @@ use cosmwasm_std::{Addr, Coin, CosmosMsg, Decimal, StdResult};
 use cw_multi_test::{AppResponse, Contract, ContractWrapper, CosmosRouter, Executor};
 use derivative::Derivative;
 use tg4::{Member, MemberListResponse};
-use tg_bindings::TgradeMsg;
+use tg_bindings::{TgradeMsg, TgradeQuery};
 use tg_bindings_test::TgradeApp;
 use tg_utils::Duration;
 
-pub fn contract_engagement() -> Box<dyn Contract<TgradeMsg>> {
+fn contract_engagement() -> Box<dyn Contract<TgradeMsg, TgradeQuery>> {
     let contract = ContractWrapper::new(
         crate::contract::execute,
         crate::contract::instantiate,

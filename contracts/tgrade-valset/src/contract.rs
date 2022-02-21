@@ -5,8 +5,8 @@ use std::convert::TryInto;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    to_binary, Addr, Binary, BlockInfo, Decimal, Deps, DepsMut, Env, MessageInfo, Order, Reply,
-    StdError, StdResult, Timestamp, WasmMsg,
+    to_binary, Addr, Binary, BlockInfo, CustomQuery, Decimal, Deps, DepsMut, Env, MessageInfo,
+    Order, Reply, StdError, StdResult, Timestamp, WasmMsg,
 };
 
 use cw2::set_contract_version;
@@ -17,7 +17,7 @@ use cw_utils::{maybe_addr, parse_reply_instantiate_data};
 use tg4::{Member, Tg4Contract};
 use tg_bindings::{
     request_privileges, Ed25519Pubkey, Evidence, EvidenceType, Privilege, PrivilegeChangeMsg,
-    Pubkey, TgradeMsg, TgradeSudoMsg, ValidatorDiff, ValidatorUpdate,
+    Pubkey, TgradeMsg, TgradeQuery, TgradeSudoMsg, ValidatorDiff, ValidatorUpdate,
 };
 use tg_utils::{ensure_from_older_version, JailingDuration, SlashMsg, ADMIN};
 
@@ -46,7 +46,7 @@ pub type SubMsg = cosmwasm_std::SubMsg<TgradeMsg>;
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
-    deps: DepsMut,
+    deps: DepsMut<TgradeQuery>,
     env: Env,
     _info: MessageInfo,
     msg: InstantiateMsg,
@@ -140,7 +140,7 @@ pub fn instantiate(
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn execute(
-    deps: DepsMut,
+    deps: DepsMut<TgradeQuery>,
     env: Env,
     info: MessageInfo,
     msg: ExecuteMsg,
@@ -174,8 +174,8 @@ pub fn execute(
     }
 }
 
-fn execute_update_config(
-    deps: DepsMut,
+fn execute_update_config<Q: CustomQuery>(
+    deps: DepsMut<Q>,
     info: MessageInfo,
     min_points: Option<u64>,
     max_validators: Option<u32>,
@@ -199,8 +199,8 @@ fn execute_update_config(
     Ok(res)
 }
 
-fn execute_register_validator_key(
-    deps: DepsMut,
+fn execute_register_validator_key<Q: CustomQuery>(
+    deps: DepsMut<Q>,
     _env: Env,
     info: MessageInfo,
     pubkey: Pubkey,
@@ -231,8 +231,8 @@ fn execute_register_validator_key(
     Ok(res)
 }
 
-fn execute_update_metadata(
-    deps: DepsMut,
+fn execute_update_metadata<Q: CustomQuery>(
+    deps: DepsMut<Q>,
     _env: Env,
     info: MessageInfo,
     metadata: ValidatorMetadata,
@@ -257,8 +257,8 @@ fn execute_update_metadata(
     Ok(res)
 }
 
-fn execute_jail(
-    deps: DepsMut,
+fn execute_jail<Q: CustomQuery>(
+    deps: DepsMut<Q>,
     env: Env,
     info: MessageInfo,
     operator: String,
@@ -287,8 +287,8 @@ fn execute_jail(
     Ok(res)
 }
 
-fn execute_unjail(
-    deps: DepsMut,
+fn execute_unjail<Q: CustomQuery>(
+    deps: DepsMut<Q>,
     env: Env,
     info: MessageInfo,
     operator: Option<String>,
@@ -325,8 +325,8 @@ fn execute_unjail(
     Ok(res)
 }
 
-fn store_slashing_event(
-    deps: DepsMut,
+fn store_slashing_event<Q: CustomQuery>(
+    deps: DepsMut<Q>,
     env: &Env,
     addr: Addr,
     portion: Decimal,
@@ -342,8 +342,8 @@ fn store_slashing_event(
     Ok(())
 }
 
-fn execute_slash(
-    mut deps: DepsMut,
+fn execute_slash<Q: CustomQuery>(
+    mut deps: DepsMut<Q>,
     env: Env,
     info: MessageInfo,
     operator: String,
@@ -375,8 +375,8 @@ fn execute_slash(
 }
 
 #[cfg(debug_assertions)]
-fn execute_simulate_validators(
-    deps: DepsMut,
+fn execute_simulate_validators<Q: CustomQuery>(
+    deps: DepsMut<Q>,
     _info: MessageInfo,
     validators: Vec<ValidatorInfo>,
 ) -> Result<Response, ContractError> {
@@ -398,7 +398,7 @@ fn execute_simulate_validators(
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> Result<Binary, ContractError> {
+pub fn query(deps: Deps<TgradeQuery>, env: Env, msg: QueryMsg) -> Result<Binary, ContractError> {
     use QueryMsg::*;
     match msg {
         Configuration {} => Ok(to_binary(&CONFIG.load(deps.storage)?)?),
@@ -429,7 +429,7 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> Result<Binary, ContractErro
     }
 }
 
-fn query_epoch(deps: Deps, env: Env) -> Result<EpochResponse, ContractError> {
+fn query_epoch<Q: CustomQuery>(deps: Deps<Q>, env: Env) -> Result<EpochResponse, ContractError> {
     let epoch = EPOCH.load(deps.storage)?;
     let mut next_update_time =
         Timestamp::from_seconds((epoch.current_epoch + 1) * epoch.epoch_length);
@@ -447,8 +447,8 @@ fn query_epoch(deps: Deps, env: Env) -> Result<EpochResponse, ContractError> {
     Ok(resp)
 }
 
-fn query_validator_key(
-    deps: Deps,
+fn query_validator_key<Q: CustomQuery>(
+    deps: Deps<Q>,
     env: Env,
     operator: String,
 ) -> Result<ValidatorResponse, ContractError> {
@@ -470,8 +470,8 @@ fn query_validator_key(
 const MAX_LIMIT: u32 = 100;
 const DEFAULT_LIMIT: u32 = 30;
 
-fn list_validator_keys(
-    deps: Deps,
+fn list_validator_keys<Q: CustomQuery>(
+    deps: Deps<Q>,
     env: Env,
     start_after: Option<String>,
     limit: Option<u32>,
@@ -479,7 +479,7 @@ fn list_validator_keys(
     let cfg = CONFIG.load(deps.storage)?;
     let limit = limit.unwrap_or(DEFAULT_LIMIT).min(MAX_LIMIT) as usize;
     let start_after = maybe_addr(deps.api, start_after)?;
-    let start = start_after.map(|addr| Bound::exclusive(addr.as_str()));
+    let start = start_after.as_ref().map(Bound::exclusive);
 
     let operators: StdResult<Vec<_>> = operators()
         .range(deps.storage, start, None, Order::Ascending)
@@ -506,8 +506,8 @@ fn list_validator_keys(
     })
 }
 
-fn list_active_validators(
-    deps: Deps,
+fn list_active_validators<Q: CustomQuery>(
+    deps: Deps<Q>,
     start_after: Option<String>,
     limit: Option<u32>,
 ) -> Result<ListActiveValidatorsResponse, ContractError> {
@@ -532,8 +532,8 @@ fn list_active_validators(
     })
 }
 
-fn list_jailed_validators(
-    deps: Deps,
+fn list_jailed_validators<Q: CustomQuery>(
+    deps: Deps<Q>,
     env: Env,
     start_after: Option<String>,
     limit: Option<u32>,
@@ -541,7 +541,7 @@ fn list_jailed_validators(
     let cfg = CONFIG.load(deps.storage)?;
     let limit = limit.unwrap_or(DEFAULT_LIMIT).min(MAX_LIMIT) as usize;
     let start_after = maybe_addr(deps.api, start_after)?;
-    let start = start_after.map(|addr| Bound::exclusive(addr.as_str()));
+    let start = start_after.as_ref().map(Bound::exclusive);
 
     let validators = JAIL
         .range(deps.storage, start, None, Order::Ascending)
@@ -572,16 +572,16 @@ fn list_jailed_validators(
     Ok(ListValidatorResponse { validators })
 }
 
-fn simulate_active_validators(
-    deps: Deps,
+fn simulate_active_validators<Q: CustomQuery>(
+    deps: Deps<Q>,
     env: Env,
 ) -> Result<ListActiveValidatorsResponse, ContractError> {
     let (validators, _) = calculate_validators(deps, &env)?;
     Ok(ListActiveValidatorsResponse { validators })
 }
 
-fn list_validator_slashing(
-    deps: Deps,
+fn list_validator_slashing<Q: CustomQuery>(
+    deps: Deps<Q>,
     _env: Env,
     operator: String,
 ) -> Result<ListValidatorSlashingResponse, ContractError> {
@@ -608,7 +608,11 @@ fn list_validator_slashing(
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn sudo(deps: DepsMut, env: Env, msg: TgradeSudoMsg) -> Result<Response, ContractError> {
+pub fn sudo(
+    deps: DepsMut<TgradeQuery>,
+    env: Env,
+    msg: TgradeSudoMsg,
+) -> Result<Response, ContractError> {
     match msg {
         TgradeSudoMsg::PrivilegeChange(change) => Ok(privilege_change(deps, change)),
         TgradeSudoMsg::EndWithValidatorUpdate {} => end_block(deps, env),
@@ -617,7 +621,7 @@ pub fn sudo(deps: DepsMut, env: Env, msg: TgradeSudoMsg) -> Result<Response, Con
     }
 }
 
-fn privilege_change(_deps: DepsMut, change: PrivilegeChangeMsg) -> Response {
+fn privilege_change<Q: CustomQuery>(_deps: DepsMut<Q>, change: PrivilegeChangeMsg) -> Response {
     match change {
         PrivilegeChangeMsg::Promoted {} => {
             let msgs = request_privileges(&[
@@ -642,7 +646,7 @@ fn is_genesis_block(block: &BlockInfo) -> bool {
     block.height < 2
 }
 
-fn end_block(deps: DepsMut, env: Env) -> Result<Response, ContractError> {
+fn end_block<Q: CustomQuery>(deps: DepsMut<Q>, env: Env) -> Result<Response, ContractError> {
     let cfg = CONFIG.load(deps.storage)?;
 
     // check if needed and quit early if we didn't hit epoch boundary
@@ -736,8 +740,8 @@ const QUERY_LIMIT: Option<u32> = Some(30);
 
 /// Selects validators to be used for incoming epoch. Returns vector of validators info paired
 /// with vector of addresses to be un-jailed (always empty if auto un-jailing is disabled).
-fn calculate_validators(
-    deps: Deps,
+fn calculate_validators<Q: CustomQuery>(
+    deps: Deps<Q>,
     env: &Env,
 ) -> Result<(Vec<ValidatorInfo>, Vec<Addr>), ContractError> {
     let cfg = CONFIG.load(deps.storage)?;
@@ -873,7 +877,11 @@ fn calculate_diff(
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> Result<Response, ContractError> {
+pub fn migrate(
+    deps: DepsMut<TgradeQuery>,
+    _env: Env,
+    msg: MigrateMsg,
+) -> Result<Response, ContractError> {
     ensure_from_older_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
 
     CONFIG.update::<_, StdError>(deps.storage, |mut cfg| {
@@ -899,8 +907,8 @@ mod evidence {
     /// suspect, this function computes sha256 hashes for all existing validator and
     /// compares result with suspect. It is acceptable approach, since it shouldn't
     /// happen too often.
-    pub fn find_matching_validator(
-        deps: Deps,
+    pub fn find_matching_validator<Q: CustomQuery>(
+        deps: Deps<Q>,
         suspect: &Validator,
         evidence_height: u64,
     ) -> Result<Option<Addr>, cosmwasm_std::StdError> {
@@ -941,8 +949,8 @@ mod evidence {
 
 /// If some validators are caught on malicious behavior (for example double signing),
 /// they are reported and punished on begin of next block.
-fn begin_block(
-    mut deps: DepsMut,
+fn begin_block<Q: CustomQuery>(
+    mut deps: DepsMut<Q>,
     env: Env,
     evidences: Vec<Evidence>,
 ) -> Result<Response, ContractError> {
@@ -991,15 +999,15 @@ fn begin_block(
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn reply(deps: DepsMut, env: Env, msg: Reply) -> Result<Response, ContractError> {
+pub fn reply(deps: DepsMut<TgradeQuery>, env: Env, msg: Reply) -> Result<Response, ContractError> {
     match msg.id {
         REWARDS_INIT_REPLY_ID => rewards_instantiate_reply(deps, env, msg),
         _ => Err(ContractError::UnrecognisedReply(msg.id)),
     }
 }
 
-pub fn rewards_instantiate_reply(
-    deps: DepsMut,
+pub fn rewards_instantiate_reply<Q: CustomQuery>(
+    deps: DepsMut<Q>,
     _env: Env,
     msg: Reply,
 ) -> Result<Response, ContractError> {

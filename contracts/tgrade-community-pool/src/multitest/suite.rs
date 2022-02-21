@@ -3,14 +3,14 @@ use anyhow::{anyhow, Result as AnyResult};
 use cosmwasm_std::{coin, Addr, CosmosMsg, StdResult};
 use cw_multi_test::{AppResponse, Contract, ContractWrapper, CosmosRouter, Executor};
 use tg4::{Member, Tg4ExecuteMsg};
-use tg_bindings::TgradeMsg;
+use tg_bindings::{TgradeMsg, TgradeQuery};
 use tg_bindings_test::TgradeApp;
 
 use tg_voting_contract::state::{RulesBuilder, VotingRules};
 
 use crate::msg::{ExecuteMsg, Proposal};
 
-fn contract_validator_proposals() -> Box<dyn Contract<TgradeMsg>> {
+fn contract_validator_proposals() -> Box<dyn Contract<TgradeMsg, TgradeQuery>> {
     let contract = ContractWrapper::new(
         crate::contract::execute,
         crate::contract::instantiate,
@@ -20,7 +20,7 @@ fn contract_validator_proposals() -> Box<dyn Contract<TgradeMsg>> {
     Box::new(contract)
 }
 
-fn contract_engagement() -> Box<dyn Contract<TgradeMsg>> {
+fn contract_engagement() -> Box<dyn Contract<TgradeMsg, TgradeQuery>> {
     let contract = ContractWrapper::new(
         tg4_engagement::contract::execute,
         tg4_engagement::contract::instantiate,

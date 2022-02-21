@@ -1,10 +1,12 @@
 //! Simplified contract which when executed releases the funds to beneficiary
 //! Copied almost 1:1 from https://github.com/CosmWasm/cw-plus/blob/main/packages/multi-test/src/test_helpers/contracts/hackatom.rs
 
-use cosmwasm_std::{to_binary, BankMsg, Binary, Deps, DepsMut, Env, MessageInfo, StdError};
+use cosmwasm_std::{
+    to_binary, BankMsg, Binary, CustomQuery, Deps, DepsMut, Env, MessageInfo, StdError,
+};
 use cw_storage_plus::Item;
 use serde::{Deserialize, Serialize};
-use tg_bindings::TgradeMsg;
+use tg_bindings::{TgradeMsg, TgradeQuery};
 
 use cw_multi_test::{Contract, ContractWrapper};
 
@@ -33,8 +35,8 @@ pub enum QueryMsg {
 
 const HACKATOM: Item<InstantiateMsg> = Item::new("hackatom");
 
-fn instantiate(
-    deps: DepsMut,
+fn instantiate<Q: CustomQuery>(
+    deps: DepsMut<Q>,
     _env: Env,
     _info: MessageInfo,
     msg: InstantiateMsg,
@@ -43,8 +45,8 @@ fn instantiate(
     Ok(Response::default())
 }
 
-fn execute(
-    deps: DepsMut,
+fn execute<Q: CustomQuery>(
+    deps: DepsMut<Q>,
     env: Env,
     _info: MessageInfo,
     _msg: ExecuteMsg,
@@ -60,7 +62,7 @@ fn execute(
     Ok(resp)
 }
 
-fn query(deps: Deps, _env: Env, msg: QueryMsg) -> Result<Binary, StdError> {
+fn query<Q: CustomQuery>(deps: Deps<Q>, _env: Env, msg: QueryMsg) -> Result<Binary, StdError> {
     match msg {
         QueryMsg::Beneficiary {} => {
             let res = HACKATOM.load(deps.storage)?;
@@ -69,7 +71,11 @@ fn query(deps: Deps, _env: Env, msg: QueryMsg) -> Result<Binary, StdError> {
     }
 }
 
-fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> Result<Response, StdError> {
+fn migrate<Q: CustomQuery>(
+    deps: DepsMut<Q>,
+    _env: Env,
+    msg: MigrateMsg,
+) -> Result<Response, StdError> {
     HACKATOM.update::<_, StdError>(deps.storage, |mut state| {
         state.beneficiary = msg.new_guy;
         Ok(state)
@@ -78,7 +84,7 @@ fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> Result<Response, StdErr
     Ok(resp)
 }
 
-pub fn contract() -> Box<dyn Contract<TgradeMsg>> {
+pub fn contract() -> Box<dyn Contract<TgradeMsg, TgradeQuery>> {
     let contract = ContractWrapper::new(execute, instantiate, query).with_migrate(migrate);
     Box::new(contract)
 }

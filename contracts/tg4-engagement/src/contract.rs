@@ -1,11 +1,11 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    coin, to_binary, Addr, BankMsg, Binary, Coin, Decimal, Deps, DepsMut, Empty, Env, Event,
-    MessageInfo, Order, StdResult, Timestamp, Uint128,
+    coin, to_binary, Addr, BankMsg, Binary, Coin, CustomQuery, Decimal, Deps, DepsMut, Empty, Env,
+    Event, MessageInfo, Order, StdResult, Timestamp, Uint128,
 };
 use cw2::set_contract_version;
-use cw_storage_plus::{Bound, PrimaryKey};
+use cw_storage_plus::Bound;
 use cw_utils::maybe_addr;
 use tg4::{
     HooksResponse, Member, MemberChangedHookMsg, MemberDiff, MemberListResponse, MemberResponse,
@@ -21,7 +21,7 @@ use crate::state::{
     Distribution, Halflife, WithdrawAdjustment, DISTRIBUTION, HALFLIFE, PREAUTH_SLASHING,
     SHARES_SHIFT, SLASHERS, WITHDRAW_ADJUSTMENT,
 };
-use tg_bindings::{request_privileges, Privilege, PrivilegeChangeMsg, TgradeMsg};
+use tg_bindings::{request_privileges, Privilege, PrivilegeChangeMsg, TgradeMsg, TgradeQuery};
 use tg_utils::{
     ensure_from_older_version, members, validate_portion, Duration, ADMIN, HOOKS, PREAUTH_HOOKS,
     TOTAL,
@@ -38,7 +38,7 @@ const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 // make use of the custom errors
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
-    deps: DepsMut,
+    deps: DepsMut<TgradeQuery>,
     env: Env,
     _info: MessageInfo,
     msg: InstantiateMsg,
@@ -62,8 +62,8 @@ pub fn instantiate(
 // create is the instantiation logic with set_contract_version removed so it can more
 // easily be imported in other contracts
 #[allow(clippy::too_many_arguments)]
-pub fn create(
-    mut deps: DepsMut,
+pub fn create<Q: CustomQuery>(
+    mut deps: DepsMut<Q>,
     admin: Option<String>,
     members_list: Vec<Member>,
     preauths_hooks: u64,
@@ -120,7 +120,7 @@ pub fn create(
 // And declare a custom Error variant for the ones where you will want to make use of it
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn execute(
-    deps: DepsMut,
+    deps: DepsMut<TgradeQuery>,
     env: Env,
     info: MessageInfo,
     msg: ExecuteMsg,
@@ -149,8 +149,8 @@ pub fn execute(
     }
 }
 
-pub fn execute_add_points(
-    mut deps: DepsMut,
+pub fn execute_add_points<Q: CustomQuery>(
+    mut deps: DepsMut<Q>,
     env: Env,
     info: MessageInfo,
     addr: String,
@@ -184,8 +184,8 @@ pub fn execute_add_points(
     Ok(res)
 }
 
-pub fn execute_add_hook(
-    deps: DepsMut,
+pub fn execute_add_hook<Q: CustomQuery>(
+    deps: DepsMut<Q>,
     info: MessageInfo,
     hook: String,
 ) -> Result<Response, ContractError> {
@@ -205,8 +205,8 @@ pub fn execute_add_hook(
     Ok(res)
 }
 
-pub fn execute_remove_hook(
-    deps: DepsMut,
+pub fn execute_remove_hook<Q: CustomQuery>(
+    deps: DepsMut<Q>,
     info: MessageInfo,
     hook: String,
 ) -> Result<Response, ContractError> {
@@ -229,8 +229,8 @@ pub fn execute_remove_hook(
     Ok(resp)
 }
 
-pub fn execute_update_members(
-    mut deps: DepsMut,
+pub fn execute_update_members<Q: CustomQuery>(
+    mut deps: DepsMut<Q>,
     env: Env,
     info: MessageInfo,
     add: Vec<Member>,
@@ -253,8 +253,8 @@ pub fn execute_update_members(
     Ok(res)
 }
 
-pub fn execute_distribute_rewards(
-    deps: DepsMut,
+pub fn execute_distribute_rewards<Q: CustomQuery>(
+    deps: DepsMut<Q>,
     env: Env,
     info: MessageInfo,
     sender: Option<String>,
@@ -309,8 +309,8 @@ pub fn execute_distribute_rewards(
     Ok(resp)
 }
 
-pub fn execute_withdraw_rewards(
-    deps: DepsMut,
+pub fn execute_withdraw_rewards<Q: CustomQuery>(
+    deps: DepsMut<Q>,
     info: MessageInfo,
     owner: Option<String>,
     receiver: Option<String>,
@@ -360,8 +360,8 @@ pub fn execute_withdraw_rewards(
     Ok(resp)
 }
 
-pub fn execute_delegate_withdrawal(
-    deps: DepsMut,
+pub fn execute_delegate_withdrawal<Q: CustomQuery>(
+    deps: DepsMut<Q>,
     info: MessageInfo,
     delegated: String,
 ) -> Result<Response, ContractError> {
@@ -390,8 +390,8 @@ pub fn execute_delegate_withdrawal(
 }
 
 /// Adds new slasher to contract
-pub fn execute_add_slasher(
-    deps: DepsMut,
+pub fn execute_add_slasher<Q: CustomQuery>(
+    deps: DepsMut<Q>,
     info: MessageInfo,
     slasher: String,
 ) -> Result<Response, ContractError> {
@@ -410,8 +410,8 @@ pub fn execute_add_slasher(
 }
 
 /// Removes slasher from contract
-pub fn execute_remove_slasher(
-    deps: DepsMut,
+pub fn execute_remove_slasher<Q: CustomQuery>(
+    deps: DepsMut<Q>,
     info: MessageInfo,
     slasher: String,
 ) -> Result<Response, ContractError> {
@@ -436,8 +436,8 @@ pub fn execute_remove_slasher(
 }
 
 /// Slashes engagement points from address
-pub fn execute_slash(
-    mut deps: DepsMut,
+pub fn execute_slash<Q: CustomQuery>(
+    mut deps: DepsMut<Q>,
     env: Env,
     info: MessageInfo,
     addr: String,
@@ -493,8 +493,8 @@ pub fn execute_slash(
 }
 
 /// Calculates withdrawable_rewards from distribution and adjustment info.
-pub fn withdrawable_rewards(
-    deps: Deps,
+pub fn withdrawable_rewards<Q: CustomQuery>(
+    deps: Deps<Q>,
     owner: &Addr,
     distribution: &Distribution,
     adjustment: &WithdrawAdjustment,
@@ -514,8 +514,8 @@ pub fn withdrawable_rewards(
     Ok(coin(amount, &distribution.denom))
 }
 
-pub fn sudo_add_member(
-    mut deps: DepsMut,
+pub fn sudo_add_member<Q: CustomQuery>(
+    mut deps: DepsMut<Q>,
     env: Env,
     add: Member,
 ) -> Result<Response, ContractError> {
@@ -534,8 +534,8 @@ pub fn sudo_add_member(
 }
 
 // the logic from execute_update_members extracted for easier import
-pub fn update_members(
-    mut deps: DepsMut,
+pub fn update_members<Q: CustomQuery>(
+    mut deps: DepsMut<Q>,
     height: u64,
     to_add: Vec<Member>,
     to_remove: Vec<String>,
@@ -583,8 +583,8 @@ pub fn update_members(
 /// `shares_per_point` is current value from `SHARES_PER_POINT` - not loaded in function, to
 /// avoid multiple queries on bulk updates.
 /// `diff` is the points change
-pub fn apply_points_correction(
-    deps: DepsMut,
+pub fn apply_points_correction<Q: CustomQuery>(
+    deps: DepsMut<Q>,
     addr: &Addr,
     shares_per_point: u128,
     diff: i128,
@@ -606,7 +606,7 @@ pub fn apply_points_correction(
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn sudo(deps: DepsMut, env: Env, msg: SudoMsg) -> Result<Response, ContractError> {
+pub fn sudo(deps: DepsMut<TgradeQuery>, env: Env, msg: SudoMsg) -> Result<Response, ContractError> {
     match msg {
         SudoMsg::UpdateMember(member) => sudo_add_member(deps, env, member),
         SudoMsg::PrivilegeChange(PrivilegeChangeMsg::Promoted {}) => privilege_promote(deps),
@@ -615,7 +615,7 @@ pub fn sudo(deps: DepsMut, env: Env, msg: SudoMsg) -> Result<Response, ContractE
     }
 }
 
-fn privilege_promote(deps: DepsMut) -> Result<Response, ContractError> {
+fn privilege_promote<Q: CustomQuery>(deps: DepsMut<Q>) -> Result<Response, ContractError> {
     if HALFLIFE.load(deps.storage)?.halflife.is_some() {
         let msgs = request_privileges(&[Privilege::EndBlocker]);
         Ok(Response::new().add_submessages(msgs))
@@ -628,7 +628,7 @@ fn points_reduction(points: u64) -> u64 {
     points - (points / 2)
 }
 
-fn end_block(mut deps: DepsMut, env: Env) -> Result<Response, ContractError> {
+fn end_block<Q: CustomQuery>(mut deps: DepsMut<Q>, env: Env) -> Result<Response, ContractError> {
     let resp = Response::new();
 
     // If duration of half life added to timestamp of last applied
@@ -693,7 +693,7 @@ fn end_block(mut deps: DepsMut, env: Env) -> Result<Response, ContractError> {
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
+pub fn query(deps: Deps<TgradeQuery>, env: Env, msg: QueryMsg) -> StdResult<Binary> {
     use QueryMsg::*;
     match msg {
         Member {
@@ -732,12 +732,16 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
     }
 }
 
-fn query_total_points(deps: Deps) -> StdResult<TotalPointsResponse> {
+fn query_total_points<Q: CustomQuery>(deps: Deps<Q>) -> StdResult<TotalPointsResponse> {
     let points = TOTAL.load(deps.storage)?;
     Ok(TotalPointsResponse { points })
 }
 
-fn query_member(deps: Deps, addr: String, height: Option<u64>) -> StdResult<MemberResponse> {
+fn query_member<Q: CustomQuery>(
+    deps: Deps<Q>,
+    addr: String,
+    height: Option<u64>,
+) -> StdResult<MemberResponse> {
     let addr = deps.api.addr_validate(&addr)?;
     let points = match height {
         Some(h) => members().may_load_at_height(deps.storage, &addr, h),
@@ -746,7 +750,10 @@ fn query_member(deps: Deps, addr: String, height: Option<u64>) -> StdResult<Memb
     Ok(MemberResponse { points })
 }
 
-pub fn query_withdrawable_rewards(deps: Deps, owner: String) -> StdResult<RewardsResponse> {
+pub fn query_withdrawable_rewards<Q: CustomQuery>(
+    deps: Deps<Q>,
+    owner: String,
+) -> StdResult<RewardsResponse> {
     // Not checking address, as if it is invalid it is guaranteed not to appear in maps, so
     // `withdrawable_rewards` would return error itself.
     let owner = Addr::unchecked(&owner);
@@ -763,7 +770,10 @@ pub fn query_withdrawable_rewards(deps: Deps, owner: String) -> StdResult<Reward
     Ok(RewardsResponse { rewards })
 }
 
-pub fn query_undistributed_rewards(deps: Deps, env: Env) -> StdResult<RewardsResponse> {
+pub fn query_undistributed_rewards<Q: CustomQuery>(
+    deps: Deps<Q>,
+    env: Env,
+) -> StdResult<RewardsResponse> {
     let distribution = DISTRIBUTION.load(deps.storage)?;
     let balance = deps
         .querier
@@ -778,14 +788,17 @@ pub fn query_undistributed_rewards(deps: Deps, env: Env) -> StdResult<RewardsRes
     })
 }
 
-pub fn query_distributed_rewards(deps: Deps) -> StdResult<RewardsResponse> {
+pub fn query_distributed_rewards<Q: CustomQuery>(deps: Deps<Q>) -> StdResult<RewardsResponse> {
     let distribution = DISTRIBUTION.load(deps.storage)?;
     Ok(RewardsResponse {
         rewards: coin(distribution.distributed_total.into(), &distribution.denom),
     })
 }
 
-pub fn query_delegated(deps: Deps, owner: String) -> StdResult<DelegatedResponse> {
+pub fn query_delegated<Q: CustomQuery>(
+    deps: Deps<Q>,
+    owner: String,
+) -> StdResult<DelegatedResponse> {
     let owner = deps.api.addr_validate(&owner)?;
 
     let delegated = WITHDRAW_ADJUSTMENT
@@ -795,7 +808,7 @@ pub fn query_delegated(deps: Deps, owner: String) -> StdResult<DelegatedResponse
     Ok(DelegatedResponse { delegated })
 }
 
-fn query_halflife(deps: Deps) -> StdResult<HalflifeResponse> {
+fn query_halflife<Q: CustomQuery>(deps: Deps<Q>) -> StdResult<HalflifeResponse> {
     let Halflife {
         halflife,
         last_applied: last_halflife,
@@ -818,14 +831,14 @@ fn query_halflife(deps: Deps) -> StdResult<HalflifeResponse> {
 const MAX_LIMIT: u32 = 100;
 const DEFAULT_LIMIT: u32 = 30;
 
-fn list_members(
-    deps: Deps,
+fn list_members<Q: CustomQuery>(
+    deps: Deps<Q>,
     start_after: Option<String>,
     limit: Option<u32>,
 ) -> StdResult<MemberListResponse> {
     let limit = limit.unwrap_or(DEFAULT_LIMIT).min(MAX_LIMIT) as usize;
     let addr = maybe_addr(deps.api, start_after)?;
-    let start = addr.map(|addr| Bound::exclusive(addr.as_ref()));
+    let start = addr.as_ref().map(Bound::exclusive);
 
     let members: StdResult<Vec<_>> = members()
         .range(deps.storage, start, None, Order::Ascending)
@@ -842,13 +855,19 @@ fn list_members(
     Ok(MemberListResponse { members: members? })
 }
 
-fn list_members_by_points(
-    deps: Deps,
+fn list_members_by_points<Q: CustomQuery>(
+    deps: Deps<Q>,
     start_after: Option<Member>,
     limit: Option<u32>,
 ) -> StdResult<MemberListResponse> {
     let limit = limit.unwrap_or(DEFAULT_LIMIT).min(MAX_LIMIT) as usize;
-    let start = start_after.map(|m| Bound::exclusive((m.points, m.addr.as_str()).joined_key()));
+    let start = start_after
+        .map(|m| {
+            deps.api
+                .addr_validate(&m.addr)
+                .map(|addr| Bound::exclusive((m.points, addr)))
+        })
+        .transpose()?;
     let members: StdResult<Vec<_>> = members()
         .idx
         .points
@@ -878,11 +897,12 @@ mod tests {
 
     use crate::i128::Int128;
 
-    use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
+    use cosmwasm_std::testing::{mock_env, mock_info};
     use cosmwasm_std::{from_slice, Api, OwnedDeps, Querier, StdError, Storage};
     use cw_controllers::AdminError;
     use cw_storage_plus::Map;
     use tg4::{member_key, TOTAL_KEY};
+    use tg_bindings_test::mock_deps_tgrade;
     use tg_utils::{HookError, PreauthError};
 
     const INIT_ADMIN: &str = "ADMIN";
@@ -899,7 +919,7 @@ mod tests {
         env
     }
 
-    fn do_instantiate(deps: DepsMut) {
+    fn do_instantiate(deps: DepsMut<TgradeQuery>) {
         let msg = InstantiateMsg {
             admin: Some(INIT_ADMIN.into()),
             members: vec![
@@ -923,7 +943,7 @@ mod tests {
 
     #[test]
     fn proper_instantiation() {
-        let mut deps = mock_dependencies();
+        let mut deps = mock_deps_tgrade();
         do_instantiate(deps.as_mut());
 
         // it worked, let's query the state
@@ -970,7 +990,7 @@ mod tests {
 
     #[test]
     fn try_member_queries() {
-        let mut deps = mock_dependencies();
+        let mut deps = mock_deps_tgrade();
         do_instantiate(deps.as_mut());
 
         let member1 = query_member(deps.as_ref(), USER1.into(), None).unwrap();
@@ -1039,7 +1059,7 @@ mod tests {
 
     #[test]
     fn try_list_members_by_points() {
-        let mut deps = mock_dependencies();
+        let mut deps = mock_deps_tgrade();
         do_instantiate(deps.as_mut());
 
         let members = list_members_by_points(deps.as_ref(), None, None)
@@ -1100,7 +1120,7 @@ mod tests {
 
     #[test]
     fn try_halflife_queries() {
-        let mut deps = mock_dependencies();
+        let mut deps = mock_deps_tgrade();
         do_instantiate(deps.as_mut());
 
         let HalflifeInfo {
@@ -1126,7 +1146,7 @@ mod tests {
 
     #[test]
     fn try_halflife_query_when_no_halflife() {
-        let mut deps = mock_dependencies();
+        let mut deps = mock_deps_tgrade();
         let msg = InstantiateMsg {
             admin: Some(INIT_ADMIN.into()),
             members: vec![
@@ -1153,7 +1173,7 @@ mod tests {
 
     #[test]
     fn handle_non_utf8_in_members_list() {
-        let mut deps = mock_dependencies();
+        let mut deps = mock_deps_tgrade();
         do_instantiate(deps.as_mut());
 
         // make sure we get 2 members as expected, no error
@@ -1173,7 +1193,7 @@ mod tests {
 
     #[track_caller]
     fn assert_users<S: Storage, A: Api, Q: Querier>(
-        deps: &OwnedDeps<S, A, Q>,
+        deps: &OwnedDeps<S, A, Q, TgradeQuery>,
         user1_points: Option<u64>,
         user2_points: Option<u64>,
         user3_points: Option<u64>,
@@ -1206,7 +1226,7 @@ mod tests {
 
     #[test]
     fn add_new_remove_old_member() {
-        let mut deps = mock_dependencies();
+        let mut deps = mock_deps_tgrade();
         do_instantiate(deps.as_mut());
 
         // add a new one and remove existing one
@@ -1247,7 +1267,7 @@ mod tests {
     #[test]
     fn add_old_remove_new_member() {
         // add will over-write and remove have no effect
-        let mut deps = mock_dependencies();
+        let mut deps = mock_deps_tgrade();
         do_instantiate(deps.as_mut());
 
         // add a new one and remove existing one
@@ -1268,7 +1288,7 @@ mod tests {
     #[test]
     fn add_and_remove_same_member() {
         // add will over-write and remove have no effect
-        let mut deps = mock_dependencies();
+        let mut deps = mock_deps_tgrade();
         do_instantiate(deps.as_mut());
 
         // USER1 is updated and remove in the same call, we should remove this an add member3
@@ -1294,7 +1314,7 @@ mod tests {
 
     #[test]
     fn sudo_add_new_member() {
-        let mut deps = mock_dependencies();
+        let mut deps = mock_deps_tgrade();
         do_instantiate(deps.as_mut());
 
         // add a new member
@@ -1329,7 +1349,7 @@ mod tests {
 
     #[test]
     fn sudo_update_existing_member() {
-        let mut deps = mock_dependencies();
+        let mut deps = mock_deps_tgrade();
         do_instantiate(deps.as_mut());
 
         // update an existing member
@@ -1365,7 +1385,7 @@ mod tests {
     #[test]
     fn add_remove_hooks() {
         // add will over-write and remove have no effect
-        let mut deps = mock_dependencies();
+        let mut deps = mock_deps_tgrade();
         do_instantiate(deps.as_mut());
 
         let hooks = HOOKS.list_hooks(&deps.storage).unwrap();
@@ -1442,7 +1462,7 @@ mod tests {
 
     #[test]
     fn hooks_fire() {
-        let mut deps = mock_dependencies();
+        let mut deps = mock_deps_tgrade();
         do_instantiate(deps.as_mut());
 
         let hooks = HOOKS.list_hooks(&deps.storage).unwrap();
@@ -1507,7 +1527,7 @@ mod tests {
     #[test]
     fn raw_queries_work() {
         // add will over-write and remove have no effect
-        let mut deps = mock_dependencies();
+        let mut deps = mock_deps_tgrade();
         do_instantiate(deps.as_mut());
 
         // get total from raw key
@@ -1527,7 +1547,7 @@ mod tests {
 
     #[test]
     fn halflife_workflow() {
-        let mut deps = mock_dependencies();
+        let mut deps = mock_deps_tgrade();
         do_instantiate(deps.as_mut());
         let mut env = mock_env();
 
@@ -1575,7 +1595,7 @@ mod tests {
 
         #[test]
         fn add_to_existing_member() {
-            let mut deps = mock_dependencies();
+            let mut deps = mock_deps_tgrade();
             do_instantiate(deps.as_mut());
 
             let env = mock_env();
@@ -1588,7 +1608,7 @@ mod tests {
 
         #[test]
         fn add_to_nonexisting_member() {
-            let mut deps = mock_dependencies();
+            let mut deps = mock_deps_tgrade();
             do_instantiate(deps.as_mut());
 
             let env = mock_env();
@@ -1603,7 +1623,7 @@ mod tests {
 
     #[test]
     fn slash_nonexisting_user() {
-        let mut deps = mock_dependencies();
+        let mut deps = mock_deps_tgrade();
         do_instantiate(deps.as_mut());
 
         let user1 = Addr::unchecked(USER1);

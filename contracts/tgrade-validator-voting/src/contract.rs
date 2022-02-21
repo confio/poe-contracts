@@ -1,14 +1,14 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    from_slice, to_binary, to_vec, Binary, ContractInfoResponse, ContractResult, Deps, DepsMut,
-    Empty, Env, MessageInfo, QueryRequest, StdResult, SystemResult, WasmMsg, WasmQuery,
+    from_slice, to_binary, to_vec, Binary, ContractInfoResponse, ContractResult, CustomQuery, Deps,
+    DepsMut, Empty, Env, MessageInfo, QueryRequest, StdResult, SystemResult, WasmMsg, WasmQuery,
 };
 
 use cw2::set_contract_version;
 use tg_bindings::{
     request_privileges, BlockParams, ConsensusParams, EvidenceParams, GovProposal, Privilege,
-    PrivilegeChangeMsg, TgradeMsg, TgradeSudoMsg,
+    PrivilegeChangeMsg, TgradeMsg, TgradeQuery, TgradeSudoMsg,
 };
 use tg_utils::ensure_from_older_version;
 
@@ -31,7 +31,7 @@ const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
-    deps: DepsMut,
+    deps: DepsMut<TgradeQuery>,
     _env: Env,
     _info: MessageInfo,
     msg: InstantiateMsg,
@@ -42,7 +42,7 @@ pub fn instantiate(
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn execute(
-    deps: DepsMut,
+    deps: DepsMut<TgradeQuery>,
     env: Env,
     info: MessageInfo,
     msg: ExecuteMsg,
@@ -72,17 +72,19 @@ pub fn execute(
                 .map_err(ContractError::from)
         }
         Vote { proposal_id, vote } => {
-            execute_vote::<ValidatorProposal>(deps, env, info, proposal_id, vote)
+            execute_vote::<ValidatorProposal, TgradeQuery>(deps, env, info, proposal_id, vote)
                 .map_err(ContractError::from)
         }
         Execute { proposal_id } => execute_execute(deps, env, info, proposal_id),
-        Close { proposal_id } => execute_close::<ValidatorProposal>(deps, env, info, proposal_id)
-            .map_err(ContractError::from),
+        Close { proposal_id } => {
+            execute_close::<ValidatorProposal, TgradeQuery>(deps, env, info, proposal_id)
+                .map_err(ContractError::from)
+        }
     }
 }
 
-fn confirm_admin_in_contract(
-    deps: Deps,
+fn confirm_admin_in_contract<Q: CustomQuery>(
+    deps: Deps<Q>,
     env: &Env,
     contract_addr: String,
 ) -> Result<(), ContractError> {
@@ -114,8 +116,8 @@ fn confirm_admin_in_contract(
     ))
 }
 
-pub fn execute_execute(
-    deps: DepsMut,
+pub fn execute_execute<Q: CustomQuery>(
+    deps: DepsMut<Q>,
     env: Env,
     info: MessageInfo,
     proposal_id: u64,
@@ -203,27 +205,29 @@ fn align_limit(limit: Option<u32>) -> usize {
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
+pub fn query(deps: Deps<TgradeQuery>, env: Env, msg: QueryMsg) -> StdResult<Binary> {
     use QueryMsg::*;
 
     match msg {
         Rules {} => to_binary(&query_rules(deps)?),
-        Proposal { proposal_id } => to_binary(&query_proposal::<ValidatorProposal>(
+        Proposal { proposal_id } => to_binary(&query_proposal::<ValidatorProposal, TgradeQuery>(
             deps,
             env,
             proposal_id,
         )?),
         Vote { proposal_id, voter } => to_binary(&query_vote(deps, proposal_id, voter)?),
-        ListProposals { start_after, limit } => to_binary(&list_proposals::<ValidatorProposal>(
-            deps,
-            env,
-            start_after,
-            align_limit(limit),
-        )?),
+        ListProposals { start_after, limit } => {
+            to_binary(&list_proposals::<ValidatorProposal, TgradeQuery>(
+                deps,
+                env,
+                start_after,
+                align_limit(limit),
+            )?)
+        }
         ReverseProposals {
             start_before,
             limit,
-        } => to_binary(&reverse_proposals::<ValidatorProposal>(
+        } => to_binary(&reverse_proposals::<ValidatorProposal, TgradeQuery>(
             deps,
             env,
             start_before,
@@ -259,14 +263,18 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn sudo(deps: DepsMut, _env: Env, msg: TgradeSudoMsg) -> Result<Response, ContractError> {
+pub fn sudo(
+    _deps: DepsMut<TgradeQuery>,
+    _env: Env,
+    msg: TgradeSudoMsg,
+) -> Result<Response, ContractError> {
     match msg {
-        TgradeSudoMsg::PrivilegeChange(change) => Ok(privilege_change(deps, change)),
+        TgradeSudoMsg::PrivilegeChange(change) => Ok(privilege_change(change)),
         _ => Err(ContractError::UnsupportedSudoType {}),
     }
 }
 
-fn privilege_change(_deps: DepsMut, change: PrivilegeChangeMsg) -> Response {
+fn privilege_change(change: PrivilegeChangeMsg) -> Response {
     match change {
         PrivilegeChangeMsg::Promoted {} => {
             let msgs = request_privileges(&[
@@ -288,7 +296,7 @@ pub fn migrate(deps: DepsMut, _env: Env, _msg: Empty) -> Result<Response, Contra
 #[cfg(test)]
 mod tests {
     use cosmwasm_std::{
-        testing::{mock_dependencies, mock_env, mock_info},
+        testing::{mock_env, mock_info},
         Addr, CosmosMsg, Decimal, SubMsg,
     };
     use tg_utils::Expiration;
@@ -296,13 +304,14 @@ mod tests {
 
     use super::*;
     use tg3::Status;
+    use tg_bindings_test::mock_deps_tgrade;
 
     #[derive(serde::Serialize)]
     struct DummyMigrateMsg {}
 
     #[test]
     fn register_migrate() {
-        let mut deps = mock_dependencies();
+        let mut deps = mock_deps_tgrade();
         let env = mock_env();
         proposals()
             .save(
@@ -351,7 +360,7 @@ mod tests {
 
     #[test]
     fn register_cancel_upgrade() {
-        let mut deps = mock_dependencies();
+        let mut deps = mock_deps_tgrade();
         let env = mock_env();
         proposals()
             .save(
@@ -397,7 +406,7 @@ mod tests {
 
     #[test]
     fn register_pin_codes() {
-        let mut deps = mock_dependencies();
+        let mut deps = mock_deps_tgrade();
         let env = mock_env();
         proposals()
             .save(
@@ -443,7 +452,7 @@ mod tests {
 
     #[test]
     fn register_unpin_codes() {
-        let mut deps = mock_dependencies();
+        let mut deps = mock_deps_tgrade();
         let env = mock_env();
         proposals()
             .save(
@@ -489,7 +498,7 @@ mod tests {
 
     #[test]
     fn update_consensus_block_params() {
-        let mut deps = mock_dependencies();
+        let mut deps = mock_deps_tgrade();
         let env = mock_env();
         proposals()
             .save(
@@ -540,7 +549,7 @@ mod tests {
 
     #[test]
     fn update_consensus_evidence_params() {
-        let mut deps = mock_dependencies();
+        let mut deps = mock_deps_tgrade();
         let env = mock_env();
         proposals()
             .save(
@@ -593,7 +602,7 @@ mod tests {
 
     #[test]
     fn query_group_contract() {
-        let mut deps = mock_dependencies();
+        let mut deps = mock_deps_tgrade();
         let env = mock_env();
         let rules = VotingRules {
             voting_period: 1,

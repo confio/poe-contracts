@@ -14,7 +14,9 @@ use state::{
     TEXT_PROPOSALS,
 };
 
-use cosmwasm_std::{Addr, BlockInfo, Deps, DepsMut, Env, MessageInfo, Order, StdResult, Storage};
+use cosmwasm_std::{
+    Addr, BlockInfo, CustomQuery, Deps, DepsMut, Env, MessageInfo, Order, StdResult, Storage,
+};
 use cw_storage_plus::Bound;
 use cw_utils::maybe_addr;
 use tg3::{
@@ -27,8 +29,8 @@ use tg_utils::Expiration;
 
 type Response = cosmwasm_std::Response<TgradeMsg>;
 
-pub fn instantiate(
-    deps: DepsMut,
+pub fn instantiate<Q: CustomQuery>(
+    deps: DepsMut<Q>,
     rules: VotingRules,
     group_addr: &str,
 ) -> Result<Response, ContractError> {
@@ -60,8 +62,8 @@ fn save_ballot(
     Ok(())
 }
 
-pub fn propose<P>(
-    deps: DepsMut,
+pub fn propose<P, Q: CustomQuery>(
+    deps: DepsMut<Q>,
     env: Env,
     info: MessageInfo,
     title: String,
@@ -121,8 +123,8 @@ where
         .set_data(cosmwasm_std::to_binary(&resp)?))
 }
 
-pub fn vote<P>(
-    deps: DepsMut,
+pub fn vote<P, Q: CustomQuery>(
+    deps: DepsMut<Q>,
     env: Env,
     info: MessageInfo,
     proposal_id: u64,
@@ -200,7 +202,11 @@ where
     Ok(proposal)
 }
 
-pub fn execute_text<P>(deps: DepsMut, id: u64, proposal: Proposal<P>) -> Result<(), ContractError>
+pub fn execute_text<P, Q: CustomQuery>(
+    deps: DepsMut<Q>,
+    id: u64,
+    proposal: Proposal<P>,
+) -> Result<(), ContractError>
 where
     P: Serialize + DeserializeOwned,
 {
@@ -209,8 +215,8 @@ where
     Ok(())
 }
 
-pub fn close<P>(
-    deps: DepsMut,
+pub fn close<P, Q: CustomQuery>(
+    deps: DepsMut<Q>,
     env: Env,
     info: MessageInfo,
     proposal_id: u64,
@@ -247,12 +253,16 @@ where
         .add_attribute("proposal_id", proposal_id.to_string()))
 }
 
-pub fn query_rules(deps: Deps) -> StdResult<VotingRules> {
+pub fn query_rules<Q: CustomQuery>(deps: Deps<Q>) -> StdResult<VotingRules> {
     let cfg = CONFIG.load(deps.storage)?;
     Ok(cfg.rules)
 }
 
-pub fn query_proposal<P>(deps: Deps, env: Env, id: u64) -> StdResult<ProposalResponse<P>>
+pub fn query_proposal<P, Q: CustomQuery>(
+    deps: Deps<Q>,
+    env: Env,
+    id: u64,
+) -> StdResult<ProposalResponse<P>>
 where
     P: Serialize + DeserializeOwned,
 {
@@ -293,8 +303,8 @@ fn map_proposal<P>(
     })
 }
 
-pub fn list_proposals<P>(
-    deps: Deps,
+pub fn list_proposals<P, Q: CustomQuery>(
+    deps: Deps<Q>,
     env: Env,
     start_after: Option<u64>,
     limit: usize,
@@ -302,7 +312,7 @@ pub fn list_proposals<P>(
 where
     P: Serialize + DeserializeOwned,
 {
-    let start = start_after.map(Bound::exclusive_int);
+    let start = start_after.map(Bound::exclusive);
     let props: StdResult<Vec<_>> = proposals()
         .range(deps.storage, start, None, Order::Ascending)
         .take(limit)
@@ -312,12 +322,12 @@ where
     Ok(ProposalListResponse { proposals: props? })
 }
 
-pub fn list_text_proposals(
-    deps: Deps,
+pub fn list_text_proposals<Q: CustomQuery>(
+    deps: Deps<Q>,
     start_after: Option<u64>,
     limit: usize,
 ) -> StdResult<TextProposalListResponse> {
-    let start = start_after.map(Bound::exclusive_int);
+    let start = start_after.map(Bound::exclusive);
     let props: StdResult<Vec<_>> = TEXT_PROPOSALS
         .range(deps.storage, start, None, Order::Ascending)
         .take(limit)
@@ -327,8 +337,8 @@ pub fn list_text_proposals(
     Ok(TextProposalListResponse { proposals: props? })
 }
 
-pub fn reverse_proposals<P>(
-    deps: Deps,
+pub fn reverse_proposals<P, Q: CustomQuery>(
+    deps: Deps<Q>,
     env: Env,
     start_before: Option<u64>,
     limit: usize,
@@ -336,7 +346,7 @@ pub fn reverse_proposals<P>(
 where
     P: Serialize + DeserializeOwned,
 {
-    let end = start_before.map(Bound::exclusive_int);
+    let end = start_before.map(Bound::exclusive);
     let props: StdResult<Vec<_>> = proposals()
         .range(deps.storage, None, end, Order::Descending)
         .take(limit)
@@ -346,7 +356,11 @@ where
     Ok(ProposalListResponse { proposals: props? })
 }
 
-pub fn query_vote(deps: Deps, proposal_id: u64, voter: String) -> StdResult<VoteResponse> {
+pub fn query_vote<Q: CustomQuery>(
+    deps: Deps<Q>,
+    proposal_id: u64,
+    voter: String,
+) -> StdResult<VoteResponse> {
     let voter_addr = deps.api.addr_validate(&voter)?;
     let prop = BALLOTS.may_load(deps.storage, (proposal_id, &voter_addr))?;
     let vote = prop.map(|b| VoteInfo {
@@ -358,14 +372,14 @@ pub fn query_vote(deps: Deps, proposal_id: u64, voter: String) -> StdResult<Vote
     Ok(VoteResponse { vote })
 }
 
-pub fn list_votes(
-    deps: Deps,
+pub fn list_votes<Q: CustomQuery>(
+    deps: Deps<Q>,
     proposal_id: u64,
     start_after: Option<String>,
     limit: usize,
 ) -> StdResult<VoteListResponse> {
     let addr = maybe_addr(deps.api, start_after)?;
-    let start = addr.map(|addr| Bound::exclusive(addr.as_ref()));
+    let start = addr.as_ref().map(Bound::exclusive);
 
     let votes: StdResult<Vec<_>> = BALLOTS
         .prefix(proposal_id)
@@ -385,13 +399,13 @@ pub fn list_votes(
     Ok(VoteListResponse { votes: votes? })
 }
 
-pub fn list_votes_by_voter(
-    deps: Deps,
+pub fn list_votes_by_voter<Q: CustomQuery>(
+    deps: Deps<Q>,
     voter: String,
     start_after: Option<u64>,
     limit: usize,
 ) -> StdResult<VoteListResponse> {
-    let start = start_after.map(Bound::exclusive_int);
+    let start = start_after.map(Bound::exclusive);
     let voter_addr = deps.api.addr_validate(&voter)?;
 
     let votes: StdResult<Vec<_>> = BALLOTS_BY_VOTER
@@ -412,7 +426,7 @@ pub fn list_votes_by_voter(
     Ok(VoteListResponse { votes: votes? })
 }
 
-pub fn query_voter(deps: Deps, voter: String) -> StdResult<VoterResponse> {
+pub fn query_voter<Q: CustomQuery>(deps: Deps<Q>, voter: String) -> StdResult<VoterResponse> {
     let cfg = CONFIG.load(deps.storage)?;
     let voter_addr = deps.api.addr_validate(&voter)?;
     let points = cfg.group_contract.is_member(&deps.querier, &voter_addr)?;
@@ -420,8 +434,8 @@ pub fn query_voter(deps: Deps, voter: String) -> StdResult<VoterResponse> {
     Ok(VoterResponse { points })
 }
 
-pub fn list_voters(
-    deps: Deps,
+pub fn list_voters<Q: CustomQuery>(
+    deps: Deps<Q>,
     start_after: Option<String>,
     limit: Option<u32>,
 ) -> StdResult<VoterListResponse> {
@@ -435,7 +449,7 @@ pub fn list_voters(
     Ok(VoterListResponse { voters })
 }
 
-pub fn query_group_contract(deps: Deps) -> StdResult<Addr> {
+pub fn query_group_contract<Q: CustomQuery>(deps: Deps<Q>) -> StdResult<Addr> {
     let cfg = CONFIG.load(deps.storage)?;
     Ok(cfg.group_contract.addr())
 }

@@ -9,13 +9,13 @@ use cosmwasm_std::{
 use cw_multi_test::{next_block, AppResponse, Contract, ContractWrapper, CosmosRouter, Executor};
 use derivative::Derivative;
 use tg4::{AdminResponse, Member};
-use tg_bindings::{Evidence, Pubkey, TgradeMsg, ValidatorDiff};
+use tg_bindings::{Evidence, Pubkey, TgradeMsg, TgradeQuery, ValidatorDiff};
 use tg_bindings_test::TgradeApp;
 use tg_utils::{Duration, JailingDuration};
 
 use crate::msg::OperatorInitInfo;
 
-pub fn contract_engagement() -> Box<dyn Contract<TgradeMsg>> {
+pub fn contract_engagement() -> Box<dyn Contract<TgradeMsg, TgradeQuery>> {
     let contract = ContractWrapper::new(
         tg4_engagement::contract::execute,
         tg4_engagement::contract::instantiate,
@@ -24,7 +24,7 @@ pub fn contract_engagement() -> Box<dyn Contract<TgradeMsg>> {
     Box::new(contract)
 }
 
-pub fn contract_stake() -> Box<dyn Contract<TgradeMsg>> {
+pub fn contract_stake() -> Box<dyn Contract<TgradeMsg, TgradeQuery>> {
     let contract = ContractWrapper::new(
         tg4_stake::contract::execute,
         tg4_stake::contract::instantiate,
@@ -33,7 +33,7 @@ pub fn contract_stake() -> Box<dyn Contract<TgradeMsg>> {
     Box::new(contract)
 }
 
-pub fn contract_valset() -> Box<dyn Contract<TgradeMsg>> {
+pub fn contract_valset() -> Box<dyn Contract<TgradeMsg, TgradeQuery>> {
     let contract = ContractWrapper::new(
         crate::contract::execute,
         crate::contract::instantiate,

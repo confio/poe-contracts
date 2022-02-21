@@ -5,8 +5,10 @@ use itertools::Itertools;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use cosmwasm_std::{Addr, BlockInfo, Decimal, Deps, Order, StdResult, Storage, Uint128};
-use cw_storage_plus::{Bound, Index, IndexList, IndexedMap, MultiIndex, PrimaryKey};
+use cosmwasm_std::{
+    Addr, BlockInfo, CustomQuery, Decimal, Deps, Order, StdResult, Storage, Uint128,
+};
+use cw_storage_plus::{Bound, Index, IndexList, IndexedMap, MultiIndex, PrefixBound};
 use tg_utils::Expiration;
 
 // settings for pagination
@@ -30,7 +32,7 @@ pub struct Claim {
 
 struct ClaimIndexes<'a> {
     // Last type param defines the pk deserialization type
-    pub release_at: MultiIndex<'a, u64, Claim>,
+    pub release_at: MultiIndex<'a, u64, Claim, (Addr, u64)>,
 }
 
 impl<'a> IndexList<Claim> for ClaimIndexes<'a> {
@@ -121,9 +123,7 @@ impl<'a> Claims<'a> {
             .range_raw(
                 storage,
                 None,
-                Some(Bound::inclusive(
-                    Expiration::now(block).as_key().joined_key(),
-                )),
+                Some(Bound::inclusive(Expiration::now(block).as_key())),
                 Order::Ascending,
             );
 
@@ -144,24 +144,15 @@ impl<'a> Claims<'a> {
         block: &BlockInfo,
         limit: impl Into<Option<u64>>,
     ) -> StdResult<Vec<(Addr, Uint128)>> {
-        // Technically it should not be needed, and it should be enough to call for
-        // `Bound::inclusive` range, but its implementation seems to be buggy. As claim expiration
-        // is measured in seconds, offsetting it by 1ns would make and querying exclusive range
-        // would have expected behavior.
-        // Note: This is solved by `prefix_range_raw` + `PrefixBound::inclusive`
-        // (after https://github.com/CosmWasm/cw-plus/pull/616)
-        let excluded_timestamp = block.time.plus_nanos(1);
         let claims = self
             .claims
             .idx
             .release_at
             // take all claims which are expired (at most same timestamp as current block)
-            .range_raw(
+            .prefix_range_raw(
                 storage,
                 None,
-                Some(Bound::exclusive(self.claims.idx.release_at.index_key(
-                    Expiration::at_timestamp(excluded_timestamp).as_key(),
-                ))),
+                Some(PrefixBound::inclusive(block.time.nanos())),
                 Order::Ascending,
             );
 
@@ -246,15 +237,15 @@ impl<'a> Claims<'a> {
         Ok(total_slashed)
     }
 
-    pub fn query_claims(
+    pub fn query_claims<Q: CustomQuery>(
         &self,
-        deps: Deps,
+        deps: Deps<Q>,
         address: Addr,
         limit: Option<u32>,
         start_after: Option<Expiration>,
     ) -> StdResult<Vec<Claim>> {
         let limit = limit.unwrap_or(DEFAULT_LIMIT).min(MAX_LIMIT) as usize;
-        let start = start_after.map(|s| Bound::exclusive_int(s.as_key()));
+        let start = start_after.map(|s| Bound::exclusive(s.as_key()));
 
         self.claims
             .prefix(&address)

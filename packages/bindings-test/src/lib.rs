@@ -1,5 +1,6 @@
 mod multitest;
 
 pub use multitest::{
-    Privileges, TgradeApp, TgradeAppWrapped, TgradeError, TgradeModule, UpgradePlan, BLOCK_TIME,
+    mock_deps_tgrade, Privileges, TgradeApp, TgradeAppWrapped, TgradeDeps, TgradeError,
+    TgradeModule, UpgradePlan, BLOCK_TIME,
 };

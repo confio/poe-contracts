@@ -4,7 +4,7 @@ use cosmwasm_std::{to_binary, Addr, ContractInfoResponse, Decimal};
 use cw_multi_test::{AppResponse, Contract, ContractWrapper, Executor};
 use tg3::Status;
 use tg4::{Member, Tg4ExecuteMsg};
-use tg_bindings::TgradeMsg;
+use tg_bindings::{TgradeMsg, TgradeQuery};
 use tg_bindings_test::{TgradeApp, UpgradePlan};
 
 use crate::msg::ValidatorProposal;
@@ -16,7 +16,7 @@ pub fn get_proposal_id(response: &AppResponse) -> Result<u64, std::num::ParseInt
     response.custom_attrs(1)[2].value.parse()
 }
 
-fn contract_validator_proposals() -> Box<dyn Contract<TgradeMsg>> {
+fn contract_validator_proposals() -> Box<dyn Contract<TgradeMsg, TgradeQuery>> {
     let contract = ContractWrapper::new(
         crate::contract::execute,
         crate::contract::instantiate,
@@ -27,7 +27,7 @@ fn contract_validator_proposals() -> Box<dyn Contract<TgradeMsg>> {
     Box::new(contract)
 }
 
-fn contract_engagement() -> Box<dyn Contract<TgradeMsg>> {
+fn contract_engagement() -> Box<dyn Contract<TgradeMsg, TgradeQuery>> {
     let contract = ContractWrapper::new(
         tg4_engagement::contract::execute,
         tg4_engagement::contract::instantiate,

@@ -7,7 +7,10 @@ use std::fmt::Debug;
 use std::ops::{Deref, DerefMut};
 use thiserror::Error;
 
-use cosmwasm_std::testing::{MockApi, MockStorage};
+use cosmwasm_std::testing::{MockApi, MockQuerier, MockStorage};
+use cosmwasm_std::OwnedDeps;
+use std::marker::PhantomData;
+
 use cosmwasm_std::{
     from_slice, to_binary, Addr, Api, Binary, BlockInfo, Coin, CustomQuery, Empty, Order, Querier,
     QuerierResult, StdError, StdResult, Storage, Timestamp,
@@ -42,6 +45,17 @@ const ADMIN_PRIVILEGES: &[Privilege] = &[
     Privilege::TokenMinter,
     Privilege::ConsensusParamChanger,
 ];
+
+pub type TgradeDeps = OwnedDeps<MockStorage, MockApi, MockQuerier, TgradeQuery>;
+
+pub fn mock_deps_tgrade() -> TgradeDeps {
+    OwnedDeps {
+        storage: MockStorage::default(),
+        api: MockApi::default(),
+        querier: MockQuerier::default(),
+        custom_query_type: PhantomData,
+    }
+}
 
 impl TgradeModule {
     /// Intended for init_modules to set someone who can grant privileges or call arbitrary

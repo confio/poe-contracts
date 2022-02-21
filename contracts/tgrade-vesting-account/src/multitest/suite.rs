@@ -2,14 +2,14 @@ use crate::{error::ContractError, msg::*, state::*};
 
 use cosmwasm_std::{coin, Addr, CosmosMsg, Timestamp, Uint128};
 use cw_multi_test::{AppResponse, Contract, ContractWrapper, CosmosRouter, Executor};
-use tg_bindings::TgradeMsg;
+use tg_bindings::{TgradeMsg, TgradeQuery};
 use tg_bindings_test::TgradeApp;
 use tg_utils::Expiration;
 
 use anyhow::Result as AnyResult;
 use derivative::Derivative;
 
-pub fn vesting_contract() -> Box<dyn Contract<TgradeMsg>> {
+pub fn contract_vesting() -> Box<dyn Contract<TgradeMsg, TgradeQuery>> {
     let contract = ContractWrapper::new(
         crate::contract::execute,
         crate::contract::instantiate,
@@ -108,7 +108,7 @@ impl SuiteBuilder {
             })
             .unwrap();
 
-        let contract_id = self.app.store_code(vesting_contract());
+        let contract_id = self.app.store_code(contract_vesting());
         let recipient = Addr::unchecked(self.recipient);
         let operator = Addr::unchecked(self.operator);
         let oversight = Addr::unchecked(self.oversight);
