@@ -897,12 +897,12 @@ mod tests {
 
     use crate::i128::Int128;
 
-    use cosmwasm_std::testing::{mock_env, mock_info, MockApi, MockQuerier, MockStorage};
+    use cosmwasm_std::testing::{mock_env, mock_info};
     use cosmwasm_std::{from_slice, Api, OwnedDeps, Querier, StdError, Storage};
     use cw_controllers::AdminError;
     use cw_storage_plus::Map;
-    use std::marker::PhantomData;
     use tg4::{member_key, TOTAL_KEY};
+    use tg_bindings_test::mock_deps_tgrade;
     use tg_utils::{HookError, PreauthError};
 
     const INIT_ADMIN: &str = "ADMIN";
@@ -912,15 +912,6 @@ mod tests {
     const USER2_POINTS: u64 = 6;
     const USER3: &str = "USER3";
     const HALFLIFE: u64 = 180 * 24 * 60 * 60;
-
-    fn mock_dependencies() -> OwnedDeps<MockStorage, MockApi, MockQuerier, TgradeQuery> {
-        OwnedDeps {
-            storage: MockStorage::default(),
-            api: MockApi::default(),
-            querier: MockQuerier::default(),
-            custom_query_type: PhantomData,
-        }
-    }
 
     fn mock_env_height(height_offset: u64) -> Env {
         let mut env = mock_env();
@@ -952,7 +943,7 @@ mod tests {
 
     #[test]
     fn proper_instantiation() {
-        let mut deps = mock_dependencies();
+        let mut deps = mock_deps_tgrade();
         do_instantiate(deps.as_mut());
 
         // it worked, let's query the state
@@ -999,7 +990,7 @@ mod tests {
 
     #[test]
     fn try_member_queries() {
-        let mut deps = mock_dependencies();
+        let mut deps = mock_deps_tgrade();
         do_instantiate(deps.as_mut());
 
         let member1 = query_member(deps.as_ref(), USER1.into(), None).unwrap();
@@ -1068,7 +1059,7 @@ mod tests {
 
     #[test]
     fn try_list_members_by_points() {
-        let mut deps = mock_dependencies();
+        let mut deps = mock_deps_tgrade();
         do_instantiate(deps.as_mut());
 
         let members = list_members_by_points(deps.as_ref(), None, None)
@@ -1129,7 +1120,7 @@ mod tests {
 
     #[test]
     fn try_halflife_queries() {
-        let mut deps = mock_dependencies();
+        let mut deps = mock_deps_tgrade();
         do_instantiate(deps.as_mut());
 
         let HalflifeInfo {
@@ -1155,7 +1146,7 @@ mod tests {
 
     #[test]
     fn try_halflife_query_when_no_halflife() {
-        let mut deps = mock_dependencies();
+        let mut deps = mock_deps_tgrade();
         let msg = InstantiateMsg {
             admin: Some(INIT_ADMIN.into()),
             members: vec![
@@ -1182,7 +1173,7 @@ mod tests {
 
     #[test]
     fn handle_non_utf8_in_members_list() {
-        let mut deps = mock_dependencies();
+        let mut deps = mock_deps_tgrade();
         do_instantiate(deps.as_mut());
 
         // make sure we get 2 members as expected, no error
@@ -1235,7 +1226,7 @@ mod tests {
 
     #[test]
     fn add_new_remove_old_member() {
-        let mut deps = mock_dependencies();
+        let mut deps = mock_deps_tgrade();
         do_instantiate(deps.as_mut());
 
         // add a new one and remove existing one
@@ -1276,7 +1267,7 @@ mod tests {
     #[test]
     fn add_old_remove_new_member() {
         // add will over-write and remove have no effect
-        let mut deps = mock_dependencies();
+        let mut deps = mock_deps_tgrade();
         do_instantiate(deps.as_mut());
 
         // add a new one and remove existing one
@@ -1297,7 +1288,7 @@ mod tests {
     #[test]
     fn add_and_remove_same_member() {
         // add will over-write and remove have no effect
-        let mut deps = mock_dependencies();
+        let mut deps = mock_deps_tgrade();
         do_instantiate(deps.as_mut());
 
         // USER1 is updated and remove in the same call, we should remove this an add member3
@@ -1323,7 +1314,7 @@ mod tests {
 
     #[test]
     fn sudo_add_new_member() {
-        let mut deps = mock_dependencies();
+        let mut deps = mock_deps_tgrade();
         do_instantiate(deps.as_mut());
 
         // add a new member
@@ -1358,7 +1349,7 @@ mod tests {
 
     #[test]
     fn sudo_update_existing_member() {
-        let mut deps = mock_dependencies();
+        let mut deps = mock_deps_tgrade();
         do_instantiate(deps.as_mut());
 
         // update an existing member
@@ -1394,7 +1385,7 @@ mod tests {
     #[test]
     fn add_remove_hooks() {
         // add will over-write and remove have no effect
-        let mut deps = mock_dependencies();
+        let mut deps = mock_deps_tgrade();
         do_instantiate(deps.as_mut());
 
         let hooks = HOOKS.list_hooks(&deps.storage).unwrap();
@@ -1471,7 +1462,7 @@ mod tests {
 
     #[test]
     fn hooks_fire() {
-        let mut deps = mock_dependencies();
+        let mut deps = mock_deps_tgrade();
         do_instantiate(deps.as_mut());
 
         let hooks = HOOKS.list_hooks(&deps.storage).unwrap();
@@ -1536,7 +1527,7 @@ mod tests {
     #[test]
     fn raw_queries_work() {
         // add will over-write and remove have no effect
-        let mut deps = mock_dependencies();
+        let mut deps = mock_deps_tgrade();
         do_instantiate(deps.as_mut());
 
         // get total from raw key
@@ -1556,7 +1547,7 @@ mod tests {
 
     #[test]
     fn halflife_workflow() {
-        let mut deps = mock_dependencies();
+        let mut deps = mock_deps_tgrade();
         do_instantiate(deps.as_mut());
         let mut env = mock_env();
 
@@ -1604,7 +1595,7 @@ mod tests {
 
         #[test]
         fn add_to_existing_member() {
-            let mut deps = mock_dependencies();
+            let mut deps = mock_deps_tgrade();
             do_instantiate(deps.as_mut());
 
             let env = mock_env();
@@ -1617,7 +1608,7 @@ mod tests {
 
         #[test]
         fn add_to_nonexisting_member() {
-            let mut deps = mock_dependencies();
+            let mut deps = mock_deps_tgrade();
             do_instantiate(deps.as_mut());
 
             let env = mock_env();
@@ -1632,7 +1623,7 @@ mod tests {
 
     #[test]
     fn slash_nonexisting_user() {
-        let mut deps = mock_dependencies();
+        let mut deps = mock_deps_tgrade();
         do_instantiate(deps.as_mut());
 
         let user1 = Addr::unchecked(USER1);

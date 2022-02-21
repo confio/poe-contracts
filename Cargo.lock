@@ -1647,6 +1647,7 @@ dependencies = [
  "schemars",
  "serde",
  "tg-bindings",
+ "tg-bindings-test",
  "tg-utils",
  "tg4",
  "thiserror",

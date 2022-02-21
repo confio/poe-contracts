@@ -295,33 +295,23 @@ pub fn migrate(deps: DepsMut, _env: Env, _msg: Empty) -> Result<Response, Contra
 
 #[cfg(test)]
 mod tests {
-    use cosmwasm_std::testing::{MockApi, MockQuerier, MockStorage};
     use cosmwasm_std::{
         testing::{mock_env, mock_info},
-        Addr, CosmosMsg, Decimal, OwnedDeps, SubMsg,
+        Addr, CosmosMsg, Decimal, SubMsg,
     };
-    use std::marker::PhantomData;
     use tg_utils::Expiration;
     use tg_voting_contract::state::{proposals, Proposal, Votes, VotingRules};
 
     use super::*;
     use tg3::Status;
+    use tg_bindings_test::mock_deps_tgrade;
 
     #[derive(serde::Serialize)]
     struct DummyMigrateMsg {}
 
-    fn mock_dependencies() -> OwnedDeps<MockStorage, MockApi, MockQuerier, TgradeQuery> {
-        OwnedDeps {
-            storage: MockStorage::default(),
-            api: MockApi::default(),
-            querier: MockQuerier::default(),
-            custom_query_type: PhantomData,
-        }
-    }
-
     #[test]
     fn register_migrate() {
-        let mut deps = mock_dependencies();
+        let mut deps = mock_deps_tgrade();
         let env = mock_env();
         proposals()
             .save(
@@ -370,7 +360,7 @@ mod tests {
 
     #[test]
     fn register_cancel_upgrade() {
-        let mut deps = mock_dependencies();
+        let mut deps = mock_deps_tgrade();
         let env = mock_env();
         proposals()
             .save(
@@ -416,7 +406,7 @@ mod tests {
 
     #[test]
     fn register_pin_codes() {
-        let mut deps = mock_dependencies();
+        let mut deps = mock_deps_tgrade();
         let env = mock_env();
         proposals()
             .save(
@@ -462,7 +452,7 @@ mod tests {
 
     #[test]
     fn register_unpin_codes() {
-        let mut deps = mock_dependencies();
+        let mut deps = mock_deps_tgrade();
         let env = mock_env();
         proposals()
             .save(
@@ -508,7 +498,7 @@ mod tests {
 
     #[test]
     fn update_consensus_block_params() {
-        let mut deps = mock_dependencies();
+        let mut deps = mock_deps_tgrade();
         let env = mock_env();
         proposals()
             .save(
@@ -559,7 +549,7 @@ mod tests {
 
     #[test]
     fn update_consensus_evidence_params() {
-        let mut deps = mock_dependencies();
+        let mut deps = mock_deps_tgrade();
         let env = mock_env();
         proposals()
             .save(
@@ -612,7 +602,7 @@ mod tests {
 
     #[test]
     fn query_group_contract() {
-        let mut deps = mock_dependencies();
+        let mut deps = mock_deps_tgrade();
         let env = mock_env();
         let rules = VotingRules {
             voting_period: 1,

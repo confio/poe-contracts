@@ -35,3 +35,4 @@ itertools = "0.10"
 
 [dev-dependencies]
 cosmwasm-schema = { version = "1.0.0-beta5" }
+tg-bindings-test = { path = "../../packages/bindings-test", version = "0.6.2" }

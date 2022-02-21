@@ -218,24 +218,14 @@ pub fn migrate(deps: DepsMut, _env: Env, _msg: Empty) -> Result<Response, Contra
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::marker::PhantomData;
 
-    use cosmwasm_std::testing::{MockApi, MockQuerier, MockStorage};
-    use cosmwasm_std::{from_slice, testing::mock_env, Addr, Decimal, OwnedDeps};
+    use cosmwasm_std::{from_slice, testing::mock_env, Addr, Decimal};
+    use tg_bindings_test::mock_deps_tgrade;
     use tg_voting_contract::state::VotingRules;
-
-    fn mock_dependencies() -> OwnedDeps<MockStorage, MockApi, MockQuerier, TgradeQuery> {
-        OwnedDeps {
-            storage: MockStorage::default(),
-            api: MockApi::default(),
-            querier: MockQuerier::default(),
-            custom_query_type: PhantomData,
-        }
-    }
 
     #[test]
     fn query_group_contract() {
-        let mut deps = mock_dependencies();
+        let mut deps = mock_deps_tgrade();
         let env = mock_env();
         let rules = VotingRules {
             voting_period: 1,

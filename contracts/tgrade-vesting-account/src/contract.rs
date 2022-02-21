@@ -402,12 +402,11 @@ fn can_execute<Q: CustomQuery>(deps: Deps<Q>, sender: String) -> StdResult<CanEx
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::marker::PhantomData;
-
     use assert_matches::assert_matches;
 
     use cosmwasm_std::testing::{mock_env, mock_info, MockApi, MockQuerier, MockStorage};
     use cosmwasm_std::{from_binary, Coin, MessageInfo, OwnedDeps, Timestamp};
+    use tg_bindings_test::mock_deps_tgrade;
     use tg_utils::Expiration;
 
     const OWNER: &str = "owner";
@@ -419,15 +418,6 @@ mod tests {
     const DEFAULT_RELEASE: u64 = 1571797419 + 100;
 
     const VESTING_DENOM: &str = "vesting";
-
-    fn mock_dependencies() -> OwnedDeps<MockStorage, MockApi, MockQuerier, TgradeQuery> {
-        OwnedDeps {
-            storage: MockStorage::default(),
-            api: MockApi::default(),
-            querier: MockQuerier::default(),
-            custom_query_type: PhantomData,
-        }
-    }
 
     struct SuiteBuilder {
         recipient: Addr,
@@ -461,7 +451,7 @@ mod tests {
         }
 
         fn build(self) -> Suite {
-            let mut deps = mock_dependencies();
+            let mut deps = mock_deps_tgrade();
             let owner = mock_info(self.recipient.as_str(), &self.coins);
 
             let instantiate_message = InstantiateMsg {
@@ -764,7 +754,7 @@ mod tests {
 
     #[test]
     fn instantiate_without_tokens() {
-        let mut deps = mock_dependencies();
+        let mut deps = mock_deps_tgrade();
         let owner = mock_info(OWNER, &[]);
 
         let instantiate_message = InstantiateMsg {
