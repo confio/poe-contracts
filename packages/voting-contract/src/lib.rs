@@ -1,3 +1,4 @@
+pub mod ballots;
 mod error;
 pub mod msg;
 #[cfg(test)]
@@ -7,22 +8,18 @@ pub mod state;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 
+use ballots::ballots;
 pub use error::ContractError;
 use state::{
-    ballots, next_id, proposals, Ballot, Config, Proposal, ProposalListResponse, ProposalResponse,
-    TextProposalListResponse, Votes, VotingRules, BALLOTS, BALLOTS_BY_VOTER, CONFIG,
-    TEXT_PROPOSALS,
+    next_id, proposals, Config, Proposal, ProposalListResponse, ProposalResponse,
+    TextProposalListResponse, Votes, VotingRules, CONFIG, TEXT_PROPOSALS,
 };
 
 use cosmwasm_std::{
     Addr, BlockInfo, CustomQuery, Deps, DepsMut, Env, MessageInfo, Order, StdResult, Storage,
 };
 use cw_storage_plus::Bound;
-use cw_utils::maybe_addr;
-use tg3::{
-    Status, Vote, VoteInfo, VoteListResponse, VoteResponse, VoterDetail, VoterListResponse,
-    VoterResponse,
-};
+use tg3::{Status, Vote, VoterDetail, VoterListResponse, VoterResponse};
 use tg4::{Member, Tg4Contract};
 use tg_bindings::TgradeMsg;
 use tg_utils::Expiration;
@@ -49,17 +46,6 @@ pub fn instantiate<Q: CustomQuery>(
     CONFIG.save(deps.storage, &cfg)?;
 
     Ok(Response::default())
-}
-
-fn save_ballot(
-    storage: &mut dyn Storage,
-    proposal_id: u64,
-    sender: &Addr,
-    ballot: Ballot,
-) -> Result<(), ContractError> {
-    BALLOTS.save(storage, (proposal_id, sender), &ballot)?;
-    BALLOTS_BY_VOTER.save(storage, (sender, proposal_id), &ballot)?;
-    Ok(())
 }
 
 pub fn propose<P, Q: CustomQuery>(
@@ -104,15 +90,6 @@ where
 
     // add the first yes vote from voter
     ballots().create_ballot(deps.storage, &info.sender, id, vote_power, Vote::Yes)?;
-    // save_ballot(
-    //     deps.storage,
-    //     id,
-    //     &info.sender,
-    //     Ballot {
-    //         points: vote_power,
-    //         vote: Vote::Yes,
-    //     },
-    // )?;
 
     let resp = msg::ProposalCreationResponse { proposal_id: id };
 
@@ -149,22 +126,7 @@ where
             .was_voting_member(&deps.querier, &info.sender, prop.start_height)?;
 
     // cast vote if no vote previously cast
-    if BALLOTS
-        .may_load(deps.storage, (proposal_id, &info.sender))?
-        .is_some()
-    {
-        return Err(ContractError::AlreadyVoted {});
-    }
     ballots().create_ballot(deps.storage, &info.sender, proposal_id, vote_power, vote)?;
-    // save_ballot(
-    //     deps.storage,
-    //     proposal_id,
-    //     &info.sender,
-    //     Ballot {
-    //         points: vote_power,
-    //         vote,
-    //     },
-    // )?;
 
     // update vote tally
     prop.votes.add_vote(vote, vote_power);
@@ -356,76 +318,6 @@ where
         .collect();
 
     Ok(ProposalListResponse { proposals: props? })
-}
-
-pub fn query_vote<Q: CustomQuery>(
-    deps: Deps<Q>,
-    proposal_id: u64,
-    voter: String,
-) -> StdResult<VoteResponse> {
-    let voter_addr = deps.api.addr_validate(&voter)?;
-    let prop = BALLOTS.may_load(deps.storage, (proposal_id, &voter_addr))?;
-    let vote = prop.map(|b| VoteInfo {
-        proposal_id,
-        voter,
-        vote: b.vote,
-        points: b.points,
-    });
-    Ok(VoteResponse { vote })
-}
-
-pub fn list_votes<Q: CustomQuery>(
-    deps: Deps<Q>,
-    proposal_id: u64,
-    start_after: Option<String>,
-    limit: usize,
-) -> StdResult<VoteListResponse> {
-    let addr = maybe_addr(deps.api, start_after)?;
-    let start = addr.as_ref().map(Bound::exclusive);
-
-    let votes: StdResult<Vec<_>> = BALLOTS
-        .prefix(proposal_id)
-        .range(deps.storage, start, None, Order::Ascending)
-        .take(limit)
-        .map(|item| {
-            let (voter, ballot) = item?;
-            Ok(VoteInfo {
-                proposal_id,
-                voter: voter.into(),
-                vote: ballot.vote,
-                points: ballot.points,
-            })
-        })
-        .collect();
-
-    Ok(VoteListResponse { votes: votes? })
-}
-
-pub fn list_votes_by_voter<Q: CustomQuery>(
-    deps: Deps<Q>,
-    voter: String,
-    start_after: Option<u64>,
-    limit: usize,
-) -> StdResult<VoteListResponse> {
-    let start = start_after.map(Bound::exclusive);
-    let voter_addr = deps.api.addr_validate(&voter)?;
-
-    let votes: StdResult<Vec<_>> = BALLOTS_BY_VOTER
-        .prefix(&voter_addr)
-        .range(deps.storage, start, None, Order::Ascending)
-        .take(limit)
-        .map(|item| {
-            let (proposal_id, ballot) = item?;
-            Ok(VoteInfo {
-                proposal_id,
-                voter: voter.clone(),
-                vote: ballot.vote,
-                points: ballot.points,
-            })
-        })
-        .collect();
-
-    Ok(VoteListResponse { votes: votes? })
 }
 
 pub fn query_voter<Q: CustomQuery>(deps: Deps<Q>, voter: String) -> StdResult<VoterResponse> {

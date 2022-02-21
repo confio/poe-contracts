@@ -1,6 +1,6 @@
 use crate::{
     ballots, execute_text, list_proposals, list_text_proposals, list_voters, propose,
-    query_group_contract, query_proposal, query_rules, query_vote, query_voter, reverse_proposals,
+    query_group_contract, query_proposal, query_rules, query_voter, reverse_proposals,
     state::VotingRules, ContractError, Response,
 };
 use cosmwasm_std::{from_slice, to_binary, CustomQuery};

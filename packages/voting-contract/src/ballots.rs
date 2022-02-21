@@ -21,17 +21,14 @@ pub struct Ballot {
 
 struct BallotIndexes<'a> {
     pub voter: MultiIndex<'a, Addr, Ballot>,
+    pub proposal_id: MultiIndex<'a, u64, Ballot>,
 }
 
 impl<'a> IndexList<Ballot> for BallotIndexes<'a> {
     fn get_indexes(&'_ self) -> Box<dyn Iterator<Item = &'_ dyn Index<Ballot>> + '_> {
-        let v: Vec<&dyn Index<Ballot>> = vec![&self.voter];
+        let v: Vec<&dyn Index<Ballot>> = vec![&self.voter, &self.proposal_id];
         Box::new(v.into_iter())
     }
-}
-
-pub fn ballots() -> Ballots<'static> {
-    Ballots::new("ballots", "ballots__proposal_id")
 }
 
 pub struct Ballots<'a> {
@@ -42,6 +39,7 @@ impl<'a> Ballots<'a> {
     pub fn new(storage_key: &'a str, release_subkey: &'a str) -> Self {
         let indexes = BallotIndexes {
             voter: MultiIndex::new(|ballot| ballot.voter.clone(), storage_key, release_subkey),
+            proposal_id: MultiIndex::new(|ballot| ballot.proposal_id, storage_key, release_subkey),
         };
         let ballots = IndexedMap::new(storage_key, indexes);
 
@@ -132,7 +130,6 @@ impl<'a> Ballots<'a> {
         let start = start_after.map(Bound::exclusive_int);
         let voter_addr = deps.api.addr_validate(&voter)?;
 
-        dbg!(start.clone());
         let votes: StdResult<Vec<_>> = self
             .ballots
             .idx
@@ -153,4 +150,8 @@ impl<'a> Ballots<'a> {
 
         Ok(VoteListResponse { votes: votes? })
     }
+}
+
+pub fn ballots() -> Ballots<'static> {
+    Ballots::new("ballots", "ballots__proposal_id")
 }
