@@ -8,7 +8,6 @@ use tg3::Vote;
 use crate::ContractError;
 
 // we cast a ballot with our chosen vote and a given points
-// stored under the key that voted
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 pub struct Ballot {
     pub voter: Addr,
@@ -18,6 +17,7 @@ pub struct Ballot {
 }
 
 pub struct BallotIndexes<'a> {
+    // This PrimaryKey allows quering over all proposal ids for given voter address
     pub voter: MultiIndex<'a, Addr, Ballot, (u64, Addr)>,
 }
 

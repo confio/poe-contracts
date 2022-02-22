@@ -1,4 +1,4 @@
-pub mod ballots;
+mod ballots;
 mod error;
 pub mod msg;
 #[cfg(test)]
@@ -377,6 +377,7 @@ pub fn list_votes_by_voter<Q: CustomQuery>(
     limit: usize,
 ) -> StdResult<VoteListResponse> {
     let voter_addr = deps.api.addr_validate(&voter)?;
+    // PrimaryKey of that IndexMap is (proposal_id, voter_address) -> (u64, Addr)
     let start = start_after.map(|m| Bound::exclusive((m, voter_addr.clone())));
 
     let votes: StdResult<Vec<_>> = ballots()
