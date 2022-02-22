@@ -65,7 +65,7 @@ mod tests {
     ) {
         let jail_map: Map<&Addr, JailingPeriodV0_6_2> = Map::new("jail");
 
-        for (addr, period) in jailings.into_iter().cloned() {
+        for (addr, period) in jailings.iter().cloned() {
             jail_map
                 .update(store, &Addr::unchecked(addr), |_| -> Result<_, StdError> {
                     Ok(period)
