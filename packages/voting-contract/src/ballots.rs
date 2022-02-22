@@ -11,7 +11,6 @@ use crate::ContractError;
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 pub struct Ballot {
     pub voter: Addr,
-    pub proposal_id: u64,
     pub points: u64,
     pub vote: Vote,
 }
@@ -58,7 +57,6 @@ impl<'a> Ballots<'a> {
                     Some(_) => Err(ContractError::AlreadyVoted {}),
                     None => Ok(Ballot {
                         voter: addr.clone(),
-                        proposal_id,
                         points,
                         vote,
                     }),

@@ -388,9 +388,9 @@ pub fn list_votes_by_voter<Q: CustomQuery>(
         .range(deps.storage, start, None, Order::Ascending)
         .take(limit)
         .map(|item| {
-            let (_, ballot) = item?;
+            let ((proposal_id, _), ballot) = item?;
             Ok(VoteInfo {
-                proposal_id: ballot.proposal_id,
+                proposal_id,
                 voter: ballot.voter.into(),
                 vote: ballot.vote,
                 points: ballot.points,
