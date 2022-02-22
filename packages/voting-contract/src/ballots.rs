@@ -1,11 +1,9 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use cosmwasm_std::{Addr, CustomQuery, Deps, Order, StdResult, Storage};
-use cw_storage_plus::Bound;
+use cosmwasm_std::{Addr, Storage};
 use cw_storage_plus::{Index, IndexList, IndexedMap, MultiIndex};
-use cw_utils::maybe_addr;
-use tg3::{Vote, VoteInfo, VoteListResponse, VoteResponse};
+use tg3::Vote;
 
 use crate::ContractError;
 
@@ -19,7 +17,7 @@ pub struct Ballot {
     pub vote: Vote,
 }
 
-struct BallotIndexes<'a> {
+pub struct BallotIndexes<'a> {
     pub voter: MultiIndex<'a, Addr, Ballot, (u64, Addr)>,
 }
 
@@ -31,7 +29,7 @@ impl<'a> IndexList<Ballot> for BallotIndexes<'a> {
 }
 
 pub struct Ballots<'a> {
-    ballots: IndexedMap<'a, (u64, &'a Addr), Ballot, BallotIndexes<'a>>,
+    pub ballots: IndexedMap<'a, (u64, &'a Addr), Ballot, BallotIndexes<'a>>,
 }
 
 impl<'a> Ballots<'a> {
@@ -68,85 +66,6 @@ impl<'a> Ballots<'a> {
             },
         )?;
         Ok(())
-    }
-
-    pub fn query_vote<Q: CustomQuery>(
-        &self,
-        deps: Deps<Q>,
-        proposal_id: u64,
-        voter: String,
-    ) -> StdResult<VoteResponse> {
-        let voter_addr = deps.api.addr_validate(&voter)?;
-        let prop = self
-            .ballots
-            .may_load(deps.storage, (proposal_id, &voter_addr))?;
-        let vote = prop.map(|b| VoteInfo {
-            proposal_id,
-            voter,
-            vote: b.vote,
-            points: b.points,
-        });
-        Ok(VoteResponse { vote })
-    }
-
-    pub fn query_votes<Q: CustomQuery>(
-        &self,
-        deps: Deps<Q>,
-        proposal_id: u64,
-        start_after: Option<String>,
-        limit: usize,
-    ) -> StdResult<VoteListResponse> {
-        let addr = maybe_addr(deps.api, start_after)?;
-        let start = addr.as_ref().map(Bound::exclusive);
-
-        let votes: StdResult<Vec<_>> = self
-            .ballots
-            .prefix(proposal_id)
-            .range(deps.storage, start, None, Order::Ascending)
-            .take(limit)
-            .map(|item| {
-                let (voter, ballot) = item?;
-                Ok(VoteInfo {
-                    proposal_id,
-                    voter: voter.into(),
-                    vote: ballot.vote,
-                    points: ballot.points,
-                })
-            })
-            .collect();
-
-        Ok(VoteListResponse { votes: votes? })
-    }
-
-    pub fn query_votes_by_voter<Q: CustomQuery>(
-        &self,
-        deps: Deps<Q>,
-        voter: String,
-        start_after: Option<u64>,
-        limit: usize,
-    ) -> StdResult<VoteListResponse> {
-        let voter_addr = deps.api.addr_validate(&voter)?;
-        let start = start_after.map(|m| Bound::exclusive((m, voter_addr.clone())));
-
-        let votes: StdResult<Vec<_>> = self
-            .ballots
-            .idx
-            .voter
-            .prefix(voter_addr)
-            .range(deps.storage, start, None, Order::Ascending)
-            .take(limit)
-            .map(|item| {
-                let (_, ballot) = item?;
-                Ok(VoteInfo {
-                    proposal_id: ballot.proposal_id,
-                    voter: ballot.voter.into(),
-                    vote: ballot.vote,
-                    points: ballot.points,
-                })
-            })
-            .collect();
-
-        Ok(VoteListResponse { votes: votes? })
     }
 }
 

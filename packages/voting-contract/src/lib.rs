@@ -19,8 +19,10 @@ use cosmwasm_std::{
     Addr, BlockInfo, CustomQuery, Deps, DepsMut, Env, MessageInfo, Order, StdResult, Storage,
 };
 use cw_storage_plus::Bound;
+use cw_utils::maybe_addr;
 use tg3::{
-    Status, Vote, VoteListResponse, VoteResponse, VoterDetail, VoterListResponse, VoterResponse,
+    Status, Vote, VoteInfo, VoteListResponse, VoteResponse, VoterDetail, VoterListResponse,
+    VoterResponse,
 };
 use tg4::{Member, Tg4Contract};
 use tg_bindings::TgradeMsg;
@@ -327,7 +329,17 @@ pub fn query_vote<Q: CustomQuery>(
     proposal_id: u64,
     voter: String,
 ) -> StdResult<VoteResponse> {
-    ballots().query_vote(deps, proposal_id, voter)
+    let voter_addr = deps.api.addr_validate(&voter)?;
+    let prop = ballots()
+        .ballots
+        .may_load(deps.storage, (proposal_id, &voter_addr))?;
+    let vote = prop.map(|b| VoteInfo {
+        proposal_id,
+        voter,
+        vote: b.vote,
+        points: b.points,
+    });
+    Ok(VoteResponse { vote })
 }
 
 pub fn list_votes<Q: CustomQuery>(
@@ -336,7 +348,26 @@ pub fn list_votes<Q: CustomQuery>(
     start_after: Option<String>,
     limit: usize,
 ) -> StdResult<VoteListResponse> {
-    ballots().query_votes(deps, proposal_id, start_after, limit)
+    let addr = maybe_addr(deps.api, start_after)?;
+    let start = addr.as_ref().map(Bound::exclusive);
+
+    let votes: StdResult<Vec<_>> = ballots()
+        .ballots
+        .prefix(proposal_id)
+        .range(deps.storage, start, None, Order::Ascending)
+        .take(limit)
+        .map(|item| {
+            let (voter, ballot) = item?;
+            Ok(VoteInfo {
+                proposal_id,
+                voter: voter.into(),
+                vote: ballot.vote,
+                points: ballot.points,
+            })
+        })
+        .collect();
+
+    Ok(VoteListResponse { votes: votes? })
 }
 
 pub fn list_votes_by_voter<Q: CustomQuery>(
@@ -345,7 +376,28 @@ pub fn list_votes_by_voter<Q: CustomQuery>(
     start_after: Option<u64>,
     limit: usize,
 ) -> StdResult<VoteListResponse> {
-    ballots().query_votes_by_voter(deps, voter, start_after, limit)
+    let voter_addr = deps.api.addr_validate(&voter)?;
+    let start = start_after.map(|m| Bound::exclusive((m, voter_addr.clone())));
+
+    let votes: StdResult<Vec<_>> = ballots()
+        .ballots
+        .idx
+        .voter
+        .prefix(voter_addr)
+        .range(deps.storage, start, None, Order::Ascending)
+        .take(limit)
+        .map(|item| {
+            let (_, ballot) = item?;
+            Ok(VoteInfo {
+                proposal_id: ballot.proposal_id,
+                voter: ballot.voter.into(),
+                vote: ballot.vote,
+                points: ballot.points,
+            })
+        })
+        .collect();
+
+    Ok(VoteListResponse { votes: votes? })
 }
 
 pub fn query_voter<Q: CustomQuery>(deps: Deps<Q>, voter: String) -> StdResult<VoterResponse> {
