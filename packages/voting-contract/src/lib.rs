@@ -19,7 +19,9 @@ use cosmwasm_std::{
     Addr, BlockInfo, CustomQuery, Deps, DepsMut, Env, MessageInfo, Order, StdResult, Storage,
 };
 use cw_storage_plus::Bound;
-use tg3::{Status, Vote, VoterDetail, VoterListResponse, VoterResponse};
+use tg3::{
+    Status, Vote, VoteListResponse, VoteResponse, VoterDetail, VoterListResponse, VoterResponse,
+};
 use tg4::{Member, Tg4Contract};
 use tg_bindings::TgradeMsg;
 use tg_utils::Expiration;
@@ -318,6 +320,32 @@ where
         .collect();
 
     Ok(ProposalListResponse { proposals: props? })
+}
+
+pub fn query_vote<Q: CustomQuery>(
+    deps: Deps<Q>,
+    proposal_id: u64,
+    voter: String,
+) -> StdResult<VoteResponse> {
+    ballots().query_vote(deps, proposal_id, voter)
+}
+
+pub fn list_votes<Q: CustomQuery>(
+    deps: Deps<Q>,
+    proposal_id: u64,
+    start_after: Option<String>,
+    limit: usize,
+) -> StdResult<VoteListResponse> {
+    ballots().query_votes(deps, proposal_id, start_after, limit)
+}
+
+pub fn list_votes_by_voter<Q: CustomQuery>(
+    deps: Deps<Q>,
+    voter: String,
+    start_after: Option<u64>,
+    limit: usize,
+) -> StdResult<VoteListResponse> {
+    ballots().query_votes_by_voter(deps, voter, start_after, limit)
 }
 
 pub fn query_voter<Q: CustomQuery>(deps: Deps<Q>, voter: String) -> StdResult<VoterResponse> {

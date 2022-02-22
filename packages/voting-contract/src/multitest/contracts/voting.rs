@@ -1,7 +1,7 @@
 use crate::{
-    ballots, execute_text, list_proposals, list_text_proposals, list_voters, propose,
-    query_group_contract, query_proposal, query_rules, query_voter, reverse_proposals,
-    state::VotingRules, ContractError, Response,
+    execute_text, list_proposals, list_text_proposals, list_voters, list_votes,
+    list_votes_by_voter, propose, query_group_contract, query_proposal, query_rules, query_vote,
+    query_voter, reverse_proposals, state::VotingRules, ContractError, Response,
 };
 use cosmwasm_std::{from_slice, to_binary, CustomQuery};
 use tg3::Vote;
@@ -143,9 +143,7 @@ impl Contract<TgradeMsg, TgradeQuery> for VotingContract {
                 env,
                 proposal_id,
             )?),
-            Vote { proposal_id, voter } => {
-                to_binary(&ballots().query_vote(deps, proposal_id, voter)?)
-            }
+            Vote { proposal_id, voter } => to_binary(&query_vote(deps, proposal_id, voter)?),
             ListProposals { start_after, limit } => to_binary(&list_proposals::<
                 self::Proposal,
                 TgradeQuery,
@@ -165,12 +163,12 @@ impl Contract<TgradeMsg, TgradeQuery> for VotingContract {
                 proposal_id,
                 start_after,
                 limit,
-            } => to_binary(&ballots().query_votes(deps, proposal_id, start_after, limit)?),
+            } => to_binary(&list_votes(deps, proposal_id, start_after, limit)?),
             ListVotesByVoter {
                 voter,
                 start_after,
                 limit,
-            } => to_binary(&ballots().query_votes_by_voter(deps, voter, start_after, limit)?),
+            } => to_binary(&list_votes_by_voter(deps, voter, start_after, limit)?),
             Voter { address } => to_binary(&query_voter(deps, address)?),
             GroupContract {} => to_binary(&query_group_contract(deps)?),
             ListTextProposals { start_after, limit } => {

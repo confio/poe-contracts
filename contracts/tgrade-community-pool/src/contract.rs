@@ -15,7 +15,7 @@ use crate::ContractError;
 use tg_voting_contract::state::CONFIG as VOTING_CONFIG;
 use tg_voting_contract::{
     close as execute_close, execute_text, list_proposals, list_text_proposals, list_voters,
-    query_votes, query_votes_by_voter, mark_executed, propose, query_group_contract, query_proposal,
+    list_votes, list_votes_by_voter, mark_executed, propose, query_group_contract, query_proposal,
     query_rules, query_vote, query_voter, reverse_proposals, vote as execute_vote,
 };
 
@@ -184,7 +184,7 @@ pub fn query(deps: Deps<TgradeQuery>, env: Env, msg: QueryMsg) -> StdResult<Bina
             proposal_id,
             start_after,
             limit,
-        } => to_binary(&query_votes(
+        } => to_binary(&list_votes(
             deps,
             proposal_id,
             start_after,
@@ -194,7 +194,7 @@ pub fn query(deps: Deps<TgradeQuery>, env: Env, msg: QueryMsg) -> StdResult<Bina
             voter,
             start_after,
             limit,
-        } => to_binary(&query_votes_by_voter(
+        } => to_binary(&list_votes_by_voter(
             deps,
             voter,
             start_after,
