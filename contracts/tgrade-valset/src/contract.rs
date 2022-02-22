@@ -9,11 +9,12 @@ use cosmwasm_std::{
     Order, Reply, StdError, StdResult, Timestamp, WasmMsg,
 };
 
-use cw2::set_contract_version;
+use cw2::{get_contract_version, set_contract_version};
 use cw_controllers::AdminError;
 use cw_storage_plus::Bound;
 use cw_utils::{maybe_addr, parse_reply_instantiate_data};
 
+use semver::Version;
 use tg4::{Member, Tg4Contract};
 use tg_bindings::{
     request_privileges, Ed25519Pubkey, Evidence, EvidenceType, Privilege, PrivilegeChangeMsg,
@@ -22,8 +23,9 @@ use tg_bindings::{
 use tg_utils::{ensure_from_older_version, JailingDuration, SlashMsg, ADMIN};
 
 use crate::error::ContractError;
+use crate::migration::migrate_jailing_period;
 use crate::msg::{
-    EpochResponse, ExecuteMsg, InstantiateMsg, InstantiateResponse, JailingPeriod,
+    EpochResponse, ExecuteMsg, InstantiateMsg, InstantiateResponse, JailingEnd, JailingPeriod,
     ListActiveValidatorsResponse, ListValidatorResponse, ListValidatorSlashingResponse, MigrateMsg,
     OperatorResponse, QueryMsg, RewardsDistribution, RewardsInstantiateMsg, ValidatorMetadata,
     ValidatorResponse,
@@ -274,9 +276,9 @@ fn execute_jail<Q: CustomQuery>(
         &expiration,
     )?;
 
-    let until_attr = match expiration {
-        JailingPeriod::Until(expires) => Timestamp::from(expires).to_string(),
-        JailingPeriod::Forever {} => "forever".to_owned(),
+    let until_attr = match expiration.end {
+        JailingEnd::Until(expires) => Timestamp::from(expires).to_string(),
+        JailingEnd::Forever {} => "forever".to_owned(),
     };
 
     let res = Response::new()
@@ -303,19 +305,17 @@ fn execute_unjail<Q: CustomQuery>(
         return Err(AdminError::NotAdmin {}.into());
     }
 
-    match JAIL.may_load(deps.storage, operator) {
-        Err(err) => return Err(err.into()),
-        // Operator is not jailed, unjailing does nothing and succeeds
-        Ok(None) => (),
-        Ok(Some(JailingPeriod::Forever {})) => {
+    // if this is `None`, the validator was not unjailed and unjailing succeeds
+    if let Some(expiration) = JAIL.may_load(deps.storage, operator)? {
+        if expiration.is_forever() {
             return Err(ContractError::UnjailFromJailForeverForbidden {});
         }
-        // Jailing period expired or called by admin - can unjail
-        Ok(Some(expiration)) if (expiration.is_expired(&env.block) || is_admin) => {
+
+        if expiration.is_expired(&env.block) || is_admin {
             JAIL.remove(deps.storage, operator);
+        } else {
+            return Err(ContractError::JailDidNotExpire {});
         }
-        // Jail not expired
-        _ => return Err(ContractError::JailDidNotExpire {}),
     }
 
     let res = Response::new()
@@ -593,9 +593,9 @@ fn list_validator_slashing<Q: CustomQuery>(
     let slashing = VALIDATOR_SLASHING
         .may_load(deps.storage, &addr)?
         .unwrap_or_default();
-    let (jailed_until, tombstoned) = match JAIL.may_load(deps.storage, &addr)? {
-        Some(JailingPeriod::Forever {}) => (None, true),
-        Some(JailingPeriod::Until(u)) => (Some(u), false),
+    let (jailed_until, tombstoned) = match JAIL.may_load(deps.storage, &addr)?.map(|j| j.end) {
+        Some(JailingEnd::Forever {}) => (None, true),
+        Some(JailingEnd::Until(u)) => (Some(u), false),
         None => (None, false),
     };
     Ok(ListValidatorSlashingResponse {
@@ -878,7 +878,7 @@ fn calculate_diff(
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn migrate(
-    deps: DepsMut<TgradeQuery>,
+    mut deps: DepsMut<TgradeQuery>,
     _env: Env,
     msg: MigrateMsg,
 ) -> Result<Response, ContractError> {
@@ -893,6 +893,12 @@ pub fn migrate(
         }
         Ok(cfg)
     })?;
+
+    let stored_version = get_contract_version(deps.storage)?;
+    // Unwrapping as version check before would fail if stored version is invalid
+    let stored_version: Version = stored_version.version.parse().unwrap();
+
+    migrate_jailing_period(deps.branch(), &stored_version)?;
 
     Ok(Response::new())
 }
@@ -983,7 +989,11 @@ fn begin_block<Q: CustomQuery>(
                     config.double_sign_slash_ratio,
                 )?;
 
-                JAIL.save(deps.storage, &validator, &JailingPeriod::Forever {})?;
+                JAIL.save(
+                    deps.storage,
+                    &validator,
+                    &JailingPeriod::from_duration(JailingDuration::Forever {}, &env.block),
+                )?;
 
                 response = response
                     .clone()
