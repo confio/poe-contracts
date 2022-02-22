@@ -99,7 +99,7 @@ impl<'a> Ballots<'a> {
         limit: usize,
     ) -> StdResult<VoteListResponse> {
         let addr = maybe_addr(deps.api, start_after)?;
-        let start = addr.map(|addr| Bound::exclusive(addr.as_ref()));
+        let start = addr.as_ref().map(Bound::exclusive);
 
         let votes: StdResult<Vec<_>> = self
             .ballots
@@ -127,7 +127,7 @@ impl<'a> Ballots<'a> {
         start_after: Option<u64>,
         limit: usize,
     ) -> StdResult<VoteListResponse> {
-        let start = start_after.map(Bound::exclusive_int);
+        let start = start_after.map(Bound::exclusive);
         let voter_addr = deps.api.addr_validate(&voter)?;
 
         let votes: StdResult<Vec<_>> = self
