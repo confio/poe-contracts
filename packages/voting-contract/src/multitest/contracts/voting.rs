@@ -143,7 +143,9 @@ impl Contract<TgradeMsg, TgradeQuery> for VotingContract {
                 env,
                 proposal_id,
             )?),
-            Vote { proposal_id, voter } => to_binary(&query_vote(deps, proposal_id, voter)?),
+            Vote { proposal_id, voter } => {
+                to_binary(&ballots().query_vote(deps, proposal_id, voter)?)
+            }
             ListProposals { start_after, limit } => to_binary(&list_proposals::<
                 self::Proposal,
                 TgradeQuery,

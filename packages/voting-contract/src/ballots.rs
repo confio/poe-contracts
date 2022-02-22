@@ -1,7 +1,7 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use cosmwasm_std::{Addr, Deps, Order, StdResult, Storage};
+use cosmwasm_std::{Addr, CustomQuery, Deps, Order, StdResult, Storage};
 use cw_storage_plus::Bound;
 use cw_storage_plus::{Index, IndexList, IndexedMap, MultiIndex};
 use cw_utils::maybe_addr;
@@ -20,7 +20,7 @@ pub struct Ballot {
 }
 
 struct BallotIndexes<'a> {
-    pub voter: MultiIndex<'a, Addr, Ballot>,
+    pub voter: MultiIndex<'a, Addr, Ballot, (u64, Addr)>,
 }
 
 impl<'a> IndexList<Ballot> for BallotIndexes<'a> {
@@ -70,9 +70,9 @@ impl<'a> Ballots<'a> {
         Ok(())
     }
 
-    pub fn query_vote(
+    pub fn query_vote<Q: CustomQuery>(
         &self,
-        deps: Deps,
+        deps: Deps<Q>,
         proposal_id: u64,
         voter: String,
     ) -> StdResult<VoteResponse> {
@@ -89,9 +89,9 @@ impl<'a> Ballots<'a> {
         Ok(VoteResponse { vote })
     }
 
-    pub fn query_votes(
+    pub fn query_votes<Q: CustomQuery>(
         &self,
-        deps: Deps,
+        deps: Deps<Q>,
         proposal_id: u64,
         start_after: Option<String>,
         limit: usize,
@@ -118,15 +118,15 @@ impl<'a> Ballots<'a> {
         Ok(VoteListResponse { votes: votes? })
     }
 
-    pub fn query_votes_by_voter(
+    pub fn query_votes_by_voter<Q: CustomQuery>(
         &self,
-        deps: Deps,
+        deps: Deps<Q>,
         voter: String,
         start_after: Option<u64>,
         limit: usize,
     ) -> StdResult<VoteListResponse> {
-        let start = start_after.map(Bound::exclusive);
         let voter_addr = deps.api.addr_validate(&voter)?;
+        let start = start_after.map(|m| Bound::exclusive((m, voter_addr.clone())));
 
         let votes: StdResult<Vec<_>> = self
             .ballots
