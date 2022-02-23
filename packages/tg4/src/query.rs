@@ -33,6 +33,21 @@ pub struct AdminResponse {
     pub admin: Option<String>,
 }
 
+#[derive(Serialize, Deserialize, Default, Clone, PartialEq, Debug)]
+pub struct MemberInfo {
+    pub points: u64,
+    pub start_height: Option<u64>,
+}
+
+impl MemberInfo {
+    pub fn new(points: u64) -> Self {
+        Self {
+            points,
+            start_height: None,
+        }
+    }
+}
+
 /// A group member has some points associated with them.
 /// This may all be equal, or may have meaning in the app that
 /// makes use of the group (eg. voting power)
