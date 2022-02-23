@@ -1,8 +1,11 @@
-use crate::{Hooks, Preauth, Slashers};
 use cosmwasm_std::Addr;
+
 use cw_controllers::Admin;
 use cw_storage_plus::{Index, IndexList, IndexedSnapshotMap, Item, MultiIndex, Strategy};
-use tg4::TOTAL_KEY;
+
+use tg4::{MemberInfo, TOTAL_KEY};
+
+use crate::{Hooks, Preauth, Slashers};
 
 pub const ADMIN: Admin = Admin::new("admin");
 pub const HOOKS: Hooks = Hooks::new("tg4-hooks");
@@ -13,12 +16,12 @@ pub const TOTAL: Item<u64> = Item::new(TOTAL_KEY);
 
 pub struct MemberIndexes<'a> {
     // Points (multi-)index (deserializing the (hidden) pk to Addr)
-    pub points: MultiIndex<'a, u64, u64, Addr>,
+    pub points: MultiIndex<'a, u64, MemberInfo, Addr>,
 }
 
-impl<'a> IndexList<u64> for MemberIndexes<'a> {
-    fn get_indexes(&'_ self) -> Box<dyn Iterator<Item = &'_ dyn Index<u64>> + '_> {
-        let v: Vec<&dyn Index<u64>> = vec![&self.points];
+impl<'a> IndexList<MemberInfo> for MemberIndexes<'a> {
+    fn get_indexes(&'_ self) -> Box<dyn Iterator<Item = &'_ dyn Index<MemberInfo>> + '_> {
+        let v: Vec<&dyn Index<MemberInfo>> = vec![&self.points];
         Box::new(v.into_iter())
     }
 }
@@ -27,9 +30,9 @@ impl<'a> IndexList<u64> for MemberIndexes<'a> {
 /// This allows to query the map members, sorted by points.
 /// The points index is a `MultiIndex`, as there can be multiple members with the same points.
 /// The points index is not snapshotted; only the current points are indexed at any given time.
-pub fn members<'a>() -> IndexedSnapshotMap<'a, &'a Addr, u64, MemberIndexes<'a>> {
+pub fn members<'a>() -> IndexedSnapshotMap<'a, &'a Addr, MemberInfo, MemberIndexes<'a>> {
     let indexes = MemberIndexes {
-        points: MultiIndex::new(|&w| w, tg4::MEMBERS_KEY, "members__points"),
+        points: MultiIndex::new(|mi| mi.points, tg4::MEMBERS_KEY, "members__points"),
     };
     IndexedSnapshotMap::new(
         tg4::MEMBERS_KEY,
