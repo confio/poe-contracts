@@ -1,6 +1,6 @@
 [package]
 name = "tg4-stake"
-version = "0.6.2"
+version = "0.7.0-alpha1"
 authors = ["Ethan Frey <ethanfrey@users.noreply.github.com>"]
 edition = "2018"
 description = "TG4 implementation of group based on staked tokens"
@@ -24,9 +24,9 @@ cw-utils = "0.12.1"
 cw2 = "0.12.1"
 cw-controllers = "0.12.1"
 cw-storage-plus = "0.12.1"
-tg4 = { path = "../../packages/tg4", version = "0.6.2" }
-tg-utils = { path = "../../packages/utils", version = "0.6.2" }
-tg-bindings = { path = "../../packages/bindings", version = "0.6.2" }
+tg4 = { path = "../../packages/tg4", version = "0.7.0-alpha1" }
+tg-utils = { path = "../../packages/utils", version = "0.7.0-alpha1" }
+tg-bindings = { path = "../../packages/bindings", version = "0.7.0-alpha1" }
 cosmwasm-std = "1.0.0-beta5"
 schemars = "0.8.1"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
@@ -35,4 +35,4 @@ itertools = "0.10"
 
 [dev-dependencies]
 cosmwasm-schema = { version = "1.0.0-beta5" }
-tg-bindings-test = { path = "../../packages/bindings-test", version = "0.6.2" }
+tg-bindings-test = { path = "../../packages/bindings-test", version = "0.7.0-alpha1" }

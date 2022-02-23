@@ -1,6 +1,6 @@
 [package]
 name = "tgrade-gov-reflect"
-version = "0.6.2"
+version = "0.7.0-alpha1"
 authors = ["Ethan Frey <ethanfrey@users.noreply.github.com>"]
 edition = "2018"
 description = "Implementing tgrade-gov-reflect voting contract"
@@ -26,7 +26,7 @@ backtraces = ["cosmwasm-std/backtraces"]
 [dependencies]
 cosmwasm-std = "1.0.0-beta5"
 cw-storage-plus = "0.12.1"
-tg-bindings = { version = "0.6.2", path = "../../packages/bindings" }
+tg-bindings = { version = "0.7.0-alpha1", path = "../../packages/bindings" }
 schemars = "0.8.1"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
 thiserror = "1"

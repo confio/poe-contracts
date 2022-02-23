@@ -1,6 +1,6 @@
 [package]
 name = "tg-voting-contract"
-version = "0.6.2"
+version = "0.7.0-alpha1"
 authors = ["Bartłomiej Kuras <bart.k@confio.gmbh>"]
 edition = "2018"
 description = "Generic utils for building voting contracts for tgrade"
@@ -12,14 +12,14 @@ license = "Apache-2.0"
 
 [dependencies]
 cw-utils = "0.12.1"
-tg3 = { path = "../../packages/tg3", version = "0.6.2" }
+tg3 = { path = "../../packages/tg3", version = "0.7.0-alpha1" }
 cw-storage-plus = "0.12.1"
 cosmwasm-std = "1.0.0-beta5"
 schemars = "0.8.1"
 serde = { version = "1", default-features = false, features = ["derive"] }
-tg4 = { path = "../tg4", version = "0.6.2" }
-tg-bindings = { path = "../bindings", version = "0.6.2" }
-tg-utils = { version = "0.6.2", path = "../utils" }
+tg4 = { path = "../tg4", version = "0.7.0-alpha1" }
+tg-bindings = { path = "../bindings", version = "0.7.0-alpha1" }
+tg-utils = { version = "0.7.0-alpha1", path = "../utils" }
 thiserror = { version = "1" }
 
 [dev-dependencies]
@@ -27,5 +27,5 @@ anyhow = "1"
 cosmwasm-schema = "1.0.0-beta5"
 cw-multi-test = "0.12.1"
 derivative = "2"
-tg-bindings-test = { path = "../../packages/bindings-test", version = "0.6.2" }
-tg4-engagement = { path = "../../contracts/tg4-engagement", version = "0.6.2", features = ["library"] }
+tg-bindings-test = { path = "../../packages/bindings-test", version = "0.7.0-alpha1" }
+tg4-engagement = { path = "../../contracts/tg4-engagement", version = "0.7.0-alpha1", features = ["library"] }
