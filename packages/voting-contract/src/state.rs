@@ -1,7 +1,7 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use cosmwasm_std::{Addr, BlockInfo, Decimal, StdResult, Storage, Uint128};
+use cosmwasm_std::{BlockInfo, Decimal, StdResult, Storage, Uint128};
 use cw_storage_plus::{Item, Map};
 use tg3::{Status, Vote};
 use tg4::Tg4Contract;
@@ -253,21 +253,10 @@ fn votes_needed(points: u64, percentage: Decimal) -> u64 {
     ((applied.u128() + PRECISION_FACTOR - 1) / PRECISION_FACTOR) as u64
 }
 
-// we cast a ballot with our chosen vote and a given points
-// stored under the key that voted
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
-pub struct Ballot {
-    pub points: u64,
-    pub vote: Vote,
-}
-
 // unique items
 pub const CONFIG: Item<Config> = Item::new("voting_config");
 pub const PROPOSAL_COUNT: Item<u64> = Item::new("proposal_count");
 
-// multiple-item map
-pub const BALLOTS: Map<(u64, &Addr), Ballot> = Map::new("votes");
-pub const BALLOTS_BY_VOTER: Map<(&Addr, u64), Ballot> = Map::new("votes_by_voter");
 pub fn proposals<'m, P>() -> Map<'m, u64, Proposal<P>> {
     Map::new("proposals")
 }
