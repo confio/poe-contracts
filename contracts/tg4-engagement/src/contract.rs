@@ -8,8 +8,8 @@ use cw2::set_contract_version;
 use cw_storage_plus::Bound;
 use cw_utils::maybe_addr;
 use tg4::{
-    HooksResponse, Member, MemberChangedHookMsg, MemberDiff, MemberListResponse, MemberResponse,
-    TotalPointsResponse,
+    HooksResponse, Member, MemberChangedHookMsg, MemberDiff, MemberInfo, MemberListResponse,
+    MemberResponse, TotalPointsResponse,
 };
 
 use crate::error::ContractError;
@@ -101,7 +101,12 @@ pub fn create<Q: CustomQuery>(
     for member in members_list.into_iter() {
         total += member.points;
         let member_addr = deps.api.addr_validate(&member.addr)?;
-        members().save(deps.storage, &member_addr, &member.points, height)?;
+        members().save(
+            deps.storage,
+            &member_addr,
+            &MemberInfo::new(member.points),
+            height,
+        )?;
 
         let adjustment = WithdrawAdjustment {
             shares_correction: 0i128.into(),
@@ -466,7 +471,7 @@ pub fn execute_slash<Q: CustomQuery>(
         env.block.height,
         |old| -> StdResult<_> {
             let old = match old {
-                Some(old) => Uint128::new(old as _),
+                Some(old) => Uint128::new(old.points as _),
                 None => Uint128::zero(),
             };
 
@@ -475,7 +480,7 @@ pub fn execute_slash<Q: CustomQuery>(
 
             diff = -(slash.u128() as i128);
 
-            Ok(new.u128() as _)
+            Ok(MemberInfo::new(new.u128() as _))
         },
     )?;
     apply_points_correction(deps.branch(), &addr, ppw, diff)?;
@@ -503,6 +508,7 @@ pub fn withdrawable_rewards<Q: CustomQuery>(
     let points: u128 = members()
         .may_load(deps.storage, owner)?
         .unwrap_or_default()
+        .points
         .into();
     let correction: i128 = adjustment.shares_correction.into();
     let withdrawn: u128 = adjustment.withdrawn_rewards.into();
@@ -552,13 +558,17 @@ pub fn update_members<Q: CustomQuery>(
         let mut diff = 0;
         let mut insert_funds = false;
         members().update(deps.storage, &add_addr, height, |old| -> StdResult<_> {
-            diffs.push(MemberDiff::new(add.addr, old, Some(add.points)));
+            diffs.push(MemberDiff::new(
+                add.addr,
+                old.as_ref().map(|mi| mi.points),
+                Some(add.points),
+            ));
             insert_funds = old.is_none();
             let old = old.unwrap_or_default();
-            total -= old;
+            total -= old.points;
             total += add.points;
-            diff = add.points as i128 - old as i128;
-            Ok(add.points)
+            diff = add.points as i128 - old.points as i128;
+            Ok(MemberInfo::new(add.points))
         })?;
         apply_points_correction(deps.branch(), &add_addr, ppw, diff)?;
     }
@@ -567,7 +577,7 @@ pub fn update_members<Q: CustomQuery>(
         let remove_addr = deps.api.addr_validate(&remove)?;
         let old = members().may_load(deps.storage, &remove_addr)?;
         // Only process this if they were actually in the list before
-        if let Some(points) = old {
+        if let Some(MemberInfo { points, .. }) = old {
             diffs.push(MemberDiff::new(remove, Some(points), None));
             total -= points;
             members().remove(deps.storage, &remove_addr, height)?;
@@ -645,7 +655,7 @@ fn end_block<Q: CustomQuery>(mut deps: DepsMut<Q>, env: Env) -> Result<Response,
         .range(deps.storage, None, None, Order::Ascending)
         .filter_map(|item| {
             (move || -> StdResult<Option<_>> {
-                let (addr, points) = item?;
+                let (addr, MemberInfo { points, .. }) = item?;
                 if points <= 1 {
                     return Ok(None);
                 }
@@ -665,8 +675,8 @@ fn end_block<Q: CustomQuery>(mut deps: DepsMut<Q>, env: Env) -> Result<Response,
         members().replace(
             deps.storage,
             &addr,
-            Some(&(member.points - diff)),
-            Some(&member.points),
+            Some(&MemberInfo::new(member.points - diff)),
+            Some(&MemberInfo::new(member.points)),
             env.block.height,
         )?;
         apply_points_correction(deps.branch(), &addr, ppw, -(diff as i128))?;
@@ -746,7 +756,8 @@ fn query_member<Q: CustomQuery>(
     let points = match height {
         Some(h) => members().may_load_at_height(deps.storage, &addr, h),
         None => members().may_load(deps.storage, &addr),
-    }?;
+    }?
+    .map(|mi| mi.points);
     Ok(MemberResponse { points })
 }
 
@@ -844,7 +855,7 @@ fn list_members<Q: CustomQuery>(
         .range(deps.storage, start, None, Order::Ascending)
         .take(limit)
         .map(|item| {
-            let (addr, points) = item?;
+            let (addr, MemberInfo { points, .. }) = item?;
             Ok(Member {
                 addr: addr.into(),
                 points,
@@ -874,7 +885,7 @@ fn list_members_by_points<Q: CustomQuery>(
         .range(deps.storage, None, start, Order::Descending)
         .take(limit)
         .map(|item| {
-            let (addr, points) = item?;
+            let (addr, MemberInfo { points, .. }) = item?;
             Ok(Member {
                 addr: addr.into(),
                 points,
@@ -1537,8 +1548,8 @@ mod tests {
 
         // get member votes from raw key
         let member2_raw = deps.storage.get(&member_key(USER2)).unwrap();
-        let member2: u64 = from_slice(&member2_raw).unwrap();
-        assert_eq!(6, member2);
+        let member2: MemberInfo = from_slice(&member2_raw).unwrap();
+        assert_eq!(6, member2.points);
 
         // and execute misses
         let member3_raw = deps.storage.get(&member_key(USER3));
