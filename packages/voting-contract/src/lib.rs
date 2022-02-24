@@ -1,5 +1,5 @@
-mod ballots;
-mod error;
+pub mod ballots;
+pub mod error;
 pub mod msg;
 #[cfg(test)]
 mod multitest;

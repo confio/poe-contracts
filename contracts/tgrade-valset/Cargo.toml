@@ -1,6 +1,6 @@
 [package]
 name = "tgrade-valset"
-version = "0.7.0-alpha1"
+version = "0.7.0-alpha2"
 authors = ["Ethan Frey <ethanfrey@users.noreply.github.com>"]
 edition = "2018"
 description = "Control the validator set based on membership of trusted tg4 contract"
@@ -36,9 +36,9 @@ schemars = "0.8"
 semver = "1"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
 thiserror = { version = "1.0.21" }
-tg4 = { path = "../../packages/tg4", version = "0.7.0-alpha1" }
-tg-bindings = { version = "0.7.0-alpha1", path = "../../packages/bindings" }
-tg-utils = { version = "0.7.0-alpha1", path = "../../packages/utils" }
+tg4 = { path = "../../packages/tg4", version = "0.7.0-alpha2" }
+tg-bindings = { version = "0.7.0-alpha2", path = "../../packages/bindings" }
+tg-utils = { version = "0.7.0-alpha2", path = "../../packages/utils" }
 
 # For integration tests ("integration" feature)
 bech32 = { version = "0.8.1", optional = true }
@@ -47,10 +47,10 @@ cosmwasm-vm = { version = "1.0.0-beta5", optional = true, default-features = fal
 [dev-dependencies]
 cosmwasm-schema = { version = "1.0.0-beta5" }
 cw-multi-test = "0.12.1"
-tg4-engagement = { path = "../tg4-engagement", version = "0.7.0-alpha1" }
-tg4-stake = { path = "../tg4-stake", version = "0.7.0-alpha1" }
+tg4-engagement = { path = "../tg4-engagement", version = "0.7.0-alpha2" }
+tg4-stake = { path = "../tg4-stake", version = "0.7.0-alpha2" }
 # we enable multitest feature only for tests
-tg-bindings-test = { path = "../../packages/bindings-test", version = "0.7.0-alpha1" }
+tg-bindings-test = { path = "../../packages/bindings-test", version = "0.7.0-alpha2" }
 derivative = "2"
 anyhow = "1"
 assert_matches = "1.5"
