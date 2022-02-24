@@ -11,17 +11,18 @@ use cw_utils::maybe_addr;
 
 use tg_bindings::{TgradeMsg, TgradeQuery};
 use tg_utils::{
-    ensure_from_older_version, members, validate_portion, SlashMsg, HOOKS, PREAUTH_HOOKS,
-    PREAUTH_SLASHING, SLASHERS, TOTAL,
+    ensure_from_older_version, validate_portion, SlashMsg, HOOKS, PREAUTH_HOOKS, PREAUTH_SLASHING,
+    SLASHERS, TOTAL,
 };
 
 use tg4::{
-    HooksResponse, Member, MemberChangedHookMsg, MemberDiff, MemberListResponse, MemberResponse,
-    Tg4Contract, TotalPointsResponse,
+    HooksResponse, Member, MemberChangedHookMsg, MemberDiff, MemberInfo, MemberListResponse,
+    MemberResponse, Tg4Contract, TotalPointsResponse,
 };
 
 use crate::error::ContractError;
 use crate::functions::PoEFunction;
+use crate::member_indexes::members;
 use crate::msg::{
     ExecuteMsg, GroupsResponse, InstantiateMsg, MixerFunctionResponse, PoEFunctionType,
     PreauthResponse, QueryMsg,
@@ -114,7 +115,12 @@ fn initialize_members<Q: CustomQuery>(
             if let Some(right) = other {
                 let points = poe_function.mix(member.points, right)?;
                 total += points;
-                members().save(deps.storage, &addr, &points, height)?;
+                members().save(
+                    deps.storage,
+                    &addr,
+                    &MemberInfo::new_with_height(points, height),
+                    height,
+                )?;
             }
         }
         // and get the next page
@@ -212,17 +218,29 @@ pub fn update_members<Q: CustomQuery>(
         // update the total with changes.
         // to calculate this, we need to load the old points before saving the new points
         let prev_points = mems.may_load(deps.storage, &member_addr)?;
-        total -= prev_points.unwrap_or_default();
+        // convenience unwrap or default
+        let points = prev_points.clone().unwrap_or_default();
+        total -= points.points;
         total += new_points.unwrap_or_default();
+        let prev_height = points.start_height.unwrap_or(i64::MAX as u64 + 1); // Default shouldn't be needed
 
         // store the new value
         match new_points {
-            Some(points) => mems.save(deps.storage, &member_addr, &points, height)?,
+            Some(points) => mems.save(
+                deps.storage,
+                &member_addr,
+                &MemberInfo::new_with_height(points, prev_height),
+                height,
+            )?,
             None => mems.remove(deps.storage, &member_addr, height)?,
         };
 
         // return the diff
-        diffs.push(MemberDiff::new(member_addr, prev_points, new_points));
+        diffs.push(MemberDiff::new(
+            member_addr,
+            prev_points.map(|mi| mi.points),
+            new_points,
+        ));
     }
 
     TOTAL.save(deps.storage, &total)?;
@@ -407,7 +425,8 @@ fn query_member<Q: CustomQuery>(
     let points = match height {
         Some(h) => members().may_load_at_height(deps.storage, &addr, h),
         None => members().may_load(deps.storage, &addr),
-    }?;
+    }?
+    .map(|mi| mi.points);
     Ok(MemberResponse { points })
 }
 
@@ -428,7 +447,7 @@ fn list_members<Q: CustomQuery>(
         .range(deps.storage, start, None, Order::Ascending)
         .take(limit)
         .map(|item| {
-            let (addr, points) = item?;
+            let (addr, MemberInfo { points, .. }) = item?;
             Ok(Member {
                 addr: addr.into(),
                 points,
@@ -458,7 +477,7 @@ fn list_members_by_points<Q: CustomQuery>(
         .range(deps.storage, None, start, Order::Descending)
         .take(limit)
         .map(|item| {
-            let (addr, points) = item?;
+            let (addr, MemberInfo { points, .. }) = item?;
             Ok(Member {
                 addr: addr.into(),
                 points,
