@@ -46,6 +46,13 @@ impl MemberInfo {
             start_height: None,
         }
     }
+
+    pub fn new_with_height(points: u64, height: u64) -> Self {
+        Self {
+            points,
+            start_height: Some(height),
+        }
+    }
 }
 
 /// A group member has some points associated with them.
