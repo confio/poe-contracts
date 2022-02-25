@@ -168,9 +168,7 @@ pub fn execute_add_points<Q: CustomQuery>(
 
     ADMIN.assert_admin(deps.as_ref(), &info.sender)?;
 
-    let old_points = query_member(deps.as_ref(), addr.clone(), None)?
-        .points
-        .unwrap_or_default();
+    let old_points = query_member(deps.as_ref(), addr.clone(), None)?;
 
     // make the local update
     let diff = update_members(
@@ -178,7 +176,8 @@ pub fn execute_add_points<Q: CustomQuery>(
         env.block.height,
         vec![Member {
             addr,
-            points: old_points + points,
+            points: old_points.points.unwrap_or_default() + points,
+            start_height: old_points.start_height,
         }],
         vec![],
     )?;
@@ -655,13 +654,20 @@ fn end_block<Q: CustomQuery>(mut deps: DepsMut<Q>, env: Env) -> Result<Response,
         .range(deps.storage, None, None, Order::Ascending)
         .filter_map(|item| {
             (move || -> StdResult<Option<_>> {
-                let (addr, MemberInfo { points, .. }) = item?;
+                let (
+                    addr,
+                    MemberInfo {
+                        points,
+                        start_height,
+                    },
+                ) = item?;
                 if points <= 1 {
                     return Ok(None);
                 }
                 Ok(Some(Member {
                     addr: addr.into(),
                     points,
+                    start_height,
                 }))
             })()
             .transpose()
@@ -758,7 +764,10 @@ fn query_member<Q: CustomQuery>(
         None => members().may_load(deps.storage, &addr),
     }?
     .map(|mi| mi.points);
-    Ok(MemberResponse { points })
+    Ok(MemberResponse {
+        points,
+        start_height: None,
+    })
 }
 
 pub fn query_withdrawable_rewards<Q: CustomQuery>(
@@ -855,10 +864,17 @@ fn list_members<Q: CustomQuery>(
         .range(deps.storage, start, None, Order::Ascending)
         .take(limit)
         .map(|item| {
-            let (addr, MemberInfo { points, .. }) = item?;
+            let (
+                addr,
+                MemberInfo {
+                    points,
+                    start_height,
+                },
+            ) = item?;
             Ok(Member {
                 addr: addr.into(),
                 points,
+                start_height,
             })
         })
         .collect();
@@ -885,10 +901,17 @@ fn list_members_by_points<Q: CustomQuery>(
         .range(deps.storage, None, start, Order::Descending)
         .take(limit)
         .map(|item| {
-            let (addr, MemberInfo { points, .. }) = item?;
+            let (
+                addr,
+                MemberInfo {
+                    points,
+                    start_height,
+                },
+            ) = item?;
             Ok(Member {
                 addr: addr.into(),
                 points,
+                start_height,
             })
         })
         .collect();
