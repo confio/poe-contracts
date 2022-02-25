@@ -733,6 +733,20 @@ mod tests {
         assert_eq!(points(VOTER5), voter5);
     }
 
+    fn list_members_by_points(
+        app: &BasicApp<TgradeMsg, TgradeQuery>,
+        mixer_addr: &Addr,
+        start_after: Option<Member>,
+        limit: Option<u32>,
+    ) -> MemberListResponse {
+        app.wrap()
+            .query_wasm_smart(
+                mixer_addr,
+                &QueryMsg::ListMembersByPoints { start_after, limit },
+            )
+            .unwrap()
+    }
+
     #[test]
     fn basic_init() {
         let stakers = vec![
@@ -1023,6 +1037,125 @@ mod tests {
             Some(1200),
             None,
             None,
+        );
+    }
+
+    #[test]
+    fn list_members_by_points_tie_breaking() {
+        let stakers = vec![
+            member(VOTER1, 10000), // 10000 stake, 100 points -> 1000 mixed
+            member(VOTER3, 7500),  // 7500 stake, 300 points -> 1500 mixed
+            member(VOTER2, 50),    // below stake threshold -> None
+        ];
+
+        let mut app = AppBuilder::new_custom().build(|router, _, storage| {
+            router
+                .bank
+                .init_balance(
+                    storage,
+                    &Addr::unchecked(RESERVE),
+                    coins(10000, STAKE_DENOM),
+                )
+                .unwrap();
+
+            for staker in &stakers {
+                router
+                    .bank
+                    .init_balance(
+                        storage,
+                        &Addr::unchecked(&staker.addr),
+                        coins(staker.points as u128, STAKE_DENOM),
+                    )
+                    .unwrap();
+            }
+        });
+
+        let (mixer_addr, _, staker_addr) = setup_test_case(&mut app, stakers);
+
+        // query the membership values
+        check_membership(
+            &app,
+            &mixer_addr,
+            None,
+            Some(1000),
+            None,
+            Some(1500),
+            None,
+            None,
+        );
+
+        // list members by points
+        let members = list_members_by_points(&app, &mixer_addr, None, None);
+
+        assert_eq!(
+            members,
+            MemberListResponse {
+                members: vec![
+                    Member {
+                        addr: VOTER3.into(),
+                        points: 1500,
+                        start_height: Some(12347)
+                    },
+                    Member {
+                        addr: VOTER1.into(),
+                        points: 1000,
+                        start_height: Some(12347)
+                    },
+                ]
+            }
+        );
+
+        // add an extra member for tie-breaking tests
+        let balance = coins(4950, STAKE_DENOM); // Total equivalent as voter1
+        app.execute(
+            Addr::unchecked(RESERVE),
+            BankMsg::Send {
+                to_address: VOTER2.to_owned(),
+                amount: balance.clone(),
+            }
+            .into(),
+        )
+        .unwrap();
+        let msg = tg4_stake::msg::ExecuteMsg::Bond {};
+        app.execute_contract(Addr::unchecked(VOTER2), staker_addr, &msg, &balance)
+            .unwrap();
+
+        // check updated points
+        check_membership(
+            &app,
+            &mixer_addr,
+            None,
+            Some(1000),
+            Some(1000),
+            Some(1500),
+            None,
+            None,
+        );
+
+        // list members by points
+        let members = list_members_by_points(&app, &mixer_addr, None, None);
+
+        assert_eq!(
+            members,
+            MemberListResponse {
+                members: vec![
+                    Member {
+                        addr: VOTER3.into(),
+                        points: 1500,
+                        start_height: Some(12347)
+                    },
+                    Member {
+                        addr: VOTER1.into(),
+                        points: 1000,
+                        start_height: Some(12347)
+                    },
+                    Member {
+                        addr: VOTER2.into(),
+                        points: 1000,
+                        start_height: Some(i64::MAX as u64 + 1)
+                    },
+                ]
+            }
         );
     }
 
