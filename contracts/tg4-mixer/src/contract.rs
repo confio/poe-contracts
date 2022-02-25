@@ -476,16 +476,14 @@ fn list_members_by_points<Q: CustomQuery>(
 ) -> StdResult<MemberListResponse> {
     let limit = limit.unwrap_or(DEFAULT_LIMIT).min(MAX_LIMIT) as usize;
     let start = start_after
-        .map(|m| {
-            deps.api.addr_validate(&m.addr).map(|addr| {
-                Bound::exclusive((
-                    (
-                        m.points,
-                        -(m.start_height.unwrap_or(i64::MAX as u64 + 1) as i64),
-                    ),
-                    addr,
-                ))
-            })
+        .map(|m| match m.start_height {
+            None => Err(StdError::generic_err(
+                "The 'start_height' parameter is required for proper pagination",
+            )),
+            Some(start_height) => deps
+                .api
+                .addr_validate(&m.addr)
+                .map(|addr| Bound::exclusive(((m.points, -(start_height as i64)), addr))),
         })
         .transpose()?;
     let members: StdResult<Vec<_>> = members()
