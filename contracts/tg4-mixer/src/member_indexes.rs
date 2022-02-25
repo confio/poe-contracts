@@ -6,13 +6,12 @@ use tg4::MemberInfo;
 // Copied from `tg-utils` and re-defined here for the extra tie-break index
 pub struct MemberIndexes<'a> {
     // Points (multi-)indexes (deserializing the (hidden) pk to Addr)
-    pub points: MultiIndex<'a, u64, MemberInfo, Addr>,
     pub points_tie_break: MultiIndex<'a, (u64, i64), MemberInfo, Addr>,
 }
 
 impl<'a> IndexList<MemberInfo> for MemberIndexes<'a> {
     fn get_indexes(&'_ self) -> Box<dyn Iterator<Item = &'_ dyn Index<MemberInfo>> + '_> {
-        let v: Vec<&dyn Index<MemberInfo>> = vec![&self.points, &self.points_tie_break];
+        let v: Vec<&dyn Index<MemberInfo>> = vec![&self.points_tie_break];
         Box::new(v.into_iter())
     }
 }
@@ -32,7 +31,6 @@ impl<'a> IndexList<MemberInfo> for MemberIndexes<'a> {
 /// The indexes are not snapshotted; only the current points are indexed at any given time.
 pub fn members<'a>() -> IndexedSnapshotMap<'a, &'a Addr, MemberInfo, MemberIndexes<'a>> {
     let indexes = MemberIndexes {
-        points: MultiIndex::new(|mi| mi.points, tg4::MEMBERS_KEY, "members__points"),
         points_tie_break: MultiIndex::new(
             |mi| {
                 (
