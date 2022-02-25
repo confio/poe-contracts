@@ -422,12 +422,16 @@ fn query_member<Q: CustomQuery>(
     height: Option<u64>,
 ) -> StdResult<MemberResponse> {
     let addr = deps.api.addr_validate(&addr)?;
-    let points = match height {
+    let mi = match height {
         Some(h) => members().may_load_at_height(deps.storage, &addr, h),
         None => members().may_load(deps.storage, &addr),
-    }?
-    .map(|mi| mi.points);
-    Ok(MemberResponse { points })
+    }?;
+    let points = mi.as_ref().map(|mi| mi.points);
+    let start_height = mi.map(|mi| mi.start_height).unwrap_or(None);
+    Ok(MemberResponse {
+        points,
+        start_height,
+    })
 }
 
 // settings for pagination
@@ -447,10 +451,17 @@ fn list_members<Q: CustomQuery>(
         .range(deps.storage, start, None, Order::Ascending)
         .take(limit)
         .map(|item| {
-            let (addr, MemberInfo { points, .. }) = item?;
+            let (
+                addr,
+                MemberInfo {
+                    points,
+                    start_height,
+                },
+            ) = item?;
             Ok(Member {
                 addr: addr.into(),
                 points,
+                start_height,
             })
         })
         .collect();
@@ -466,21 +477,34 @@ fn list_members_by_points<Q: CustomQuery>(
     let limit = limit.unwrap_or(DEFAULT_LIMIT).min(MAX_LIMIT) as usize;
     let start = start_after
         .map(|m| {
-            deps.api
-                .addr_validate(&m.addr)
-                .map(|addr| Bound::exclusive((m.points, addr)))
+            deps.api.addr_validate(&m.addr).map(|addr| {
+                Bound::exclusive((
+                    (
+                        m.points,
+                        -(m.start_height.unwrap_or(i64::MAX as u64 + 1) as i64),
+                    ),
+                    addr,
+                ))
+            })
         })
         .transpose()?;
     let members: StdResult<Vec<_>> = members()
         .idx
-        .points
+        .points_tie_break
         .range(deps.storage, None, start, Order::Descending)
         .take(limit)
         .map(|item| {
-            let (addr, MemberInfo { points, .. }) = item?;
+            let (
+                addr,
+                MemberInfo {
+                    points,
+                    start_height,
+                },
+            ) = item?;
             Ok(Member {
                 addr: addr.into(),
                 points,
+                start_height,
             })
         })
         .collect();
@@ -535,6 +559,7 @@ mod tests {
         Member {
             addr: addr.into(),
             points,
+            start_height: None,
         }
     }
 
@@ -822,10 +847,12 @@ mod tests {
                 Member {
                     addr: VOTER2.into(),
                     points: 300,
+                    start_height: None,
                 },
                 Member {
                     addr: VOTER3.into(),
                     points: 1200,
+                    start_height: None,
                 },
             ],
         };
@@ -897,10 +924,12 @@ mod tests {
                     Member {
                         addr: VOTER2.to_owned(),
                         points: 400,
+                        start_height: None,
                     },
                     Member {
                         addr: VOTER1.to_owned(),
                         points: 8000,
+                        start_height: None,
                     },
                 ],
                 remove: vec![VOTER3.to_owned()],
