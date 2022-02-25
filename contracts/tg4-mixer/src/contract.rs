@@ -738,13 +738,15 @@ mod tests {
         mixer_addr: &Addr,
         start_after: Option<Member>,
         limit: Option<u32>,
-    ) -> MemberListResponse {
-        app.wrap()
+    ) -> Vec<Member> {
+        let res: MemberListResponse = app
+            .wrap()
             .query_wasm_smart(
                 mixer_addr,
                 &QueryMsg::ListMembersByPoints { start_after, limit },
             )
-            .unwrap()
+            .unwrap();
+        res.members
     }
 
     #[test]
@@ -1089,20 +1091,18 @@ mod tests {
 
         assert_eq!(
             members,
-            MemberListResponse {
-                members: vec![
-                    Member {
-                        addr: VOTER3.into(),
-                        points: 1500,
-                        start_height: Some(12347)
-                    },
-                    Member {
-                        addr: VOTER1.into(),
-                        points: 1000,
-                        start_height: Some(12347)
-                    },
-                ]
-            }
+            vec![
+                Member {
+                    addr: VOTER3.into(),
+                    points: 1500,
+                    start_height: Some(12347)
+                },
+                Member {
+                    addr: VOTER1.into(),
+                    points: 1000,
+                    start_height: Some(12347)
+                },
+            ]
         );
 
         // add an extra member for tie-breaking tests
@@ -1135,28 +1135,73 @@ mod tests {
         // list members by points
         let members = list_members_by_points(&app, &mixer_addr, None, None);
 
+        // Assert the set is sorted by (descending) points, breaking ties by (ascending) start_height
         assert_eq!(
             members,
-            MemberListResponse {
-                members: vec![
-                    Member {
-                        addr: VOTER3.into(),
-                        points: 1500,
-                        start_height: Some(12347)
-                    },
-                    Member {
-                        addr: VOTER1.into(),
-                        points: 1000,
-                        start_height: Some(12347)
-                    },
-                    Member {
-                        addr: VOTER2.into(),
-                        points: 1000,
-                        start_height: Some(12348) // VOTER2 should come first, lexicographically (descending order)
-                    },
-                ]
-            }
+            vec![
+                Member {
+                    addr: VOTER3.into(),
+                    points: 1500,
+                    start_height: Some(12347)
+                },
+                Member {
+                    addr: VOTER1.into(),
+                    points: 1000,
+                    start_height: Some(12347)
+                },
+                Member {
+                    addr: VOTER2.into(),
+                    points: 1000,
+                    start_height: Some(12348) // VOTER2 should come first, lexicographically (descending order)
+                },
+            ]
         );
+
+        // Test pagination / limits work
+        let members = list_members_by_points(&app, &mixer_addr, None, Some(1));
+        assert_eq!(members.len(), 1);
+        // Assert the set is proper
+        assert_eq!(
+            members,
+            vec![Member {
+                addr: VOTER3.into(),
+                points: 1500,
+                start_height: Some(12347)
+            }]
+        );
+
+        // Next page
+        let start_after = Some(members[0].clone());
+        let members = list_members_by_points(&app, &mixer_addr, start_after, Some(1));
+        assert_eq!(members.len(), 1);
+        // Assert the set is proper
+        assert_eq!(
+            members,
+            vec![Member {
+                addr: VOTER1.into(),
+                points: 1000,
+                start_height: Some(12347)
+            },]
+        );
+
+        // Next page
+        let start_after = Some(members[0].clone());
+        let members = list_members_by_points(&app, &mixer_addr, start_after, Some(1));
+        assert_eq!(members.len(), 1);
+        // Assert the set is proper
+        assert_eq!(
+            members,
+            vec![Member {
+                addr: VOTER2.into(),
+                points: 1000,
+                start_height: Some(12348) // VOTER2 should come first, lexicographically (descending order)
+            },]
+        );
+
+        // Assert there's no more
+        let start_after = Some(members[0].clone());
+        let members = list_members_by_points(&app, &mixer_addr, start_after, Some(1));
+        assert_eq!(members.len(), 0);
     }
 
     // TODO: multi-test to init!
