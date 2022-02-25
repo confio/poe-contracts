@@ -11,6 +11,7 @@ fn member(addr: &str, points: u64) -> Member {
     Member {
         addr: addr.to_owned(),
         points,
+        start_height: None,
     }
 }
 

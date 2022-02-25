@@ -61,6 +61,7 @@ impl SuiteBuilder {
         self.group_members.push(Member {
             addr: addr.to_owned(),
             points,
+            start_height: None,
         });
         self
     }
