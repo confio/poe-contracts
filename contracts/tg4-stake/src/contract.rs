@@ -623,7 +623,10 @@ fn query_member<Q: CustomQuery>(
         None => members().may_load(deps.storage, &addr),
     }?
     .map(|mi| mi.points);
-    Ok(MemberResponse { points })
+    Ok(MemberResponse {
+        points,
+        start_height: None,
+    })
 }
 
 // settings for pagination
@@ -643,10 +646,17 @@ fn list_members<Q: CustomQuery>(
         .range(deps.storage, start, None, Order::Ascending)
         .take(limit)
         .map(|item| {
-            let (addr, MemberInfo { points, .. }) = item?;
+            let (
+                addr,
+                MemberInfo {
+                    points,
+                    start_height,
+                },
+            ) = item?;
             Ok(Member {
                 addr: addr.into(),
                 points,
+                start_height,
             })
         })
         .collect();
@@ -674,10 +684,17 @@ fn list_members_by_points<Q: CustomQuery>(
         .range(deps.storage, None, start, Order::Descending)
         .take(limit)
         .map(|item| {
-            let (addr, MemberInfo { points, .. }) = item?;
+            let (
+                addr,
+                MemberInfo {
+                    points,
+                    start_height,
+                },
+            ) = item?;
             Ok(Member {
                 addr: addr.into(),
                 points,
+                start_height,
             })
         })
         .collect();
@@ -1041,11 +1058,13 @@ mod tests {
             vec![
                 Member {
                     addr: USER1.into(),
-                    points: 12
+                    points: 12,
+                    start_height: None
                 },
                 Member {
                     addr: USER2.into(),
-                    points: 7
+                    points: 7,
+                    start_height: None
                 },
             ]
         );
@@ -1058,7 +1077,8 @@ mod tests {
             members,
             vec![Member {
                 addr: USER1.into(),
-                points: 12
+                points: 12,
+                start_height: None
             },]
         );
 
@@ -1073,7 +1093,8 @@ mod tests {
             members,
             vec![Member {
                 addr: USER2.into(),
-                points: 7
+                points: 7,
+                start_height: None
             },]
         );
 
@@ -1102,15 +1123,18 @@ mod tests {
             vec![
                 Member {
                     addr: USER1.into(),
-                    points: 11
+                    points: 11,
+                    start_height: None
                 },
                 Member {
                     addr: USER2.into(),
-                    points: 6
+                    points: 6,
+                    start_height: None
                 },
                 Member {
                     addr: USER3.into(),
-                    points: 5
+                    points: 5,
+                    start_height: None
                 }
             ]
         );
@@ -1125,7 +1149,8 @@ mod tests {
             members,
             vec![Member {
                 addr: USER1.into(),
-                points: 11
+                points: 11,
+                start_height: None
             },]
         );
 
@@ -1142,11 +1167,13 @@ mod tests {
             vec![
                 Member {
                     addr: USER2.into(),
-                    points: 6
+                    points: 6,
+                    start_height: None
                 },
                 Member {
                     addr: USER3.into(),
-                    points: 5
+                    points: 5,
+                    start_height: None
                 }
             ]
         );
