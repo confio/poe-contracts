@@ -219,10 +219,10 @@ pub fn update_members<Q: CustomQuery>(
         // to calculate this, we need to load the old points before saving the new points
         let prev_points = mems.may_load(deps.storage, &member_addr)?;
         // convenience unwrap or default
-        let points = prev_points.clone().unwrap_or_default();
-        total -= points.points;
+        let prev_points_unwrap = prev_points.clone().unwrap_or_default();
+        total -= prev_points_unwrap.points;
         total += new_points.unwrap_or_default();
-        let prev_height = points.start_height.unwrap_or(i64::MAX as u64 + 1); // Default shouldn't be needed
+        let prev_height = prev_points_unwrap.start_height.unwrap_or(height);
 
         // store the new value
         match new_points {
@@ -1152,7 +1152,7 @@ mod tests {
                     Member {
                         addr: VOTER2.into(),
                         points: 1000,
-                        start_height: Some(i64::MAX as u64 + 1)
+                        start_height: Some(12348) // VOTER2 should come first, lexicographically (descending order)
                     },
                 ]
             }
