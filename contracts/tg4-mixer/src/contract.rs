@@ -426,12 +426,7 @@ fn query_member<Q: CustomQuery>(
         Some(h) => members().may_load_at_height(deps.storage, &addr, h),
         None => members().may_load(deps.storage, &addr),
     }?;
-    let points = mi.as_ref().map(|mi| mi.points);
-    let start_height = mi.map(|mi| mi.start_height).unwrap_or(None);
-    Ok(MemberResponse {
-        points,
-        start_height,
-    })
+    Ok(mi.into())
 }
 
 // settings for pagination

@@ -759,15 +759,11 @@ fn query_member<Q: CustomQuery>(
     height: Option<u64>,
 ) -> StdResult<MemberResponse> {
     let addr = deps.api.addr_validate(&addr)?;
-    let points = match height {
+    let mi = match height {
         Some(h) => members().may_load_at_height(deps.storage, &addr, h),
         None => members().may_load(deps.storage, &addr),
-    }?
-    .map(|mi| mi.points);
-    Ok(MemberResponse {
-        points,
-        start_height: None,
-    })
+    }?;
+    Ok(mi.into())
 }
 
 pub fn query_withdrawable_rewards<Q: CustomQuery>(
