@@ -62,6 +62,7 @@ impl MemberInfo {
 pub struct Member {
     pub addr: String,
     pub points: u64,
+    pub start_height: Option<u64>,
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
@@ -72,6 +73,7 @@ pub struct MemberListResponse {
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 pub struct MemberResponse {
     pub points: Option<u64>,
+    pub start_height: Option<u64>,
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
