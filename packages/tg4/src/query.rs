@@ -76,6 +76,21 @@ pub struct MemberResponse {
     pub start_height: Option<u64>,
 }
 
+impl From<Option<MemberInfo>> for MemberResponse {
+    fn from(mi: Option<MemberInfo>) -> Self {
+        match mi {
+            None => Self {
+                points: None,
+                start_height: None,
+            },
+            Some(mi) => Self {
+                points: Some(mi.points),
+                start_height: mi.start_height,
+            },
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 pub struct TotalPointsResponse {
     pub points: u64,
