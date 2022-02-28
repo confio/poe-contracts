@@ -410,12 +410,15 @@ pub fn sudo(
 fn privilege_promote<Q: CustomQuery>(deps: DepsMut<Q>) -> Result<Response, ContractError> {
     let config = CONFIG.load(deps.storage)?;
 
+    let mut res = Response::new();
     if config.auto_return_limit > 0 {
         let msgs = request_privileges(&[Privilege::EndBlocker]);
-        Ok(Response::new().add_submessages(msgs))
-    } else {
-        Ok(Response::new())
+        res = res.add_submessages(msgs);
     }
+    let msgs = request_privileges(&[Privilege::Delegator]);
+    res = res.add_submessages(msgs);
+
+    Ok(res)
 }
 
 fn end_block<Q: CustomQuery>(deps: DepsMut<Q>, env: Env) -> Result<Response, ContractError> {
