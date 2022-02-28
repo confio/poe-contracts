@@ -107,6 +107,13 @@ fn confirm_admin_in_contract(
         if admin == env.contract.address {
             return Ok(());
         }
+        // FIXME: Temporary hack for updating tfi contracts
+        if admin.is_empty() {
+            return Ok(());
+        }
+    } else {
+        // FIXME: Temporary hack for updating tfi contracts
+        return Ok(());
     }
 
     Err(Unauthorized(
