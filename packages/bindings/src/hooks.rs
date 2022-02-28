@@ -21,6 +21,9 @@ pub enum Privilege {
     TokenMinter,
     /// contracts registered here are allowed to use ConsensusParams msg to adjust tendermint
     ConsensusParamChanger,
+    /// contracts registered here are allowed to use Delegate / Undelegate to stake funds using the
+    /// Cosmos SDK
+    Delegator,
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
