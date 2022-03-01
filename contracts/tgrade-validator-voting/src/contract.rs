@@ -353,10 +353,15 @@ mod tests {
         let res = execute_execute(deps.as_mut(), env, mock_info("sender", &[]), 1).unwrap();
         assert_eq!(
             res.messages,
-            vec![SubMsg::new(WasmMsg::Migrate {
-                contract_addr: "target_contract".to_owned(),
-                new_code_id: 13,
-                msg: Binary(vec![123, 125]),
+            vec![SubMsg::new(TgradeMsg::ExecuteGovProposal {
+                title: "MigrateContract".into(),
+                description: "MigrateContract testing proposal".into(),
+                proposal: GovProposal::MigrateContract {
+                    run_as: "cosmos2contract".to_owned(),
+                    contract: "target_contract".into(),
+                    code_id: 13,
+                    migrate_msg: Binary(vec![123, 125]),
+                },
             })]
         );
     }
@@ -626,7 +631,7 @@ mod tests {
                 group_addr: group_addr.to_owned(),
             },
         )
-            .unwrap();
+        .unwrap();
 
         let query: Addr =
             from_slice(&query(deps.as_ref(), env, QueryMsg::GroupContract {}).unwrap()).unwrap();
