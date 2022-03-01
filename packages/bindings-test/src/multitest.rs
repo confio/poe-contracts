@@ -231,7 +231,7 @@ impl Module for TgradeModule {
                         run_as,
                         contract,
                         code_id,
-                        migrate_msg,
+                        msg: migrate_msg,
                     } => {
                         // Delegate to Wasm Migration
                         let msg = WasmMsg::Migrate {
