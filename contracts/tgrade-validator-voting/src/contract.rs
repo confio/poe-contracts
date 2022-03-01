@@ -194,7 +194,7 @@ pub fn execute_execute(
                     run_as: env.contract.address.into(),
                     contract,
                     code_id,
-                    migrate_msg,
+                    msg: migrate_msg,
                 },
             })
         }
@@ -360,7 +360,7 @@ mod tests {
                     run_as: "cosmos2contract".to_owned(),
                     contract: "target_contract".into(),
                     code_id: 13,
-                    migrate_msg: Binary(vec![123, 125]),
+                    msg: Binary(vec![123, 125]),
                 },
             })]
         );

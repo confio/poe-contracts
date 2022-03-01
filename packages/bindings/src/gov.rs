@@ -49,7 +49,7 @@ pub enum GovProposal {
         /// metadata to be stored with a contract instance.
         label: String,
         /// json encoded message to be passed to the contract on instantiation
-        init_msg: Binary,
+        msg: Binary,
         /// coins that are transferred to the contract on instantiation
         funds: Vec<Coin>,
     },
@@ -62,7 +62,7 @@ pub enum GovProposal {
         /// a reference to the new WASM code that it should be migrated to
         code_id: u64,
         /// json encoded message to be passed to the new WASM code to perform the migration
-        migrate_msg: Binary,
+        msg: Binary,
     },
     /// See https://github.com/CosmWasm/wasmd/blob/master/proto/cosmwasm/wasm/v1beta1/proposal.proto#L72-L82
     SetContractAdmin {
