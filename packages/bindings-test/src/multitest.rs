@@ -10,7 +10,7 @@ use thiserror::Error;
 use cosmwasm_std::testing::{MockApi, MockStorage};
 use cosmwasm_std::{
     from_slice, to_binary, Addr, Api, Binary, BlockInfo, Coin, CustomQuery, Empty, Order, Querier,
-    StdError, StdResult, Storage, Timestamp,
+    StdError, StdResult, Storage, Timestamp, WasmMsg,
 };
 use cw_multi_test::{
     App, AppResponse, BankKeeper, BankSudo, BasicAppBuilder, CosmosRouter, Executor, Module,
@@ -227,8 +227,27 @@ impl Module for TgradeModule {
                         bail!("GovProposal::InstantiateContract not implemented")
                     }
                     // these cannot be implemented, should fail
-                    GovProposal::MigrateContract { .. } => {
-                        bail!("GovProposal::MigrateContract not implemented")
+                    GovProposal::MigrateContract {
+                        run_as,
+                        contract,
+                        code_id,
+                        migrate_msg,
+                    } => {
+                        // Delegate to Wasm Migration
+                        let msg = WasmMsg::Migrate {
+                            contract_addr: contract,
+                            new_code_id: code_id,
+                            msg: migrate_msg,
+                        };
+                        // Call execute_wasm
+                        let res = router.execute(
+                            api,
+                            storage,
+                            block,
+                            Addr::unchecked(run_as),
+                            msg.into(),
+                        );
+                        Ok(res.unwrap_or_default())
                     }
                     // most are ignored
                     _ => Ok(AppResponse::default()),
