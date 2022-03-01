@@ -2,7 +2,7 @@
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
     from_slice, to_binary, to_vec, Binary, ContractInfoResponse, ContractResult, Deps, DepsMut,
-    Empty, Env, MessageInfo, QueryRequest, StdResult, SystemResult, WasmMsg, WasmQuery,
+    Empty, Env, MessageInfo, QueryRequest, StdResult, SystemResult, WasmQuery,
 };
 
 use cw2::set_contract_version;
@@ -129,7 +129,7 @@ pub fn execute_execute(
 ) -> Result<Response, ContractError> {
     use ValidatorProposal::*;
     // anyone can trigger this if the vote passed
-    let proposal = mark_executed::<ValidatorProposal>(deps.storage, env, proposal_id)?;
+    let proposal = mark_executed::<ValidatorProposal>(deps.storage, env.clone(), proposal_id)?;
 
     let mut res = Response::new();
 
@@ -187,10 +187,15 @@ pub fn execute_execute(
             code_id,
             migrate_msg,
         } => {
-            res = res.add_message(WasmMsg::Migrate {
-                contract_addr: contract,
-                new_code_id: code_id,
-                msg: migrate_msg,
+            res = res.add_message(TgradeMsg::ExecuteGovProposal {
+                title: proposal.title,
+                description: proposal.description,
+                proposal: GovProposal::MigrateContract {
+                    run_as: env.contract.address.into(),
+                    contract,
+                    code_id,
+                    migrate_msg,
+                },
             })
         }
         Text {} => execute_text(deps, proposal_id, proposal)?,
@@ -351,7 +356,7 @@ mod tests {
             vec![SubMsg::new(WasmMsg::Migrate {
                 contract_addr: "target_contract".to_owned(),
                 new_code_id: 13,
-                msg: Binary(vec![123, 125])
+                msg: Binary(vec![123, 125]),
             })]
         );
     }
@@ -396,7 +401,7 @@ mod tests {
                 TgradeMsg::ExecuteGovProposal {
                     title: "CancelUpgrade".to_owned(),
                     description: "CancelUpgrade testing proposal".to_owned(),
-                    proposal: GovProposal::CancelUpgrade {}
+                    proposal: GovProposal::CancelUpgrade {},
                 }
             ))]
         );
@@ -442,7 +447,7 @@ mod tests {
                 TgradeMsg::ExecuteGovProposal {
                     title: "PinCodes".to_owned(),
                     description: "PinCodes testing proposal".to_owned(),
-                    proposal: GovProposal::PinCodes { code_ids: vec![] }
+                    proposal: GovProposal::PinCodes { code_ids: vec![] },
                 }
             ))]
         );
@@ -488,7 +493,7 @@ mod tests {
                 TgradeMsg::ExecuteGovProposal {
                     title: "UnpinCodes".to_owned(),
                     description: "UnpinCodes testing proposal".to_owned(),
-                    proposal: GovProposal::UnpinCodes { code_ids: vec![] }
+                    proposal: GovProposal::UnpinCodes { code_ids: vec![] },
                 }
             ))]
         );
@@ -621,7 +626,7 @@ mod tests {
                 group_addr: group_addr.to_owned(),
             },
         )
-        .unwrap();
+            .unwrap();
 
         let query: Addr =
             from_slice(&query(deps.as_ref(), env, QueryMsg::GroupContract {}).unwrap()).unwrap();
