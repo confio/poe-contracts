@@ -37,6 +37,18 @@ pub enum TgradeMsg {
         description: String,
         proposal: GovProposal,
     },
+    /// This will stake funds from the sender's vesting account. Requires `Delegator` privilege.
+    Delegate {
+        denom: String,
+        amount: Uint128,
+        sender: String,
+    },
+    /// This will unstake funds to the recipient's vesting account. Requires `Delegator` privilege.
+    Undelegate {
+        denom: String,
+        amount: Uint128,
+        recipient: String,
+    },
 }
 
 /// See https://github.com/tendermint/tendermint/blob/v0.34.8/proto/tendermint/abci/types.proto#L282-L289
