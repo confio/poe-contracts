@@ -25,3 +25,4 @@ pub struct Config {
 
 pub const CONFIG: Item<Config> = Item::new("config");
 pub const STAKE: Map<&Addr, Uint128> = Map::new("stake");
+pub const STAKE_VESTING: Map<&Addr, Uint128> = Map::new("vesting_stake");

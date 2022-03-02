@@ -4,6 +4,7 @@ use cosmwasm_std::{
     coin, coins, to_binary, Addr, BankMsg, Binary, Coin, CustomQuery, Decimal, Deps, DepsMut,
     Empty, Env, MessageInfo, Order, StdResult, Storage, Uint128,
 };
+use std::cmp::min;
 
 use cw2::set_contract_version;
 use cw_storage_plus::Bound;
@@ -24,7 +25,7 @@ use crate::msg::{
     ClaimsResponse, ExecuteMsg, InstantiateMsg, PreauthResponse, QueryMsg, StakedResponse,
     TotalPointsResponse, UnbondingPeriodResponse,
 };
-use crate::state::{claims, Config, CONFIG, STAKE};
+use crate::state::{claims, Config, CONFIG, STAKE, STAKE_VESTING};
 
 pub type Response = cosmwasm_std::Response<TgradeMsg>;
 pub type SubMsg = cosmwasm_std::SubMsg<TgradeMsg>;
@@ -85,7 +86,7 @@ pub fn execute(
             .map_err(Into::into),
         ExecuteMsg::AddHook { addr } => execute_add_hook(deps, info, addr),
         ExecuteMsg::RemoveHook { addr } => execute_remove_hook(deps, info, addr),
-        ExecuteMsg::Bond {} => execute_bond(deps, env, info),
+        ExecuteMsg::Bond { vesting_tokens } => execute_bond(deps, env, info, vesting_tokens),
         ExecuteMsg::Unbond {
             tokens: Coin { amount, denom },
         } => execute_unbond(deps, env, info, amount, denom),
@@ -145,9 +146,14 @@ pub fn execute_bond<Q: CustomQuery>(
     deps: DepsMut<Q>,
     env: Env,
     info: MessageInfo,
+    vesting_tokens: Option<Coin>,
 ) -> Result<Response, ContractError> {
     let cfg = CONFIG.load(deps.storage)?;
     let amount = validate_funds(&info.funds, &cfg.denom)?;
+    let vesting_amount = vesting_tokens
+        .map(|v| validate_funds(&[v], &cfg.denom))
+        .transpose()?
+        .unwrap_or_default();
 
     // update the sender's stake
     let new_stake = STAKE.update(deps.storage, &info.sender, |stake| -> StdResult<_> {
@@ -158,7 +164,33 @@ pub fn execute_bond<Q: CustomQuery>(
         .add_attribute("action", "bond")
         .add_attribute("amount", amount)
         .add_attribute("sender", &info.sender);
-    res.messages = update_membership(deps.storage, info.sender, new_stake, &cfg, env.block.height)?;
+
+    let mut new_vesting_stake = Uint128::zero();
+    if vesting_amount > Uint128::zero() {
+        // Update the sender's vesting stake
+        new_vesting_stake =
+            STAKE_VESTING.update(deps.storage, &info.sender, |stake| -> StdResult<_> {
+                Ok(stake.unwrap_or_default() + vesting_amount)
+            })?;
+        // Delegate (stake to contract) to sender's vesting account
+        let msg = TgradeMsg::Delegate {
+            denom: cfg.denom.clone(),
+            amount: vesting_amount,
+            sender: info.sender.to_string(),
+        };
+        res = res
+            .add_message(msg)
+            .add_attribute("vesting_amount", vesting_amount);
+    }
+
+    // Update membership messages
+    res = res.add_submessages(update_membership(
+        deps.storage,
+        info.sender,
+        new_stake + new_vesting_stake,
+        &cfg,
+        env.block.height,
+    )?);
 
     Ok(res)
 }
@@ -177,27 +209,59 @@ pub fn execute_unbond<Q: CustomQuery>(
         return Err(ContractError::InvalidDenom(denom));
     }
 
-    // reduce the sender's stake - aborting if insufficient
+    // Load stake first for comparison
+    let stake = STAKE
+        .may_load(deps.storage, &info.sender)?
+        .unwrap_or_default();
+    // Reduce the sender's stake - saturating if insufficient
     let new_stake = STAKE.update(deps.storage, &info.sender, |stake| -> StdResult<_> {
-        Ok(stake.unwrap_or_default().checked_sub(amount)?)
+        Ok(stake.unwrap_or_default().saturating_sub(amount))
     })?;
-
-    let completion = cfg.unbonding_period.after(&env.block);
-    claims().create_claim(
-        deps.storage,
-        info.sender.clone(),
-        amount,
-        completion,
-        env.block.height,
-    )?;
 
     let mut res = Response::new()
         .add_attribute("action", "unbond")
         .add_attribute("amount", amount)
         .add_attribute("denom", &denom)
-        .add_attribute("sender", &info.sender)
-        .add_attribute("completion_time", completion.time().nanos().to_string());
-    res.messages = update_membership(deps.storage, info.sender, new_stake, &cfg, env.block.height)?;
+        .add_attribute("sender", &info.sender);
+
+    let mut new_vesting_stake = Uint128::zero();
+    if amount > stake {
+        // Reduce the sender's vesting stake - aborting if insufficient
+        let vesting_amount = amount - stake;
+        new_vesting_stake =
+            STAKE_VESTING.update(deps.storage, &info.sender, |stake| -> StdResult<_> {
+                Ok(stake.unwrap_or_default().checked_sub(vesting_amount)?)
+            })?;
+        // Undelegate (unstake from contract) to sender's vesting account
+        let msg = TgradeMsg::Undelegate {
+            denom: cfg.denom.clone(),
+            amount: vesting_amount,
+            recipient: info.sender.to_string(),
+        };
+        res = res
+            .add_message(msg)
+            .add_attribute("vesting_amount", vesting_amount);
+    }
+
+    // Create claim for unbonded liquid amount
+    let completion = cfg.unbonding_period.after(&env.block);
+    claims().create_claim(
+        deps.storage,
+        info.sender.clone(),
+        min(stake, amount),
+        completion,
+        env.block.height,
+    )?;
+    res = res.add_attribute("completion_time", completion.time().nanos().to_string());
+
+    // Update membership messages
+    res = res.add_submessages(update_membership(
+        deps.storage,
+        info.sender,
+        new_stake + new_vesting_stake,
+        &cfg,
+        env.block.height,
+    )?);
 
     Ok(res)
 }
@@ -661,7 +725,9 @@ mod tests {
 
         for (addr, stake) in &[(USER1, user1), (USER2, user2), (USER3, user3)] {
             if *stake != 0 {
-                let msg = ExecuteMsg::Bond {};
+                let msg = ExecuteMsg::Bond {
+                    vesting_tokens: None,
+                };
                 let info = mock_info(addr, &coins(*stake, DENOM));
                 execute(deps.branch(), env.clone(), info, msg).unwrap();
             }
@@ -1001,8 +1067,8 @@ mod tests {
             err,
             ContractError::Std(StdError::overflow(OverflowError::new(
                 OverflowOperation::Sub,
-                5000,
-                5100
+                0,
+                100
             )))
         );
     }
@@ -1630,7 +1696,15 @@ mod tests {
         // check firing on bond
         assert_users(deps.as_ref(), None, None, None, None);
         let info = mock_info(USER1, &coins(13_800, DENOM));
-        let res = execute(deps.as_mut(), mock_env(), info, ExecuteMsg::Bond {}).unwrap();
+        let res = execute(
+            deps.as_mut(),
+            mock_env(),
+            info,
+            ExecuteMsg::Bond {
+                vesting_tokens: None,
+            },
+        )
+        .unwrap();
         assert_users(deps.as_ref(), Some(13), None, None, None);
 
         // ensure messages for each of the 2 hooks
@@ -1679,23 +1753,55 @@ mod tests {
 
         // cannot bond with 0 coins
         let info = mock_info(USER1, &[]);
-        let err = execute(deps.as_mut(), mock_env(), info, ExecuteMsg::Bond {}).unwrap_err();
+        let err = execute(
+            deps.as_mut(),
+            mock_env(),
+            info,
+            ExecuteMsg::Bond {
+                vesting_tokens: None,
+            },
+        )
+        .unwrap_err();
         assert_eq!(err, ContractError::NoFunds {});
 
         // cannot bond with incorrect denom
         let info = mock_info(USER1, &[coin(500, "FOO")]);
-        let err = execute(deps.as_mut(), mock_env(), info, ExecuteMsg::Bond {}).unwrap_err();
+        let err = execute(
+            deps.as_mut(),
+            mock_env(),
+            info,
+            ExecuteMsg::Bond {
+                vesting_tokens: None,
+            },
+        )
+        .unwrap_err();
         assert_eq!(err, ContractError::MissingDenom(DENOM.to_string()));
 
         // cannot bond with 2 coins (even if one is correct)
         let info = mock_info(USER1, &[coin(1234, DENOM), coin(5000, "BAR")]);
-        let err = execute(deps.as_mut(), mock_env(), info, ExecuteMsg::Bond {}).unwrap_err();
+        let err = execute(
+            deps.as_mut(),
+            mock_env(),
+            info,
+            ExecuteMsg::Bond {
+                vesting_tokens: None,
+            },
+        )
+        .unwrap_err();
         assert_eq!(err, ContractError::ExtraDenoms(DENOM.to_string()));
 
         // can bond with just the proper denom
         // cannot bond with incorrect denom
         let info = mock_info(USER1, &[coin(500, DENOM)]);
-        execute(deps.as_mut(), mock_env(), info, ExecuteMsg::Bond {}).unwrap();
+        execute(
+            deps.as_mut(),
+            mock_env(),
+            info,
+            ExecuteMsg::Bond {
+                vesting_tokens: None,
+            },
+        )
+        .unwrap();
     }
 
     #[test]
@@ -1721,7 +1827,9 @@ mod tests {
 
         // create some data
         let mut env = mock_env();
-        let msg = ExecuteMsg::Bond {};
+        let msg = ExecuteMsg::Bond {
+            vesting_tokens: None,
+        };
         let info = mock_info(USER1, &coins(500, DENOM));
         execute(deps.as_mut(), env.clone(), info, msg).unwrap();
 
