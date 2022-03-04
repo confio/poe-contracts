@@ -174,9 +174,8 @@ pub fn execute_bond<Q: CustomQuery>(
             })?;
         // Delegate (stake to contract) to sender's vesting account
         let msg = TgradeMsg::Delegate {
-            denom: cfg.denom.clone(),
-            amount: vesting_amount,
-            sender: info.sender.to_string(),
+            funds: coin(amount.into(), cfg.denom.clone()),
+            staker: info.sender.to_string(),
         };
         res = res
             .add_message(msg)
@@ -234,8 +233,7 @@ pub fn execute_unbond<Q: CustomQuery>(
             })?;
         // Undelegate (unstake from contract) to sender's vesting account
         let msg = TgradeMsg::Undelegate {
-            denom: cfg.denom.clone(),
-            amount: vesting_amount,
+            funds: coin(vesting_amount.into(), cfg.denom.clone()),
             recipient: info.sender.to_string(),
         };
         res = res

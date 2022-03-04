@@ -261,17 +261,15 @@ impl Module for TgradeModule {
                 router.sudo(api, storage, block, mint.into())
             }
             TgradeMsg::Delegate {
-                denom: _demon,
-                amount: _amount,
-                sender: _sender,
+                funds: _funds,
+                staker: _staker,
             } => {
                 self.require_privilege(storage, &sender, Privilege::Delegator)?;
                 // FIXME? We don't do anything here
                 Ok(AppResponse::default())
             }
             TgradeMsg::Undelegate {
-                denom: _demon,
-                amount: _amount,
+                funds: _funds,
                 recipient: _recipient,
             } => {
                 self.require_privilege(storage, &sender, Privilege::Delegator)?;
