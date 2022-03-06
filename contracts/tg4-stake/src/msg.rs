@@ -36,7 +36,7 @@ pub struct InstantiateMsg {
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
 pub enum ExecuteMsg {
-    /// Bond will bond all staking tokens sent with the message and update membership points
+    /// Bond will bond all staking tokens sent with the message and update membership points.
     /// The optional `vesting_tokens` will be staked (delegated) as well, if set.
     Bond { vesting_tokens: Option<Coin> },
     /// Unbond will start the unbonding process for the given number of tokens.
