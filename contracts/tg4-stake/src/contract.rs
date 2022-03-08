@@ -715,22 +715,41 @@ mod tests {
         instantiate(deps, mock_env(), info, msg).unwrap();
     }
 
-    fn bond(
-        mut deps: DepsMut<TgradeQuery>,
+    // Helper for staking only liquid assets
+    fn bond_liquid(
+        deps: DepsMut<TgradeQuery>,
         user1: u128,
         user2: u128,
         user3: u128,
         height_delta: u64,
     ) {
+        bond(deps, (user1, 0), (user2, 0), (user3, 0), height_delta);
+    }
+
+    // Full stake is composed of `(liquid, illiquid(vesting))` amounts
+    fn bond(
+        mut deps: DepsMut<TgradeQuery>,
+        user1_stake: (u128, u128),
+        user2_stake: (u128, u128),
+        user3_stake: (u128, u128),
+        height_delta: u64,
+    ) {
         let mut env = mock_env();
         env.block.height += height_delta;
 
-        for (addr, stake) in &[(USER1, user1), (USER2, user2), (USER3, user3)] {
-            if *stake != 0 {
-                let msg = ExecuteMsg::Bond {
-                    vesting_tokens: None,
+        for (addr, stake) in &[
+            (USER1, user1_stake),
+            (USER2, user2_stake),
+            (USER3, user3_stake),
+        ] {
+            if stake.0 != 0 || stake.1 != 0 {
+                let vesting_tokens = if stake.1 != 0 {
+                    Some(coin(stake.1, DENOM))
+                } else {
+                    None
                 };
-                let info = mock_info(addr, &coins(*stake, DENOM));
+                let msg = ExecuteMsg::Bond { vesting_tokens };
+                let info = mock_info(addr, &coins(stake.0, DENOM));
                 execute(deps.branch(), env.clone(), info, msg).unwrap();
             }
         }
@@ -871,14 +890,14 @@ mod tests {
         assert_users(deps.as_ref(), None, None, None, None);
 
         // ensure it rounds down, and respects cut-off
-        bond(deps.as_mut(), 12_000, 7_500, 4_000, 1);
+        bond_liquid(deps.as_mut(), 12_000, 7_500, 4_000, 1);
 
         // Assert updated points
         assert_stake(deps.as_ref(), 12_000, 7_500, 4_000);
         assert_users(deps.as_ref(), Some(12), Some(7), None, None);
 
         // add some more, ensure the sum is properly respected (7.5 + 7.6 = 15 not 14)
-        bond(deps.as_mut(), 0, 7_600, 1_200, 2);
+        bond_liquid(deps.as_mut(), 0, 7_600, 1_200, 2);
 
         // Assert updated points
         assert_stake(deps.as_ref(), 12_000, 15_100, 5_200);
@@ -896,7 +915,7 @@ mod tests {
         let mut deps = mock_deps_tgrade();
         default_instantiate(deps.as_mut());
 
-        bond(deps.as_mut(), 12_000, 7_500, 4_000, 1);
+        bond_liquid(deps.as_mut(), 12_000, 7_500, 4_000, 1);
 
         let member1 = query_member(deps.as_ref(), USER1.into(), None).unwrap();
         assert_eq!(member1.points, Some(12));
@@ -964,7 +983,7 @@ mod tests {
         let mut deps = mock_deps_tgrade();
         default_instantiate(deps.as_mut());
 
-        bond(deps.as_mut(), 11_000, 6_500, 5_000, 1);
+        bond_liquid(deps.as_mut(), 11_000, 6_500, 5_000, 1);
 
         let members = list_members_by_points(deps.as_ref(), None, None)
             .unwrap()
@@ -1041,7 +1060,7 @@ mod tests {
         let height = mock_env().block.height;
 
         // ensure it rounds down, and respects cut-off
-        bond(deps.as_mut(), 12_000, 7_500, 4_000, 1);
+        bond_liquid(deps.as_mut(), 12_000, 7_500, 4_000, 1);
         unbond(deps.as_mut(), 4_500, 2_600, 1_111, 2, 0);
 
         // Assert updated points
@@ -1049,7 +1068,7 @@ mod tests {
         assert_users(deps.as_ref(), Some(7), None, None, None);
 
         // Adding a little more returns points
-        bond(deps.as_mut(), 600, 100, 2_222, 3);
+        bond_liquid(deps.as_mut(), 600, 100, 2_222, 3);
 
         // Assert updated points
         assert_users(deps.as_ref(), Some(8), Some(5), Some(5), None);
@@ -1084,7 +1103,7 @@ mod tests {
         let mut deps = mock_deps_tgrade();
         default_instantiate(deps.as_mut());
         // Set values as (11, 6, None)
-        bond(deps.as_mut(), 11_000, 6_000, 0, 1);
+        bond_liquid(deps.as_mut(), 11_000, 6_000, 0, 1);
 
         // get total from raw key
         let total_raw = deps.storage.get(TOTAL_KEY.as_bytes()).unwrap();
@@ -1119,7 +1138,7 @@ mod tests {
         default_instantiate(deps.as_mut());
 
         // create some data
-        bond(deps.as_mut(), 12_000, 7_500, 4_000, 1);
+        bond_liquid(deps.as_mut(), 12_000, 7_500, 4_000, 1);
         let height_delta = 2;
         unbond(deps.as_mut(), 4_500, 2_600, 0, height_delta, 0);
         let mut env = mock_env();
@@ -1546,7 +1565,7 @@ mod tests {
             let slasher = add_slasher(deps.as_mut());
             assert!(query_is_slasher(deps.as_ref(), mock_env(), slasher.clone()).unwrap());
 
-            bond(deps.as_mut(), 12_000, 7_500, 4_000, 1);
+            bond_liquid(deps.as_mut(), 12_000, 7_500, 4_000, 1);
             assert_stake(deps.as_ref(), 12_000, 7_500, 4_000);
 
             // Trying to slash nonexisting user will result in no-op
@@ -1561,7 +1580,7 @@ mod tests {
             let cfg = CONFIG.load(&deps.storage).unwrap();
             let slasher = add_slasher(deps.as_mut());
 
-            bond(deps.as_mut(), 12_000, 7_500, 4_000, 1);
+            bond_liquid(deps.as_mut(), 12_000, 7_500, 4_000, 1);
             assert_stake(deps.as_ref(), 12_000, 7_500, 4_000);
 
             // The slasher we added can slash
@@ -1582,7 +1601,7 @@ mod tests {
             let slasher = add_slasher(deps.as_mut());
 
             // create some data
-            bond(deps.as_mut(), 12_000, 7_500, 4_000, 1);
+            bond_liquid(deps.as_mut(), 12_000, 7_500, 4_000, 1);
             let height_delta = 2;
             unbond(deps.as_mut(), 12_000, 2_600, 0, height_delta, 0);
             let mut env = mock_env();
@@ -1620,7 +1639,7 @@ mod tests {
             default_instantiate(deps.as_mut());
             let _slasher = add_slasher(deps.as_mut());
 
-            bond(deps.as_mut(), 12_000, 7_500, 4_000, 1);
+            bond_liquid(deps.as_mut(), 12_000, 7_500, 4_000, 1);
             assert_stake(deps.as_ref(), 12_000, 7_500, 4_000);
 
             let res = slash(deps.as_mut(), USER2, USER1, Decimal::percent(20));
@@ -1639,7 +1658,7 @@ mod tests {
             default_instantiate(deps.as_mut());
             let _slasher = add_slasher(deps.as_mut());
 
-            bond(deps.as_mut(), 12_000, 7_500, 4_000, 1);
+            bond_liquid(deps.as_mut(), 12_000, 7_500, 4_000, 1);
             assert_stake(deps.as_ref(), 12_000, 7_500, 4_000);
 
             let res = slash(deps.as_mut(), INIT_ADMIN, USER1, Decimal::percent(20));
@@ -1661,7 +1680,7 @@ mod tests {
             let slasher = add_slasher(deps.as_mut());
             remove_slasher(deps.as_mut(), &slasher);
 
-            bond(deps.as_mut(), 12_000, 7_500, 4_000, 1);
+            bond_liquid(deps.as_mut(), 12_000, 7_500, 4_000, 1);
             assert_stake(deps.as_ref(), 12_000, 7_500, 4_000);
 
             let res = slash(deps.as_mut(), &slasher, USER1, Decimal::percent(20));
@@ -1817,7 +1836,7 @@ mod tests {
 
         // setting 50 tokens, gives us Some(0) points
         // even setting to 1 token
-        bond(deps.as_mut(), 50, 1, 102, 1);
+        bond_liquid(deps.as_mut(), 50, 1, 102, 1);
         assert_users(deps.as_ref(), Some(0), Some(0), Some(1), None);
 
         // reducing to 0 token makes us None even with min_bond 0
@@ -1943,7 +1962,7 @@ mod tests {
             let mut deps = mock_deps_tgrade();
             do_instantiate(deps.as_mut(), 2);
 
-            bond(deps.as_mut(), 12_000, 7_500, 4_000, 1);
+            bond_liquid(deps.as_mut(), 12_000, 7_500, 4_000, 1);
             let height_delta = 2;
 
             unbond(deps.as_mut(), 1000, 0, 0, height_delta, 0);
@@ -1960,7 +1979,7 @@ mod tests {
             let mut deps = mock_deps_tgrade();
             do_instantiate(deps.as_mut(), 4);
 
-            bond(deps.as_mut(), 12_000, 7_500, 4_000, 1);
+            bond_liquid(deps.as_mut(), 12_000, 7_500, 4_000, 1);
             let height_delta = 2;
 
             unbond(deps.as_mut(), 1000, 500, 0, height_delta, 0);
@@ -1978,7 +1997,7 @@ mod tests {
             let mut deps = mock_deps_tgrade();
             do_instantiate(deps.as_mut(), 3);
 
-            bond(deps.as_mut(), 12_000, 7_500, 4_000, 1);
+            bond_liquid(deps.as_mut(), 12_000, 7_500, 4_000, 1);
             let height_delta = 2;
 
             unbond(deps.as_mut(), 1000, 0, 0, height_delta, 0);
@@ -1996,7 +2015,7 @@ mod tests {
             let mut deps = mock_deps_tgrade();
             do_instantiate(deps.as_mut(), 3);
 
-            bond(deps.as_mut(), 12_000, 7_500, 4_000, 1);
+            bond_liquid(deps.as_mut(), 12_000, 7_500, 4_000, 1);
             let height_delta = 2;
 
             // Claims to be returned
@@ -2021,7 +2040,7 @@ mod tests {
             let mut deps = mock_deps_tgrade();
             do_instantiate(deps.as_mut(), 5);
 
-            bond(deps.as_mut(), 12_000, 7_500, 4_000, 1);
+            bond_liquid(deps.as_mut(), 12_000, 7_500, 4_000, 1);
             let height_delta = 2;
 
             // Claims to be returned
@@ -2057,7 +2076,7 @@ mod tests {
             let mut deps = mock_deps_tgrade();
             do_instantiate(deps.as_mut(), 2);
 
-            bond(deps.as_mut(), 12_000, 7_500, 4_000, 1);
+            bond_liquid(deps.as_mut(), 12_000, 7_500, 4_000, 1);
             let height_delta = 2;
 
             // Claims to be returned
@@ -2110,7 +2129,7 @@ mod tests {
             let mut deps = mock_deps_tgrade();
             do_instantiate(deps.as_mut(), 2);
 
-            bond(deps.as_mut(), 5_000, 0, 0, 1);
+            bond_liquid(deps.as_mut(), 5_000, 0, 0, 1);
             let height_delta = 2;
 
             let mut env = mock_env();
