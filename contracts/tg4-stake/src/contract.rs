@@ -165,16 +165,15 @@ pub fn execute_bond<Q: CustomQuery>(
         .add_attribute("amount", amount)
         .add_attribute("sender", &info.sender);
 
-    let mut new_vesting_stake = Uint128::zero();
+    // Update the sender's vesting stake
+    let new_vesting_stake =
+        STAKE_VESTING.update(deps.storage, &info.sender, |stake| -> StdResult<_> {
+            Ok(stake.unwrap_or_default() + vesting_amount)
+        })?;
+    // Delegate (stake to contract) to sender's vesting account
     if vesting_amount > Uint128::zero() {
-        // Update the sender's vesting stake
-        new_vesting_stake =
-            STAKE_VESTING.update(deps.storage, &info.sender, |stake| -> StdResult<_> {
-                Ok(stake.unwrap_or_default() + vesting_amount)
-            })?;
-        // Delegate (stake to contract) to sender's vesting account
         let msg = TgradeMsg::Delegate {
-            funds: coin(amount.into(), cfg.denom.clone()),
+            funds: coin(vesting_amount.into(), cfg.denom.clone()),
             staker: info.sender.to_string(),
         };
         res = res
