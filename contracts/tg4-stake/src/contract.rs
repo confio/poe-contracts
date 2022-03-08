@@ -725,6 +725,17 @@ mod tests {
         bond(deps, (user1, 0), (user2, 0), (user3, 0), height_delta);
     }
 
+    // Helper for staking only illiquid assets
+    fn bond_vesting(
+        deps: DepsMut<TgradeQuery>,
+        user1: u128,
+        user2: u128,
+        user3: u128,
+        height_delta: u64,
+    ) {
+        bond(deps, (0, user1), (0, user2), (0, user3), height_delta);
+    }
+
     // Full stake is composed of `(liquid, illiquid(vesting))` amounts
     fn bond(
         mut deps: DepsMut<TgradeQuery>,
@@ -821,6 +832,7 @@ mod tests {
     }
 
     // this tests the member queries
+    #[track_caller]
     fn assert_users(
         deps: Deps<TgradeQuery>,
         user1_points: Option<u64>,
@@ -859,24 +871,30 @@ mod tests {
         }
     }
 
-    // this tests the member queries
-    fn assert_stake(
-        deps: Deps<TgradeQuery>,
-        user1_stake: u128,
-        user2_stake: u128,
-        user3_stake: u128,
-    ) {
+    // this tests the member queries of liquid amounts
+    #[track_caller]
+    fn assert_stake_liquid(deps: Deps<TgradeQuery>, user1: u128, user2: u128, user3: u128) {
         let stake1 = query_staked(deps, USER1.into()).unwrap();
-        assert_eq!(stake1.stake, coin(user1_stake, DENOM));
-        assert_eq!(stake1.vesting, coin(0, DENOM));
+        assert_eq!(stake1.stake, coin(user1, DENOM));
 
         let stake2 = query_staked(deps, USER2.into()).unwrap();
-        assert_eq!(stake2.stake, coin(user2_stake, DENOM));
-        assert_eq!(stake2.vesting, coin(0, DENOM));
+        assert_eq!(stake2.stake, coin(user2, DENOM));
 
         let stake3 = query_staked(deps, USER3.into()).unwrap();
-        assert_eq!(stake3.stake, coin(user3_stake, DENOM));
-        assert_eq!(stake3.vesting, coin(0, DENOM));
+        assert_eq!(stake3.stake, coin(user3, DENOM));
+    }
+
+    // this tests the member queries of illiquid amounts
+    #[track_caller]
+    fn assert_stake_vesting(deps: Deps<TgradeQuery>, user1: u128, user2: u128, user3: u128) {
+        let stake1 = query_staked(deps, USER1.into()).unwrap();
+        assert_eq!(stake1.vesting, coin(user1, DENOM));
+
+        let stake2 = query_staked(deps, USER2.into()).unwrap();
+        assert_eq!(stake2.vesting, coin(user2, DENOM));
+
+        let stake3 = query_staked(deps, USER3.into()).unwrap();
+        assert_eq!(stake3.vesting, coin(user3, DENOM));
     }
 
     #[test]
@@ -892,14 +910,74 @@ mod tests {
         bond_liquid(deps.as_mut(), 12_000, 7_500, 4_000, 1);
 
         // Assert updated points
-        assert_stake(deps.as_ref(), 12_000, 7_500, 4_000);
+        assert_stake_liquid(deps.as_ref(), 12_000, 7_500, 4_000);
         assert_users(deps.as_ref(), Some(12), Some(7), None, None);
 
         // add some more, ensure the sum is properly respected (7.5 + 7.6 = 15 not 14)
         bond_liquid(deps.as_mut(), 0, 7_600, 1_200, 2);
 
         // Assert updated points
-        assert_stake(deps.as_ref(), 12_000, 15_100, 5_200);
+        assert_stake_liquid(deps.as_ref(), 12_000, 15_100, 5_200);
+        assert_users(deps.as_ref(), Some(12), Some(15), Some(5), None);
+
+        // check historical queries all work
+        assert_users(deps.as_ref(), None, None, None, Some(height + 1)); // before first stake
+        assert_users(deps.as_ref(), Some(12), Some(7), None, Some(height + 2)); // after first stake
+        assert_users(deps.as_ref(), Some(12), Some(15), Some(5), Some(height + 3));
+        // after second stake
+    }
+
+    #[test]
+    fn bond_vesting_stake_adds_membership() {
+        let mut deps = mock_deps_tgrade();
+        default_instantiate(deps.as_mut());
+        let height = mock_env().block.height;
+
+        // Assert original points
+        assert_users(deps.as_ref(), None, None, None, None);
+
+        // ensure it rounds down, and respects cut-off
+        bond_vesting(deps.as_mut(), 12_000, 7_500, 4_000, 1);
+
+        // Assert updated points
+        assert_stake_vesting(deps.as_ref(), 12_000, 7_500, 4_000);
+        assert_users(deps.as_ref(), Some(12), Some(7), None, None);
+
+        // add some more, ensure the sum is properly respected (7.5 + 7.6 = 15 not 14)
+        bond_vesting(deps.as_mut(), 0, 7_600, 1_200, 2);
+
+        // Assert updated points
+        assert_stake_vesting(deps.as_ref(), 12_000, 15_100, 5_200);
+        assert_users(deps.as_ref(), Some(12), Some(15), Some(5), None);
+
+        // check historical queries all work
+        assert_users(deps.as_ref(), None, None, None, Some(height + 1)); // before first stake
+        assert_users(deps.as_ref(), Some(12), Some(7), None, Some(height + 2)); // after first stake
+        assert_users(deps.as_ref(), Some(12), Some(15), Some(5), Some(height + 3));
+        // after second stake
+    }
+
+    #[test]
+    fn bond_mixed_stake_adds_membership() {
+        let mut deps = mock_deps_tgrade();
+        default_instantiate(deps.as_mut());
+        let height = mock_env().block.height;
+
+        // Assert original points
+        assert_users(deps.as_ref(), None, None, None, None);
+
+        // ensure it rounds down, and respects cut-off
+        bond_liquid(deps.as_mut(), 12_000, 7_500, 4_000, 1);
+
+        // Assert updated points
+        assert_stake_liquid(deps.as_ref(), 12_000, 7_500, 4_000);
+        assert_users(deps.as_ref(), Some(12), Some(7), None, None);
+
+        // add some more, ensure the sum is properly respected (7.5 + 7.6 = 15 not 14)
+        bond_vesting(deps.as_mut(), 0, 7_600, 1_200, 2);
+
+        // Assert updated points
+        assert_stake_vesting(deps.as_ref(), 0, 7_600, 1_200);
         assert_users(deps.as_ref(), Some(12), Some(15), Some(5), None);
 
         // check historical queries all work
@@ -914,7 +992,7 @@ mod tests {
         let mut deps = mock_deps_tgrade();
         default_instantiate(deps.as_mut());
 
-        bond_liquid(deps.as_mut(), 12_000, 7_500, 4_000, 1);
+        bond(deps.as_mut(), (12_000, 0), (7_400, 100), (0, 4_000), 1);
 
         let member1 = query_member(deps.as_ref(), USER1.into(), None).unwrap();
         assert_eq!(member1.points, Some(12));
@@ -982,7 +1060,7 @@ mod tests {
         let mut deps = mock_deps_tgrade();
         default_instantiate(deps.as_mut());
 
-        bond_liquid(deps.as_mut(), 11_000, 6_500, 5_000, 1);
+        bond(deps.as_mut(), (10_000, 1_000), (6_500, 0), (0, 5_000), 1);
 
         let members = list_members_by_points(deps.as_ref(), None, None)
             .unwrap()
@@ -1059,17 +1137,20 @@ mod tests {
         let height = mock_env().block.height;
 
         // ensure it rounds down, and respects cut-off
-        bond_liquid(deps.as_mut(), 12_000, 7_500, 4_000, 1);
+        bond(deps.as_mut(), (0, 12_000), (500, 7_000), (2_000, 2_000), 1);
         unbond(deps.as_mut(), 4_500, 2_600, 1_111, 2, 0);
 
         // Assert updated points
-        assert_stake(deps.as_ref(), 7_500, 4_900, 2_889);
+        assert_stake_liquid(deps.as_ref(), 0, 0, 889);
+        assert_stake_vesting(deps.as_ref(), 7_500, 4_900, 2000);
         assert_users(deps.as_ref(), Some(7), None, None, None);
 
         // Adding a little more returns points
-        bond_liquid(deps.as_mut(), 600, 100, 2_222, 3);
+        bond(deps.as_mut(), (500, 100), (100, 0), (0, 2_222), 3);
 
         // Assert updated points
+        assert_stake_liquid(deps.as_ref(), 500, 100, 889);
+        assert_stake_vesting(deps.as_ref(), 7_600, 4_900, 4_222);
         assert_users(deps.as_ref(), Some(8), Some(5), Some(5), None);
 
         // check historical queries all work
@@ -1090,8 +1171,8 @@ mod tests {
             err,
             ContractError::Std(StdError::overflow(OverflowError::new(
                 OverflowOperation::Sub,
-                0,
-                100
+                4900,
+                5000
             )))
         );
     }
@@ -1565,7 +1646,7 @@ mod tests {
             assert!(query_is_slasher(deps.as_ref(), mock_env(), slasher.clone()).unwrap());
 
             bond_liquid(deps.as_mut(), 12_000, 7_500, 4_000, 1);
-            assert_stake(deps.as_ref(), 12_000, 7_500, 4_000);
+            assert_stake_liquid(deps.as_ref(), 12_000, 7_500, 4_000);
 
             // Trying to slash nonexisting user will result in no-op
             let res = slash(deps.as_mut(), &slasher, "nonexisting", Decimal::percent(20)).unwrap();
@@ -1580,12 +1661,12 @@ mod tests {
             let slasher = add_slasher(deps.as_mut());
 
             bond_liquid(deps.as_mut(), 12_000, 7_500, 4_000, 1);
-            assert_stake(deps.as_ref(), 12_000, 7_500, 4_000);
+            assert_stake_liquid(deps.as_ref(), 12_000, 7_500, 4_000);
 
             // The slasher we added can slash
             let res1 = slash(deps.as_mut(), &slasher, USER1, Decimal::percent(20)).unwrap();
             let res2 = slash(deps.as_mut(), &slasher, USER3, Decimal::percent(50)).unwrap();
-            assert_stake(deps.as_ref(), 9_600, 7_500, 2_000);
+            assert_stake_liquid(deps.as_ref(), 9_600, 7_500, 2_000);
 
             // Tokens are burned
             assert_burned(res1, coins(2_400, &cfg.denom));
@@ -1639,7 +1720,7 @@ mod tests {
             let _slasher = add_slasher(deps.as_mut());
 
             bond_liquid(deps.as_mut(), 12_000, 7_500, 4_000, 1);
-            assert_stake(deps.as_ref(), 12_000, 7_500, 4_000);
+            assert_stake_liquid(deps.as_ref(), 12_000, 7_500, 4_000);
 
             let res = slash(deps.as_mut(), USER2, USER1, Decimal::percent(20));
             assert_eq!(
@@ -1648,7 +1729,7 @@ mod tests {
                     "Sender is not on slashers list".to_owned()
                 ))
             );
-            assert_stake(deps.as_ref(), 12_000, 7_500, 4_000);
+            assert_stake_liquid(deps.as_ref(), 12_000, 7_500, 4_000);
         }
 
         #[test]
@@ -1658,7 +1739,7 @@ mod tests {
             let _slasher = add_slasher(deps.as_mut());
 
             bond_liquid(deps.as_mut(), 12_000, 7_500, 4_000, 1);
-            assert_stake(deps.as_ref(), 12_000, 7_500, 4_000);
+            assert_stake_liquid(deps.as_ref(), 12_000, 7_500, 4_000);
 
             let res = slash(deps.as_mut(), INIT_ADMIN, USER1, Decimal::percent(20));
             assert_eq!(
@@ -1667,7 +1748,7 @@ mod tests {
                     "Sender is not on slashers list".to_owned()
                 ))
             );
-            assert_stake(deps.as_ref(), 12_000, 7_500, 4_000);
+            assert_stake_liquid(deps.as_ref(), 12_000, 7_500, 4_000);
         }
 
         #[test]
@@ -1680,7 +1761,7 @@ mod tests {
             remove_slasher(deps.as_mut(), &slasher);
 
             bond_liquid(deps.as_mut(), 12_000, 7_500, 4_000, 1);
-            assert_stake(deps.as_ref(), 12_000, 7_500, 4_000);
+            assert_stake_liquid(deps.as_ref(), 12_000, 7_500, 4_000);
 
             let res = slash(deps.as_mut(), &slasher, USER1, Decimal::percent(20));
             assert_eq!(
@@ -1689,7 +1770,7 @@ mod tests {
                     "Sender is not on slashers list".to_owned()
                 ))
             );
-            assert_stake(deps.as_ref(), 12_000, 7_500, 4_000);
+            assert_stake_liquid(deps.as_ref(), 12_000, 7_500, 4_000);
         }
     }
 
