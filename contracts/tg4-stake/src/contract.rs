@@ -1183,7 +1183,7 @@ mod tests {
         let mut deps = mock_deps_tgrade();
         default_instantiate(deps.as_mut());
         // Set values as (11, 6, None)
-        bond_liquid(deps.as_mut(), 11_000, 6_000, 0, 1);
+        bond(deps.as_mut(), (1_000, 10_000), (6_000, 0), (0, 0), 1);
 
         // get total from raw key
         let total_raw = deps.storage.get(TOTAL_KEY.as_bytes()).unwrap();
@@ -1218,8 +1218,9 @@ mod tests {
         default_instantiate(deps.as_mut());
 
         // create some data
-        bond_liquid(deps.as_mut(), 12_000, 7_500, 4_000, 1);
+        bond(deps.as_mut(), (4_000, 7_500), (7_500, 0), (3_000, 1_000), 1);
         let height_delta = 2;
+        // Only 4_000 (liquid) will be claimed for USER1
         unbond(deps.as_mut(), 4_500, 2_600, 0, height_delta, 0);
         let mut env = mock_env();
         env.block.height += height_delta;
@@ -1230,7 +1231,7 @@ mod tests {
             get_claims(deps.as_ref(), Addr::unchecked(USER1), None, None),
             vec![Claim::new(
                 Addr::unchecked(USER1),
-                4_500,
+                4_000,
                 expires,
                 env.block.height
             )]
@@ -1263,7 +1264,7 @@ mod tests {
             get_claims(deps.as_ref(), Addr::unchecked(USER1), None, None),
             vec![Claim::new(
                 Addr::unchecked(USER1),
-                4_500,
+                4_000,
                 expires,
                 env.block.height
             )]
@@ -1310,7 +1311,7 @@ mod tests {
             res.messages,
             vec![SubMsg::new(BankMsg::Send {
                 to_address: USER1.into(),
-                amount: coins(4_500, DENOM),
+                amount: coins(4_000, DENOM),
             })]
         );
 
