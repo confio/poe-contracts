@@ -573,10 +573,14 @@ fn query_total_points<Q: CustomQuery>(deps: Deps<Q>) -> StdResult<TotalPointsRes
 pub fn query_staked<Q: CustomQuery>(deps: Deps<Q>, addr: String) -> StdResult<StakedResponse> {
     let addr = deps.api.addr_validate(&addr)?;
     let stake = STAKE.may_load(deps.storage, &addr)?.unwrap_or_default();
+    let vesting = STAKE_VESTING
+        .may_load(deps.storage, &addr)?
+        .unwrap_or_default();
     let config = CONFIG.load(deps.storage)?;
 
     Ok(StakedResponse {
-        stake: coin(stake.u128(), config.denom),
+        stake: coin(stake.u128(), config.denom.clone()),
+        vesting: coin(vesting.u128(), config.denom),
     })
 }
 
@@ -846,12 +850,15 @@ mod tests {
     ) {
         let stake1 = query_staked(deps, USER1.into()).unwrap();
         assert_eq!(stake1.stake, coin(user1_stake, DENOM));
+        assert_eq!(stake1.vesting, coin(0, DENOM));
 
         let stake2 = query_staked(deps, USER2.into()).unwrap();
         assert_eq!(stake2.stake, coin(user2_stake, DENOM));
+        assert_eq!(stake2.vesting, coin(0, DENOM));
 
         let stake3 = query_staked(deps, USER3.into()).unwrap();
         assert_eq!(stake3.stake, coin(user3_stake, DENOM));
+        assert_eq!(stake3.vesting, coin(0, DENOM));
     }
 
     #[test]
