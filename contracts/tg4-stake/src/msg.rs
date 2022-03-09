@@ -118,7 +118,7 @@ pub enum QueryMsg {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct StakedResponse {
-    pub stake: Coin,
+    pub liquid: Coin,
     pub vesting: Coin,
 }
 

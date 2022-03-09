@@ -578,7 +578,7 @@ pub fn query_staked<Q: CustomQuery>(deps: Deps<Q>, addr: String) -> StdResult<St
     let config = CONFIG.load(deps.storage)?;
 
     Ok(StakedResponse {
-        stake: coin(stake.u128(), config.denom.clone()),
+        liquid: coin(stake.u128(), config.denom.clone()),
         vesting: coin(vesting.u128(), config.denom),
     })
 }
@@ -875,13 +875,13 @@ mod tests {
     #[track_caller]
     fn assert_stake_liquid(deps: Deps<TgradeQuery>, user1: u128, user2: u128, user3: u128) {
         let stake1 = query_staked(deps, USER1.into()).unwrap();
-        assert_eq!(stake1.stake, coin(user1, DENOM));
+        assert_eq!(stake1.liquid, coin(user1, DENOM));
 
         let stake2 = query_staked(deps, USER2.into()).unwrap();
-        assert_eq!(stake2.stake, coin(user2, DENOM));
+        assert_eq!(stake2.liquid, coin(user2, DENOM));
 
         let stake3 = query_staked(deps, USER3.into()).unwrap();
-        assert_eq!(stake3.stake, coin(user3, DENOM));
+        assert_eq!(stake3.liquid, coin(user3, DENOM));
     }
 
     // this tests the member queries of illiquid amounts
