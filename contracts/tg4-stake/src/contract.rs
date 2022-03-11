@@ -154,6 +154,9 @@ pub fn execute_bond<Q: CustomQuery>(
         .map(|v| validate_funds(&[v], &cfg.denom))
         .transpose()?
         .unwrap_or_default();
+    if amount + vesting_amount == Uint128::zero() {
+        return Err(ContractError::NoFunds {});
+    }
 
     // update the sender's stake
     let new_stake = STAKE.update(deps.storage, &info.sender, |stake| -> StdResult<_> {
@@ -363,14 +366,14 @@ pub fn execute_slash<Q: CustomQuery>(
     Ok(res)
 }
 
-/// Validates funds send with the message, that they are containing only single denom. Returns
-/// amount of funds send, or error if:
-/// * No funds are passed with message (`NoFunds` error)
-/// * More than single denom  are send (`ExtraDenoms` error)
-/// * Invalid single denom is send (`MissingDenom` error)
+/// Validates funds sent with the message, that they are containing only a single denom. Returns
+/// amount of funds sent, or error if:
+/// * More than a single denom is sent (`ExtraDenoms` error)
+/// * Invalid single denom is sent (`MissingDenom` error)
+/// Note that no funds (or a coin of the right denom but zero amount) is a valid option here.
 pub fn validate_funds(funds: &[Coin], stake_denom: &str) -> Result<Uint128, ContractError> {
     match funds {
-        [] => Err(ContractError::NoFunds {}),
+        [] => Ok(Uint128::zero()),
         [Coin { denom, amount }] if denom == stake_denom => Ok(*amount),
         [_] => Err(ContractError::MissingDenom(stake_denom.to_string())),
         _ => Err(ContractError::ExtraDenoms(stake_denom.to_string())),
