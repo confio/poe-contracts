@@ -57,6 +57,8 @@ pub fn create(
     Ok(())
 }
 
+// useless commment
+
 // And declare a custom Error variant for the ones where you will want to make use of it
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn execute(
