@@ -5,6 +5,7 @@ use cosmwasm_std::{
     Empty, Env, MessageInfo, Order, StdResult, Storage, Uint128,
 };
 use std::cmp::min;
+use std::ops::Sub;
 
 use cw2::set_contract_version;
 use cw_storage_plus::Bound;
@@ -329,36 +330,55 @@ pub fn execute_slash<Q: CustomQuery>(
     let cfg = CONFIG.load(deps.storage)?;
     let addr = deps.api.addr_validate(&addr)?;
 
-    // update the addr's stake
+    let liquid_stake = STAKE.may_load(deps.storage, &addr)?;
+    let vesting_stake = STAKE_VESTING.may_load(deps.storage, &addr)?;
+
     // If address doesn't match anyone, leave early
-    let stake = match STAKE.may_load(deps.storage, &addr)? {
-        Some(s) => s,
-        None => return Ok(Response::new()),
-    };
-    let mut slashed = stake * portion;
-    let new_stake = STAKE.update(deps.storage, &addr, |stake| -> StdResult<_> {
-        Ok(stake.unwrap_or_default().checked_sub(slashed)?)
+    if liquid_stake.is_none() && vesting_stake.is_none() {
+        return Ok(Response::new());
+    }
+
+    // slash the liquid stake, if any
+    let mut liquid_slashed = liquid_stake.map(|s| s * portion).unwrap_or_default();
+    let new_liquid_stake = STAKE.update(deps.storage, &addr, |stake| -> StdResult<_> {
+        Ok(stake.unwrap_or_default().sub(liquid_slashed))
+    })?;
+
+    // slash the vesting stake, if any
+    let vesting_slashed = vesting_stake.map(|s| s * portion).unwrap_or_default();
+    let new_vesting_stake = STAKE_VESTING.update(deps.storage, &addr, |stake| -> StdResult<_> {
+        Ok(stake.unwrap_or_default().sub(vesting_slashed))
     })?;
 
     // slash the claims
-    slashed += claims().slash_claims_for_addr(deps.storage, addr.clone(), portion)?;
-
-    // burn the tokens
-    let burn_msg = BankMsg::Burn {
-        amount: coins(slashed.u128(), &cfg.denom),
-    };
+    liquid_slashed += claims().slash_claims_for_addr(deps.storage, addr.clone(), portion)?;
 
     // response
     let mut res = Response::new()
         .add_attribute("action", "slash")
         .add_attribute("addr", &addr)
-        .add_attribute("sender", info.sender)
-        .add_message(burn_msg);
+        .add_attribute("sender", info.sender);
+
+    // burn the liquid slashed tokens
+    if liquid_slashed > Uint128::zero() {
+        let burn_liquid_msg = BankMsg::Burn {
+            amount: coins(liquid_slashed.u128(), &cfg.denom),
+        };
+        res = res.add_message(burn_liquid_msg);
+    }
+
+    // burn the vesting slashed tokens
+    if vesting_slashed > Uint128::zero() {
+        let burn_vesting_msg = BankMsg::Burn {
+            amount: coins(vesting_slashed.u128(), &cfg.denom),
+        };
+        res = res.add_message(burn_vesting_msg);
+    }
 
     res.messages.extend(update_membership(
         deps.storage,
         addr,
-        new_stake,
+        new_liquid_stake + new_vesting_stake,
         &cfg,
         env.block.height,
     )?);
@@ -1528,7 +1548,7 @@ mod tests {
             execute(deps, mock_env(), slasher_info, msg)
         }
 
-        fn assert_burned(res: Response, expected_amount: Vec<Coin>) {
+        fn assert_burned(res: Response, expected_liquid: &[Coin], expected_vesting: &[Coin]) {
             // Find all instances of BankMsg::Burn in the response and extract the burned amounts
             let burned_amounts: Vec<_> = res
                 .messages
@@ -1539,17 +1559,28 @@ mod tests {
                 })
                 .collect();
 
-            assert_eq!(
-                burned_amounts.len(),
-                1,
-                "Expected exactly 1 Bank::Burn message, got {}",
+            assert!(
+                burned_amounts.len() == 1 || burned_amounts.len() == 2,
+                "Expected exactly 1 or 2 Bank::Burn message, got {}",
                 burned_amounts.len()
             );
-            assert_eq!(
-                burned_amounts[0], &expected_amount,
-                "Expected to burn {}, burned {}",
-                expected_amount[0], burned_amounts[0][0]
-            );
+
+            let mut index = 0;
+            if !expected_liquid.is_empty() {
+                assert_eq!(
+                    burned_amounts[index], &expected_liquid,
+                    "Expected to burn {} liquid, burned {}",
+                    expected_liquid[0], burned_amounts[index][0]
+                );
+                index += 1;
+            }
+            if !expected_vesting.is_empty() {
+                assert_eq!(
+                    burned_amounts[index], &expected_vesting,
+                    "Expected to burn {} liquid, burned {}",
+                    expected_liquid[0], burned_amounts[index][0]
+                );
+            }
         }
 
         #[test]
@@ -1673,8 +1704,8 @@ mod tests {
             assert_stake_liquid(deps.as_ref(), 9_600, 7_500, 2_000);
 
             // Tokens are burned
-            assert_burned(res1, coins(2_400, &cfg.denom));
-            assert_burned(res2, coins(2_000, &cfg.denom));
+            assert_burned(res1, &coins(2_400, &cfg.denom), &[]);
+            assert_burned(res2, &coins(2_000, &cfg.denom), &[]);
         }
 
         #[test]
@@ -1714,7 +1745,7 @@ mod tests {
                     env.block.height
                 )]
             );
-            assert_burned(res, coins(2_400, &cfg.denom));
+            assert_burned(res, &coins(2_400, &cfg.denom), &[]);
         }
 
         #[test]
