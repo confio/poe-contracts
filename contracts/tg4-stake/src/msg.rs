@@ -36,11 +36,14 @@ pub struct InstantiateMsg {
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
 pub enum ExecuteMsg {
-    /// Bond will bond all staking tokens sent with the message and update membership points
-    Bond {},
+    /// Bond will bond all staking tokens sent with the message and update membership points.
+    /// The optional `vesting_tokens` will be staked (delegated) as well, if set.
+    Bond { vesting_tokens: Option<Coin> },
     /// Unbond will start the unbonding process for the given number of tokens.
     /// The sender immediately loses points from these tokens, and can claim them
-    /// back to his wallet after `unbonding_period`
+    /// back to his wallet after `unbonding_period`.
+    /// Tokens will be unbonded from the liquid stake first, and then from the vesting stake
+    /// if available.
     Unbond { tokens: Coin },
     /// Claim is used to claim your native tokens that you previously "unbonded"
     /// after the contract-defined waiting period (eg. 1 week)
@@ -115,7 +118,8 @@ pub enum QueryMsg {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct StakedResponse {
-    pub stake: Coin,
+    pub liquid: Coin,
+    pub vesting: Coin,
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]

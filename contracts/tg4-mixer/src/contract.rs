@@ -597,7 +597,9 @@ mod tests {
             let caller = Addr::unchecked(staker.addr);
 
             // they stake to the contract
-            let msg = tg4_stake::msg::ExecuteMsg::Bond {};
+            let msg = tg4_stake::msg::ExecuteMsg::Bond {
+                vesting_tokens: None,
+            };
             app.execute_contract(caller.clone(), contract.clone(), &msg, &balance)
                 .unwrap();
         }
@@ -774,7 +776,9 @@ mod tests {
             .into(),
         )
         .unwrap();
-        let msg = tg4_stake::msg::ExecuteMsg::Bond {};
+        let msg = tg4_stake::msg::ExecuteMsg::Bond {
+            vesting_tokens: None,
+        };
         app.execute_contract(Addr::unchecked(VOTER5), staker_addr, &msg, &balance)
             .unwrap();
 

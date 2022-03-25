@@ -764,7 +764,9 @@ impl Suite {
         self.app.execute_contract(
             addr.clone(),
             self.membership.clone(),
-            &tg4_stake::msg::ExecuteMsg::Bond {},
+            &tg4_stake::msg::ExecuteMsg::Bond {
+                vesting_tokens: None,
+            },
             stake,
         )
     }

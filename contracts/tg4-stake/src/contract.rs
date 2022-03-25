@@ -4,6 +4,8 @@ use cosmwasm_std::{
     coin, coins, to_binary, Addr, BankMsg, Binary, Coin, CustomQuery, Decimal, Deps, DepsMut,
     Empty, Env, MessageInfo, Order, StdResult, Storage, Uint128,
 };
+use std::cmp::min;
+use std::ops::Sub;
 
 use cw2::set_contract_version;
 use cw_storage_plus::Bound;
@@ -24,7 +26,7 @@ use crate::msg::{
     ClaimsResponse, ExecuteMsg, InstantiateMsg, PreauthResponse, QueryMsg, StakedResponse,
     TotalPointsResponse, UnbondingPeriodResponse,
 };
-use crate::state::{claims, Config, CONFIG, STAKE};
+use crate::state::{claims, Config, CONFIG, STAKE, STAKE_VESTING};
 
 pub type Response = cosmwasm_std::Response<TgradeMsg>;
 pub type SubMsg = cosmwasm_std::SubMsg<TgradeMsg>;
@@ -85,7 +87,7 @@ pub fn execute(
             .map_err(Into::into),
         ExecuteMsg::AddHook { addr } => execute_add_hook(deps, info, addr),
         ExecuteMsg::RemoveHook { addr } => execute_remove_hook(deps, info, addr),
-        ExecuteMsg::Bond {} => execute_bond(deps, env, info),
+        ExecuteMsg::Bond { vesting_tokens } => execute_bond(deps, env, info, vesting_tokens),
         ExecuteMsg::Unbond {
             tokens: Coin { amount, denom },
         } => execute_unbond(deps, env, info, amount, denom),
@@ -145,9 +147,17 @@ pub fn execute_bond<Q: CustomQuery>(
     deps: DepsMut<Q>,
     env: Env,
     info: MessageInfo,
+    vesting_tokens: Option<Coin>,
 ) -> Result<Response, ContractError> {
     let cfg = CONFIG.load(deps.storage)?;
     let amount = validate_funds(&info.funds, &cfg.denom)?;
+    let vesting_amount = vesting_tokens
+        .map(|v| validate_funds(&[v], &cfg.denom))
+        .transpose()?
+        .unwrap_or_default();
+    if amount + vesting_amount == Uint128::zero() {
+        return Err(ContractError::NoFunds {});
+    }
 
     // update the sender's stake
     let new_stake = STAKE.update(deps.storage, &info.sender, |stake| -> StdResult<_> {
@@ -158,7 +168,31 @@ pub fn execute_bond<Q: CustomQuery>(
         .add_attribute("action", "bond")
         .add_attribute("amount", amount)
         .add_attribute("sender", &info.sender);
-    res.messages = update_membership(deps.storage, info.sender, new_stake, &cfg, env.block.height)?;
+
+    // Update the sender's vesting stake
+    let new_vesting_stake =
+        STAKE_VESTING.update(deps.storage, &info.sender, |stake| -> StdResult<_> {
+            Ok(stake.unwrap_or_default() + vesting_amount)
+        })?;
+    // Delegate (stake to contract) to sender's vesting account
+    if vesting_amount > Uint128::zero() {
+        let msg = TgradeMsg::Delegate {
+            funds: coin(vesting_amount.into(), cfg.denom.clone()),
+            staker: info.sender.to_string(),
+        };
+        res = res
+            .add_message(msg)
+            .add_attribute("vesting_amount", vesting_amount);
+    }
+
+    // Update membership messages
+    res = res.add_submessages(update_membership(
+        deps.storage,
+        info.sender,
+        new_stake + new_vesting_stake,
+        &cfg,
+        env.block.height,
+    )?);
 
     Ok(res)
 }
@@ -177,27 +211,57 @@ pub fn execute_unbond<Q: CustomQuery>(
         return Err(ContractError::InvalidDenom(denom));
     }
 
-    // reduce the sender's stake - aborting if insufficient
+    // Load stake first for comparison
+    let stake = STAKE
+        .may_load(deps.storage, &info.sender)?
+        .unwrap_or_default();
+    // Reduce the sender's stake - saturating if insufficient
     let new_stake = STAKE.update(deps.storage, &info.sender, |stake| -> StdResult<_> {
-        Ok(stake.unwrap_or_default().checked_sub(amount)?)
+        Ok(stake.unwrap_or_default().saturating_sub(amount))
     })?;
-
-    let completion = cfg.unbonding_period.after(&env.block);
-    claims().create_claim(
-        deps.storage,
-        info.sender.clone(),
-        amount,
-        completion,
-        env.block.height,
-    )?;
 
     let mut res = Response::new()
         .add_attribute("action", "unbond")
         .add_attribute("amount", amount)
         .add_attribute("denom", &denom)
-        .add_attribute("sender", &info.sender)
-        .add_attribute("completion_time", completion.time().nanos().to_string());
-    res.messages = update_membership(deps.storage, info.sender, new_stake, &cfg, env.block.height)?;
+        .add_attribute("sender", &info.sender);
+
+    // Reduce the sender's vesting stake - aborting if insufficient
+    let vesting_amount = amount.saturating_sub(stake);
+    let new_vesting_stake =
+        STAKE_VESTING.update(deps.storage, &info.sender, |stake| -> StdResult<_> {
+            Ok(stake.unwrap_or_default().checked_sub(vesting_amount)?)
+        })?;
+    // Undelegate (unstake from contract) to sender's vesting account
+    if vesting_amount > Uint128::zero() {
+        let msg = TgradeMsg::Undelegate {
+            funds: coin(vesting_amount.into(), cfg.denom.clone()),
+            recipient: info.sender.to_string(),
+        };
+        res = res
+            .add_message(msg)
+            .add_attribute("vesting_amount", vesting_amount);
+    }
+
+    // Create claim for unbonded liquid amount
+    let completion = cfg.unbonding_period.after(&env.block);
+    claims().create_claim(
+        deps.storage,
+        info.sender.clone(),
+        min(stake, amount),
+        completion,
+        env.block.height,
+    )?;
+    res = res.add_attribute("completion_time", completion.time().nanos().to_string());
+
+    // Update membership messages
+    res = res.add_submessages(update_membership(
+        deps.storage,
+        info.sender,
+        new_stake + new_vesting_stake,
+        &cfg,
+        env.block.height,
+    )?);
 
     Ok(res)
 }
@@ -265,36 +329,61 @@ pub fn execute_slash<Q: CustomQuery>(
     let cfg = CONFIG.load(deps.storage)?;
     let addr = deps.api.addr_validate(&addr)?;
 
-    // update the addr's stake
+    let liquid_stake = STAKE.may_load(deps.storage, &addr)?;
+    let vesting_stake = STAKE_VESTING.may_load(deps.storage, &addr)?;
+
     // If address doesn't match anyone, leave early
-    let stake = match STAKE.may_load(deps.storage, &addr)? {
-        Some(s) => s,
-        None => return Ok(Response::new()),
-    };
-    let mut slashed = stake * portion;
-    let new_stake = STAKE.update(deps.storage, &addr, |stake| -> StdResult<_> {
-        Ok(stake.unwrap_or_default().checked_sub(slashed)?)
-    })?;
-
-    // slash the claims
-    slashed += claims().slash_claims_for_addr(deps.storage, addr.clone(), portion)?;
-
-    // burn the tokens
-    let burn_msg = BankMsg::Burn {
-        amount: coins(slashed.u128(), &cfg.denom),
-    };
+    if liquid_stake.is_none() && vesting_stake.is_none() {
+        return Ok(Response::new());
+    }
 
     // response
     let mut res = Response::new()
         .add_attribute("action", "slash")
         .add_attribute("addr", &addr)
-        .add_attribute("sender", info.sender)
-        .add_message(burn_msg);
+        .add_attribute("sender", info.sender);
+
+    // slash the liquid stake, if any
+    let mut new_liquid_stake = Uint128::zero();
+    if let Some(liquid_stake) = liquid_stake {
+        let mut liquid_slashed = liquid_stake * portion;
+        new_liquid_stake = STAKE.update(deps.storage, &addr, |stake| -> StdResult<_> {
+            Ok(stake.unwrap_or_default().sub(liquid_slashed))
+        })?;
+
+        // slash the claims
+        liquid_slashed += claims().slash_claims_for_addr(deps.storage, addr.clone(), portion)?;
+
+        // burn the liquid slashed tokens
+        if liquid_slashed > Uint128::zero() {
+            let burn_liquid_msg = BankMsg::Burn {
+                amount: coins(liquid_slashed.u128(), &cfg.denom),
+            };
+            res = res.add_message(burn_liquid_msg);
+        }
+    }
+
+    // slash the vesting stake, if any
+    let mut new_vesting_stake = Uint128::zero();
+    if let Some(vesting_stake) = vesting_stake {
+        let vesting_slashed = vesting_stake * portion;
+        new_vesting_stake = STAKE_VESTING.update(deps.storage, &addr, |stake| -> StdResult<_> {
+            Ok(stake.unwrap_or_default().sub(vesting_slashed))
+        })?;
+
+        // burn the vesting slashed tokens
+        if vesting_slashed > Uint128::zero() {
+            let burn_vesting_msg = BankMsg::Burn {
+                amount: coins(vesting_slashed.u128(), &cfg.denom),
+            };
+            res = res.add_message(burn_vesting_msg);
+        }
+    }
 
     res.messages.extend(update_membership(
         deps.storage,
         addr,
-        new_stake,
+        new_liquid_stake + new_vesting_stake,
         &cfg,
         env.block.height,
     )?);
@@ -302,14 +391,14 @@ pub fn execute_slash<Q: CustomQuery>(
     Ok(res)
 }
 
-/// Validates funds send with the message, that they are containing only single denom. Returns
-/// amount of funds send, or error if:
-/// * No funds are passed with message (`NoFunds` error)
-/// * More than single denom  are send (`ExtraDenoms` error)
-/// * Invalid single denom is send (`MissingDenom` error)
+/// Validates funds sent with the message, that they are containing only a single denom. Returns
+/// amount of funds sent, or error if:
+/// * More than a single denom is sent (`ExtraDenoms` error)
+/// * Invalid single denom is sent (`MissingDenom` error)
+/// Note that no funds (or a coin of the right denom but zero amount) is a valid option here.
 pub fn validate_funds(funds: &[Coin], stake_denom: &str) -> Result<Uint128, ContractError> {
     match funds {
-        [] => Err(ContractError::NoFunds {}),
+        [] => Ok(Uint128::zero()),
         [Coin { denom, amount }] if denom == stake_denom => Ok(*amount),
         [_] => Err(ContractError::MissingDenom(stake_denom.to_string())),
         _ => Err(ContractError::ExtraDenoms(stake_denom.to_string())),
@@ -410,12 +499,15 @@ pub fn sudo(
 fn privilege_promote<Q: CustomQuery>(deps: DepsMut<Q>) -> Result<Response, ContractError> {
     let config = CONFIG.load(deps.storage)?;
 
+    let mut res = Response::new();
     if config.auto_return_limit > 0 {
         let msgs = request_privileges(&[Privilege::EndBlocker]);
-        Ok(Response::new().add_submessages(msgs))
-    } else {
-        Ok(Response::new())
+        res = res.add_submessages(msgs);
     }
+    let msgs = request_privileges(&[Privilege::Delegator]);
+    res = res.add_submessages(msgs);
+
+    Ok(res)
 }
 
 fn end_block<Q: CustomQuery>(deps: DepsMut<Q>, env: Env) -> Result<Response, ContractError> {
@@ -508,10 +600,14 @@ fn query_total_points<Q: CustomQuery>(deps: Deps<Q>) -> StdResult<TotalPointsRes
 pub fn query_staked<Q: CustomQuery>(deps: Deps<Q>, addr: String) -> StdResult<StakedResponse> {
     let addr = deps.api.addr_validate(&addr)?;
     let stake = STAKE.may_load(deps.storage, &addr)?.unwrap_or_default();
+    let vesting = STAKE_VESTING
+        .may_load(deps.storage, &addr)?
+        .unwrap_or_default();
     let config = CONFIG.load(deps.storage)?;
 
     Ok(StakedResponse {
-        stake: coin(stake.u128(), config.denom),
+        liquid: coin(stake.u128(), config.denom.clone()),
+        vesting: coin(vesting.u128(), config.denom),
     })
 }
 
@@ -646,20 +742,52 @@ mod tests {
         instantiate(deps, mock_env(), info, msg).unwrap();
     }
 
-    fn bond(
-        mut deps: DepsMut<TgradeQuery>,
+    // Helper for staking only liquid assets
+    fn bond_liquid(
+        deps: DepsMut<TgradeQuery>,
         user1: u128,
         user2: u128,
         user3: u128,
         height_delta: u64,
     ) {
+        bond(deps, (user1, 0), (user2, 0), (user3, 0), height_delta);
+    }
+
+    // Helper for staking only illiquid assets
+    fn bond_vesting(
+        deps: DepsMut<TgradeQuery>,
+        user1: u128,
+        user2: u128,
+        user3: u128,
+        height_delta: u64,
+    ) {
+        bond(deps, (0, user1), (0, user2), (0, user3), height_delta);
+    }
+
+    // Full stake is composed of `(liquid, illiquid (vesting))` amounts
+    fn bond(
+        mut deps: DepsMut<TgradeQuery>,
+        user1_stake: (u128, u128),
+        user2_stake: (u128, u128),
+        user3_stake: (u128, u128),
+        height_delta: u64,
+    ) {
         let mut env = mock_env();
         env.block.height += height_delta;
 
-        for (addr, stake) in &[(USER1, user1), (USER2, user2), (USER3, user3)] {
-            if *stake != 0 {
-                let msg = ExecuteMsg::Bond {};
-                let info = mock_info(addr, &coins(*stake, DENOM));
+        for (addr, stake) in &[
+            (USER1, user1_stake),
+            (USER2, user2_stake),
+            (USER3, user3_stake),
+        ] {
+            if stake.0 != 0 || stake.1 != 0 {
+                let vesting_tokens = if stake.1 != 0 {
+                    Some(coin(stake.1, DENOM))
+                } else {
+                    None
+                };
+                let msg = ExecuteMsg::Bond { vesting_tokens };
+                let info = mock_info(addr, &coins(stake.0, DENOM));
                 execute(deps.branch(), env.clone(), info, msg).unwrap();
             }
         }
@@ -732,6 +860,7 @@ mod tests {
     }
 
     // this tests the member queries
+    #[track_caller]
     fn assert_users(
         deps: Deps<TgradeQuery>,
         user1_points: Option<u64>,
@@ -770,25 +899,34 @@ mod tests {
         }
     }
 
-    // this tests the member queries
-    fn assert_stake(
-        deps: Deps<TgradeQuery>,
-        user1_stake: u128,
-        user2_stake: u128,
-        user3_stake: u128,
-    ) {
+    // this tests the member queries of liquid amounts
+    #[track_caller]
+    fn assert_stake_liquid(deps: Deps<TgradeQuery>, user1: u128, user2: u128, user3: u128) {
         let stake1 = query_staked(deps, USER1.into()).unwrap();
-        assert_eq!(stake1.stake, coin(user1_stake, DENOM));
+        assert_eq!(stake1.liquid, coin(user1, DENOM));
 
         let stake2 = query_staked(deps, USER2.into()).unwrap();
-        assert_eq!(stake2.stake, coin(user2_stake, DENOM));
+        assert_eq!(stake2.liquid, coin(user2, DENOM));
 
         let stake3 = query_staked(deps, USER3.into()).unwrap();
-        assert_eq!(stake3.stake, coin(user3_stake, DENOM));
+        assert_eq!(stake3.liquid, coin(user3, DENOM));
+    }
+
+    // this tests the member queries of illiquid amounts
+    #[track_caller]
+    fn assert_stake_vesting(deps: Deps<TgradeQuery>, user1: u128, user2: u128, user3: u128) {
+        let stake1 = query_staked(deps, USER1.into()).unwrap();
+        assert_eq!(stake1.vesting, coin(user1, DENOM));
+
+        let stake2 = query_staked(deps, USER2.into()).unwrap();
+        assert_eq!(stake2.vesting, coin(user2, DENOM));
+
+        let stake3 = query_staked(deps, USER3.into()).unwrap();
+        assert_eq!(stake3.vesting, coin(user3, DENOM));
     }
 
     #[test]
-    fn bond_stake_adds_membership() {
+    fn bond_stake_liquid_adds_membership() {
         let mut deps = mock_deps_tgrade();
         default_instantiate(deps.as_mut());
         let height = mock_env().block.height;
@@ -797,17 +935,77 @@ mod tests {
         assert_users(deps.as_ref(), None, None, None, None);
 
         // ensure it rounds down, and respects cut-off
-        bond(deps.as_mut(), 12_000, 7_500, 4_000, 1);
+        bond_liquid(deps.as_mut(), 12_000, 7_500, 4_000, 1);
 
         // Assert updated points
-        assert_stake(deps.as_ref(), 12_000, 7_500, 4_000);
+        assert_stake_liquid(deps.as_ref(), 12_000, 7_500, 4_000);
         assert_users(deps.as_ref(), Some(12), Some(7), None, None);
 
         // add some more, ensure the sum is properly respected (7.5 + 7.6 = 15 not 14)
-        bond(deps.as_mut(), 0, 7_600, 1_200, 2);
+        bond_liquid(deps.as_mut(), 0, 7_600, 1_200, 2);
 
         // Assert updated points
-        assert_stake(deps.as_ref(), 12_000, 15_100, 5_200);
+        assert_stake_liquid(deps.as_ref(), 12_000, 15_100, 5_200);
+        assert_users(deps.as_ref(), Some(12), Some(15), Some(5), None);
+
+        // check historical queries all work
+        assert_users(deps.as_ref(), None, None, None, Some(height + 1)); // before first stake
+        assert_users(deps.as_ref(), Some(12), Some(7), None, Some(height + 2)); // after first stake
+        assert_users(deps.as_ref(), Some(12), Some(15), Some(5), Some(height + 3));
+        // after second stake
+    }
+
+    #[test]
+    fn bond_stake_vesting_adds_membership() {
+        let mut deps = mock_deps_tgrade();
+        default_instantiate(deps.as_mut());
+        let height = mock_env().block.height;
+
+        // Assert original points
+        assert_users(deps.as_ref(), None, None, None, None);
+
+        // ensure it rounds down, and respects cut-off
+        bond_vesting(deps.as_mut(), 12_000, 7_500, 4_000, 1);
+
+        // Assert updated points
+        assert_stake_vesting(deps.as_ref(), 12_000, 7_500, 4_000);
+        assert_users(deps.as_ref(), Some(12), Some(7), None, None);
+
+        // add some more, ensure the sum is properly respected (7.5 + 7.6 = 15 not 14)
+        bond_vesting(deps.as_mut(), 0, 7_600, 1_200, 2);
+
+        // Assert updated points
+        assert_stake_vesting(deps.as_ref(), 12_000, 15_100, 5_200);
+        assert_users(deps.as_ref(), Some(12), Some(15), Some(5), None);
+
+        // check historical queries all work
+        assert_users(deps.as_ref(), None, None, None, Some(height + 1)); // before first stake
+        assert_users(deps.as_ref(), Some(12), Some(7), None, Some(height + 2)); // after first stake
+        assert_users(deps.as_ref(), Some(12), Some(15), Some(5), Some(height + 3));
+        // after second stake
+    }
+
+    #[test]
+    fn bond_mixed_stake_adds_membership() {
+        let mut deps = mock_deps_tgrade();
+        default_instantiate(deps.as_mut());
+        let height = mock_env().block.height;
+
+        // Assert original points
+        assert_users(deps.as_ref(), None, None, None, None);
+
+        // ensure it rounds down, and respects cut-off
+        bond_liquid(deps.as_mut(), 12_000, 7_500, 4_000, 1);
+
+        // Assert updated points
+        assert_stake_liquid(deps.as_ref(), 12_000, 7_500, 4_000);
+        assert_users(deps.as_ref(), Some(12), Some(7), None, None);
+
+        // add some more, ensure the sum is properly respected (7.5 + 7.6 = 15 not 14)
+        bond_vesting(deps.as_mut(), 0, 7_600, 1_200, 2);
+
+        // Assert updated points
+        assert_stake_vesting(deps.as_ref(), 0, 7_600, 1_200);
         assert_users(deps.as_ref(), Some(12), Some(15), Some(5), None);
 
         // check historical queries all work
@@ -822,7 +1020,7 @@ mod tests {
         let mut deps = mock_deps_tgrade();
         default_instantiate(deps.as_mut());
 
-        bond(deps.as_mut(), 12_000, 7_500, 4_000, 1);
+        bond(deps.as_mut(), (12_000, 0), (7_400, 100), (0, 4_000), 1);
 
         let member1 = query_member(deps.as_ref(), USER1.into(), None).unwrap();
         assert_eq!(member1.points, Some(12));
@@ -890,7 +1088,7 @@ mod tests {
         let mut deps = mock_deps_tgrade();
         default_instantiate(deps.as_mut());
 
-        bond(deps.as_mut(), 11_000, 6_500, 5_000, 1);
+        bond(deps.as_mut(), (10_000, 1_000), (6_500, 0), (0, 5_000), 1);
 
         let members = list_members_by_points(deps.as_ref(), None, None)
             .unwrap()
@@ -967,24 +1165,29 @@ mod tests {
         let height = mock_env().block.height;
 
         // ensure it rounds down, and respects cut-off
-        bond(deps.as_mut(), 12_000, 7_500, 4_000, 1);
-        unbond(deps.as_mut(), 4_500, 2_600, 1_111, 2, 0);
+        bond(deps.as_mut(), (0, 12_000), (500, 7_000), (3_000, 3_000), 1);
+        assert_users(deps.as_ref(), Some(12), Some(7), Some(6), None);
+
+        unbond(deps.as_mut(), 4_500, 2_600, 1_000, 2, 0);
 
         // Assert updated points
-        assert_stake(deps.as_ref(), 7_500, 4_900, 2_889);
-        assert_users(deps.as_ref(), Some(7), None, None, None);
+        assert_stake_liquid(deps.as_ref(), 0, 0, 2000);
+        assert_stake_vesting(deps.as_ref(), 7_500, 4_900, 3000);
+        assert_users(deps.as_ref(), Some(7), None, Some(5), None);
 
         // Adding a little more returns points
-        bond(deps.as_mut(), 600, 100, 2_222, 3);
+        bond(deps.as_mut(), (500, 100), (100, 0), (0, 2_222), 3);
 
         // Assert updated points
-        assert_users(deps.as_ref(), Some(8), Some(5), Some(5), None);
+        assert_stake_liquid(deps.as_ref(), 500, 100, 2000);
+        assert_stake_vesting(deps.as_ref(), 7_600, 4_900, 5_222);
+        assert_users(deps.as_ref(), Some(8), Some(5), Some(7), None);
 
         // check historical queries all work
         assert_users(deps.as_ref(), None, None, None, Some(height + 1)); // before first stake
-        assert_users(deps.as_ref(), Some(12), Some(7), None, Some(height + 2)); // after first bond
-        assert_users(deps.as_ref(), Some(7), None, None, Some(height + 3)); // after first unbond
-        assert_users(deps.as_ref(), Some(8), Some(5), Some(5), Some(height + 4)); // after second bond
+        assert_users(deps.as_ref(), Some(12), Some(7), Some(6), Some(height + 2)); // after first bond
+        assert_users(deps.as_ref(), Some(7), None, Some(5), Some(height + 3)); // after first unbond
+        assert_users(deps.as_ref(), Some(8), Some(5), Some(7), Some(height + 4)); // after second bond
 
         // error if try to unbond more than stake (USER2 has 5000 staked)
         let msg = ExecuteMsg::Unbond {
@@ -998,8 +1201,8 @@ mod tests {
             err,
             ContractError::Std(StdError::overflow(OverflowError::new(
                 OverflowOperation::Sub,
-                5000,
-                5100
+                4900,
+                5000
             )))
         );
     }
@@ -1010,7 +1213,7 @@ mod tests {
         let mut deps = mock_deps_tgrade();
         default_instantiate(deps.as_mut());
         // Set values as (11, 6, None)
-        bond(deps.as_mut(), 11_000, 6_000, 0, 1);
+        bond(deps.as_mut(), (1_000, 10_000), (6_000, 0), (0, 0), 1);
 
         // get total from raw key
         let total_raw = deps.storage.get(TOTAL_KEY.as_bytes()).unwrap();
@@ -1045,8 +1248,9 @@ mod tests {
         default_instantiate(deps.as_mut());
 
         // create some data
-        bond(deps.as_mut(), 12_000, 7_500, 4_000, 1);
+        bond(deps.as_mut(), (4_000, 7_500), (7_500, 0), (3_000, 1_000), 1);
         let height_delta = 2;
+        // Only 4_000 (liquid) will be claimed for USER1
         unbond(deps.as_mut(), 4_500, 2_600, 0, height_delta, 0);
         let mut env = mock_env();
         env.block.height += height_delta;
@@ -1057,7 +1261,7 @@ mod tests {
             get_claims(deps.as_ref(), Addr::unchecked(USER1), None, None),
             vec![Claim::new(
                 Addr::unchecked(USER1),
-                4_500,
+                4_000,
                 expires,
                 env.block.height
             )]
@@ -1090,7 +1294,7 @@ mod tests {
             get_claims(deps.as_ref(), Addr::unchecked(USER1), None, None),
             vec![Claim::new(
                 Addr::unchecked(USER1),
-                4_500,
+                4_000,
                 expires,
                 env.block.height
             )]
@@ -1137,7 +1341,7 @@ mod tests {
             res.messages,
             vec![SubMsg::new(BankMsg::Send {
                 to_address: USER1.into(),
-                amount: coins(4_500, DENOM),
+                amount: coins(4_000, DENOM),
             })]
         );
 
@@ -1351,7 +1555,11 @@ mod tests {
             execute(deps, mock_env(), slasher_info, msg)
         }
 
-        fn assert_burned(res: Response, expected_amount: Vec<Coin>) {
+        fn assert_burned(res: Response, expected_liquid: &[Coin], expected_vesting: &[Coin]) {
+            // Args checks for robustness
+            assert!(expected_liquid.len() <= 1);
+            assert!(expected_vesting.len() <= 1);
+
             // Find all instances of BankMsg::Burn in the response and extract the burned amounts
             let burned_amounts: Vec<_> = res
                 .messages
@@ -1362,17 +1570,28 @@ mod tests {
                 })
                 .collect();
 
-            assert_eq!(
-                burned_amounts.len(),
-                1,
-                "Expected exactly 1 Bank::Burn message, got {}",
+            assert!(
+                burned_amounts.len() == 1 || burned_amounts.len() == 2,
+                "Expected exactly 1 or 2 Bank::Burn message, got {}",
                 burned_amounts.len()
             );
-            assert_eq!(
-                burned_amounts[0], &expected_amount,
-                "Expected to burn {}, burned {}",
-                expected_amount[0], burned_amounts[0][0]
-            );
+
+            let mut index = 0;
+            if !expected_liquid.is_empty() {
+                assert_eq!(
+                    burned_amounts[index], &expected_liquid,
+                    "Expected to burn {} liquid, burned {}",
+                    expected_liquid[0], burned_amounts[index][0]
+                );
+                index += 1;
+            }
+            if !expected_vesting.is_empty() {
+                assert_eq!(
+                    burned_amounts[index], &expected_vesting,
+                    "Expected to burn {} vesting, burned {}",
+                    expected_liquid[0], burned_amounts[index][0]
+                );
+            }
         }
 
         #[test]
@@ -1472,8 +1691,8 @@ mod tests {
             let slasher = add_slasher(deps.as_mut());
             assert!(query_is_slasher(deps.as_ref(), mock_env(), slasher.clone()).unwrap());
 
-            bond(deps.as_mut(), 12_000, 7_500, 4_000, 1);
-            assert_stake(deps.as_ref(), 12_000, 7_500, 4_000);
+            bond_liquid(deps.as_mut(), 12_000, 7_500, 4_000, 1);
+            assert_stake_liquid(deps.as_ref(), 12_000, 7_500, 4_000);
 
             // Trying to slash nonexisting user will result in no-op
             let res = slash(deps.as_mut(), &slasher, "nonexisting", Decimal::percent(20)).unwrap();
@@ -1481,23 +1700,88 @@ mod tests {
         }
 
         #[test]
-        fn slashing_bonded_tokens_works() {
+        fn slashing_bonded_liquid_tokens_works() {
             let mut deps = mock_deps_tgrade();
             default_instantiate(deps.as_mut());
             let cfg = CONFIG.load(&deps.storage).unwrap();
             let slasher = add_slasher(deps.as_mut());
 
-            bond(deps.as_mut(), 12_000, 7_500, 4_000, 1);
-            assert_stake(deps.as_ref(), 12_000, 7_500, 4_000);
+            bond_liquid(deps.as_mut(), 12_000, 7_500, 4_000, 1);
+            assert_stake_liquid(deps.as_ref(), 12_000, 7_500, 4_000);
 
             // The slasher we added can slash
             let res1 = slash(deps.as_mut(), &slasher, USER1, Decimal::percent(20)).unwrap();
             let res2 = slash(deps.as_mut(), &slasher, USER3, Decimal::percent(50)).unwrap();
-            assert_stake(deps.as_ref(), 9_600, 7_500, 2_000);
+            assert_stake_liquid(deps.as_ref(), 9_600, 7_500, 2_000);
 
             // Tokens are burned
-            assert_burned(res1, coins(2_400, &cfg.denom));
-            assert_burned(res2, coins(2_000, &cfg.denom));
+            assert_burned(res1, &coins(2_400, &cfg.denom), &[]);
+            assert_burned(res2, &coins(2_000, &cfg.denom), &[]);
+        }
+
+        #[test]
+        fn slashing_bonded_vesting_tokens_works() {
+            let mut deps = mock_deps_tgrade();
+            default_instantiate(deps.as_mut());
+            let cfg = CONFIG.load(&deps.storage).unwrap();
+            let slasher = add_slasher(deps.as_mut());
+
+            bond_vesting(deps.as_mut(), 12_000, 7_500, 4_000, 1);
+            assert_stake_vesting(deps.as_ref(), 12_000, 7_500, 4_000);
+
+            // The slasher we added can slash
+            let res1 = slash(deps.as_mut(), &slasher, USER1, Decimal::percent(20)).unwrap();
+            let res2 = slash(deps.as_mut(), &slasher, USER3, Decimal::percent(50)).unwrap();
+            assert_stake_vesting(deps.as_ref(), 9_600, 7_500, 2_000);
+
+            // Tokens are burned
+            assert_burned(res1, &[], &coins(2_400, &cfg.denom));
+            assert_burned(res2, &[], &coins(2_000, &cfg.denom));
+        }
+
+        #[test]
+        fn slashing_bonded_mixed_tokens_works() {
+            let mut deps = mock_deps_tgrade();
+            default_instantiate(deps.as_mut());
+            let cfg = CONFIG.load(&deps.storage).unwrap();
+            let slasher = add_slasher(deps.as_mut());
+
+            bond_liquid(deps.as_mut(), 12_000, 1_500, 0, 1);
+            assert_stake_liquid(deps.as_ref(), 12_000, 1_500, 0);
+            bond_vesting(deps.as_mut(), 0, 6_000, 4_000, 1);
+            assert_stake_vesting(deps.as_ref(), 0, 6_000, 4_000);
+
+            // The slasher we added can slash
+            let res1 = slash(deps.as_mut(), &slasher, USER1, Decimal::percent(20)).unwrap();
+            let res2 = slash(deps.as_mut(), &slasher, USER3, Decimal::percent(50)).unwrap();
+            let res3 = slash(deps.as_mut(), &slasher, USER2, Decimal::percent(10)).unwrap();
+            assert_stake_liquid(deps.as_ref(), 9_600, 1_350, 0);
+            assert_stake_vesting(deps.as_ref(), 0, 5_400, 2_000);
+
+            // Tokens are burned
+            assert_burned(res1, &coins(2_400, &cfg.denom), &[]);
+            assert_burned(res2, &[], &coins(2_000, &cfg.denom));
+            assert_burned(res3, &coins(150, &cfg.denom), &coins(600, &cfg.denom));
+        }
+
+        #[test]
+        fn slashing_stake_update_membership() {
+            let mut deps = mock_deps_tgrade();
+            default_instantiate(deps.as_mut());
+            let slasher = add_slasher(deps.as_mut());
+
+            // ensure it rounds down, and respects cut-off
+            bond(deps.as_mut(), (0, 12_000), (7_000, 0), (3_000, 4_000), 1);
+            assert_users(deps.as_ref(), Some(12), Some(7), Some(7), None);
+
+            slash(deps.as_mut(), &slasher, USER1, Decimal::percent(50)).unwrap();
+            slash(deps.as_mut(), &slasher, USER2, Decimal::percent(10)).unwrap();
+            slash(deps.as_mut(), &slasher, USER3, Decimal::percent(20)).unwrap();
+
+            // Assert updated points
+            assert_stake_liquid(deps.as_ref(), 0, 6_300, 2_400);
+            assert_stake_vesting(deps.as_ref(), 6_000, 0, 3_200);
+            assert_users(deps.as_ref(), Some(6), Some(6), Some(5), None);
         }
 
         #[test]
@@ -1508,7 +1792,7 @@ mod tests {
             let slasher = add_slasher(deps.as_mut());
 
             // create some data
-            bond(deps.as_mut(), 12_000, 7_500, 4_000, 1);
+            bond_liquid(deps.as_mut(), 12_000, 7_500, 4_000, 1);
             let height_delta = 2;
             unbond(deps.as_mut(), 12_000, 2_600, 0, height_delta, 0);
             let mut env = mock_env();
@@ -1537,7 +1821,7 @@ mod tests {
                     env.block.height
                 )]
             );
-            assert_burned(res, coins(2_400, &cfg.denom));
+            assert_burned(res, &coins(2_400, &cfg.denom), &[]);
         }
 
         #[test]
@@ -1546,8 +1830,8 @@ mod tests {
             default_instantiate(deps.as_mut());
             let _slasher = add_slasher(deps.as_mut());
 
-            bond(deps.as_mut(), 12_000, 7_500, 4_000, 1);
-            assert_stake(deps.as_ref(), 12_000, 7_500, 4_000);
+            bond_liquid(deps.as_mut(), 12_000, 7_500, 4_000, 1);
+            assert_stake_liquid(deps.as_ref(), 12_000, 7_500, 4_000);
 
             let res = slash(deps.as_mut(), USER2, USER1, Decimal::percent(20));
             assert_eq!(
@@ -1556,7 +1840,7 @@ mod tests {
                     "Sender is not on slashers list".to_owned()
                 ))
             );
-            assert_stake(deps.as_ref(), 12_000, 7_500, 4_000);
+            assert_stake_liquid(deps.as_ref(), 12_000, 7_500, 4_000);
         }
 
         #[test]
@@ -1565,8 +1849,8 @@ mod tests {
             default_instantiate(deps.as_mut());
             let _slasher = add_slasher(deps.as_mut());
 
-            bond(deps.as_mut(), 12_000, 7_500, 4_000, 1);
-            assert_stake(deps.as_ref(), 12_000, 7_500, 4_000);
+            bond_liquid(deps.as_mut(), 12_000, 7_500, 4_000, 1);
+            assert_stake_liquid(deps.as_ref(), 12_000, 7_500, 4_000);
 
             let res = slash(deps.as_mut(), INIT_ADMIN, USER1, Decimal::percent(20));
             assert_eq!(
@@ -1575,7 +1859,7 @@ mod tests {
                     "Sender is not on slashers list".to_owned()
                 ))
             );
-            assert_stake(deps.as_ref(), 12_000, 7_500, 4_000);
+            assert_stake_liquid(deps.as_ref(), 12_000, 7_500, 4_000);
         }
 
         #[test]
@@ -1587,8 +1871,8 @@ mod tests {
             let slasher = add_slasher(deps.as_mut());
             remove_slasher(deps.as_mut(), &slasher);
 
-            bond(deps.as_mut(), 12_000, 7_500, 4_000, 1);
-            assert_stake(deps.as_ref(), 12_000, 7_500, 4_000);
+            bond_liquid(deps.as_mut(), 12_000, 7_500, 4_000, 1);
+            assert_stake_liquid(deps.as_ref(), 12_000, 7_500, 4_000);
 
             let res = slash(deps.as_mut(), &slasher, USER1, Decimal::percent(20));
             assert_eq!(
@@ -1597,7 +1881,7 @@ mod tests {
                     "Sender is not on slashers list".to_owned()
                 ))
             );
-            assert_stake(deps.as_ref(), 12_000, 7_500, 4_000);
+            assert_stake_liquid(deps.as_ref(), 12_000, 7_500, 4_000);
         }
     }
 
@@ -1627,7 +1911,15 @@ mod tests {
         // check firing on bond
         assert_users(deps.as_ref(), None, None, None, None);
         let info = mock_info(USER1, &coins(13_800, DENOM));
-        let res = execute(deps.as_mut(), mock_env(), info, ExecuteMsg::Bond {}).unwrap();
+        let res = execute(
+            deps.as_mut(),
+            mock_env(),
+            info,
+            ExecuteMsg::Bond {
+                vesting_tokens: None,
+            },
+        )
+        .unwrap();
         assert_users(deps.as_ref(), Some(13), None, None, None);
 
         // ensure messages for each of the 2 hooks
@@ -1676,23 +1968,55 @@ mod tests {
 
         // cannot bond with 0 coins
         let info = mock_info(USER1, &[]);
-        let err = execute(deps.as_mut(), mock_env(), info, ExecuteMsg::Bond {}).unwrap_err();
+        let err = execute(
+            deps.as_mut(),
+            mock_env(),
+            info,
+            ExecuteMsg::Bond {
+                vesting_tokens: None,
+            },
+        )
+        .unwrap_err();
         assert_eq!(err, ContractError::NoFunds {});
 
         // cannot bond with incorrect denom
         let info = mock_info(USER1, &[coin(500, "FOO")]);
-        let err = execute(deps.as_mut(), mock_env(), info, ExecuteMsg::Bond {}).unwrap_err();
+        let err = execute(
+            deps.as_mut(),
+            mock_env(),
+            info,
+            ExecuteMsg::Bond {
+                vesting_tokens: None,
+            },
+        )
+        .unwrap_err();
         assert_eq!(err, ContractError::MissingDenom(DENOM.to_string()));
 
         // cannot bond with 2 coins (even if one is correct)
         let info = mock_info(USER1, &[coin(1234, DENOM), coin(5000, "BAR")]);
-        let err = execute(deps.as_mut(), mock_env(), info, ExecuteMsg::Bond {}).unwrap_err();
+        let err = execute(
+            deps.as_mut(),
+            mock_env(),
+            info,
+            ExecuteMsg::Bond {
+                vesting_tokens: None,
+            },
+        )
+        .unwrap_err();
         assert_eq!(err, ContractError::ExtraDenoms(DENOM.to_string()));
 
         // can bond with just the proper denom
         // cannot bond with incorrect denom
         let info = mock_info(USER1, &[coin(500, DENOM)]);
-        execute(deps.as_mut(), mock_env(), info, ExecuteMsg::Bond {}).unwrap();
+        execute(
+            deps.as_mut(),
+            mock_env(),
+            info,
+            ExecuteMsg::Bond {
+                vesting_tokens: None,
+            },
+        )
+        .unwrap();
     }
 
     #[test]
@@ -1703,7 +2027,7 @@ mod tests {
 
         // setting 50 tokens, gives us Some(0) points
         // even setting to 1 token
-        bond(deps.as_mut(), 50, 1, 102, 1);
+        bond_liquid(deps.as_mut(), 50, 1, 102, 1);
         assert_users(deps.as_ref(), Some(0), Some(0), Some(1), None);
 
         // reducing to 0 token makes us None even with min_bond 0
@@ -1718,7 +2042,9 @@ mod tests {
 
         // create some data
         let mut env = mock_env();
-        let msg = ExecuteMsg::Bond {};
+        let msg = ExecuteMsg::Bond {
+            vesting_tokens: None,
+        };
         let info = mock_info(USER1, &coins(500, DENOM));
         execute(deps.as_mut(), env.clone(), info, msg).unwrap();
 
@@ -1827,7 +2153,7 @@ mod tests {
             let mut deps = mock_deps_tgrade();
             do_instantiate(deps.as_mut(), 2);
 
-            bond(deps.as_mut(), 12_000, 7_500, 4_000, 1);
+            bond_liquid(deps.as_mut(), 12_000, 7_500, 4_000, 1);
             let height_delta = 2;
 
             unbond(deps.as_mut(), 1000, 0, 0, height_delta, 0);
@@ -1844,7 +2170,7 @@ mod tests {
             let mut deps = mock_deps_tgrade();
             do_instantiate(deps.as_mut(), 4);
 
-            bond(deps.as_mut(), 12_000, 7_500, 4_000, 1);
+            bond_liquid(deps.as_mut(), 12_000, 7_500, 4_000, 1);
             let height_delta = 2;
 
             unbond(deps.as_mut(), 1000, 500, 0, height_delta, 0);
@@ -1862,7 +2188,7 @@ mod tests {
             let mut deps = mock_deps_tgrade();
             do_instantiate(deps.as_mut(), 3);
 
-            bond(deps.as_mut(), 12_000, 7_500, 4_000, 1);
+            bond_liquid(deps.as_mut(), 12_000, 7_500, 4_000, 1);
             let height_delta = 2;
 
             unbond(deps.as_mut(), 1000, 0, 0, height_delta, 0);
@@ -1880,7 +2206,7 @@ mod tests {
             let mut deps = mock_deps_tgrade();
             do_instantiate(deps.as_mut(), 3);
 
-            bond(deps.as_mut(), 12_000, 7_500, 4_000, 1);
+            bond_liquid(deps.as_mut(), 12_000, 7_500, 4_000, 1);
             let height_delta = 2;
 
             // Claims to be returned
@@ -1905,7 +2231,7 @@ mod tests {
             let mut deps = mock_deps_tgrade();
             do_instantiate(deps.as_mut(), 5);
 
-            bond(deps.as_mut(), 12_000, 7_500, 4_000, 1);
+            bond_liquid(deps.as_mut(), 12_000, 7_500, 4_000, 1);
             let height_delta = 2;
 
             // Claims to be returned
@@ -1941,7 +2267,7 @@ mod tests {
             let mut deps = mock_deps_tgrade();
             do_instantiate(deps.as_mut(), 2);
 
-            bond(deps.as_mut(), 12_000, 7_500, 4_000, 1);
+            bond_liquid(deps.as_mut(), 12_000, 7_500, 4_000, 1);
             let height_delta = 2;
 
             // Claims to be returned
@@ -1994,7 +2320,7 @@ mod tests {
             let mut deps = mock_deps_tgrade();
             do_instantiate(deps.as_mut(), 2);
 
-            bond(deps.as_mut(), 5_000, 0, 0, 1);
+            bond_liquid(deps.as_mut(), 5_000, 0, 0, 1);
             let height_delta = 2;
 
             let mut env = mock_env();

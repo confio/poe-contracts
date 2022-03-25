@@ -1,7 +1,7 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use cosmwasm_std::{Binary, CosmosMsg, CustomMsg, Uint128};
+use cosmwasm_std::{Binary, Coin, CosmosMsg, CustomMsg, Uint128};
 
 use crate::gov::GovProposal;
 use crate::hooks::PrivilegeMsg;
@@ -37,6 +37,10 @@ pub enum TgradeMsg {
         description: String,
         proposal: GovProposal,
     },
+    /// This will stake funds from the sender's vesting account. Requires `Delegator` privilege.
+    Delegate { funds: Coin, staker: String },
+    /// This will unstake funds to the recipient's vesting account. Requires `Delegator` privilege.
+    Undelegate { funds: Coin, recipient: String },
 }
 
 /// See https://github.com/tendermint/tendermint/blob/v0.34.8/proto/tendermint/abci/types.proto#L282-L289

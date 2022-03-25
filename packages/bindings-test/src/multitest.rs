@@ -260,6 +260,22 @@ impl Module for TgradeModule {
                 };
                 router.sudo(api, storage, block, mint.into())
             }
+            TgradeMsg::Delegate {
+                funds: _funds,
+                staker: _staker,
+            } => {
+                self.require_privilege(storage, &sender, Privilege::Delegator)?;
+                // FIXME? We don't do anything here
+                Ok(AppResponse::default())
+            }
+            TgradeMsg::Undelegate {
+                funds: _funds,
+                recipient: _recipient,
+            } => {
+                self.require_privilege(storage, &sender, Privilege::Delegator)?;
+                // FIXME? We don't do anything here
+                Ok(AppResponse::default())
+            }
         }
     }
 
@@ -542,4 +558,6 @@ mod tests {
             .unwrap();
         assert_eq!(end, mintable);
     }
+
+    // TODO: Delegate / Undelegate tests
 }
