@@ -338,41 +338,47 @@ pub fn execute_slash<Q: CustomQuery>(
         return Ok(Response::new());
     }
 
-    // slash the liquid stake, if any
-    let mut liquid_slashed = liquid_stake.map(|s| s * portion).unwrap_or_default();
-    let new_liquid_stake = STAKE.update(deps.storage, &addr, |stake| -> StdResult<_> {
-        Ok(stake.unwrap_or_default().sub(liquid_slashed))
-    })?;
-
-    // slash the vesting stake, if any
-    let vesting_slashed = vesting_stake.map(|s| s * portion).unwrap_or_default();
-    let new_vesting_stake = STAKE_VESTING.update(deps.storage, &addr, |stake| -> StdResult<_> {
-        Ok(stake.unwrap_or_default().sub(vesting_slashed))
-    })?;
-
-    // slash the claims
-    liquid_slashed += claims().slash_claims_for_addr(deps.storage, addr.clone(), portion)?;
-
     // response
     let mut res = Response::new()
         .add_attribute("action", "slash")
         .add_attribute("addr", &addr)
         .add_attribute("sender", info.sender);
 
-    // burn the liquid slashed tokens
-    if liquid_slashed > Uint128::zero() {
-        let burn_liquid_msg = BankMsg::Burn {
-            amount: coins(liquid_slashed.u128(), &cfg.denom),
-        };
-        res = res.add_message(burn_liquid_msg);
+    // slash the liquid stake, if any
+    let mut new_liquid_stake = Uint128::zero();
+    if let Some(liquid_stake) = liquid_stake {
+        let mut liquid_slashed = liquid_stake * portion;
+        new_liquid_stake = STAKE.update(deps.storage, &addr, |stake| -> StdResult<_> {
+            Ok(stake.unwrap_or_default().sub(liquid_slashed))
+        })?;
+
+        // slash the claims
+        liquid_slashed += claims().slash_claims_for_addr(deps.storage, addr.clone(), portion)?;
+
+        // burn the liquid slashed tokens
+        if liquid_slashed > Uint128::zero() {
+            let burn_liquid_msg = BankMsg::Burn {
+                amount: coins(liquid_slashed.u128(), &cfg.denom),
+            };
+            res = res.add_message(burn_liquid_msg);
+        }
     }
 
-    // burn the vesting slashed tokens
-    if vesting_slashed > Uint128::zero() {
-        let burn_vesting_msg = BankMsg::Burn {
-            amount: coins(vesting_slashed.u128(), &cfg.denom),
-        };
-        res = res.add_message(burn_vesting_msg);
+    // slash the vesting stake, if any
+    let mut new_vesting_stake = Uint128::zero();
+    if let Some(vesting_stake) = vesting_stake {
+        let vesting_slashed = vesting_stake * portion;
+        new_vesting_stake = STAKE_VESTING.update(deps.storage, &addr, |stake| -> StdResult<_> {
+            Ok(stake.unwrap_or_default().sub(vesting_slashed))
+        })?;
+
+        // burn the vesting slashed tokens
+        if vesting_slashed > Uint128::zero() {
+            let burn_vesting_msg = BankMsg::Burn {
+                amount: coins(vesting_slashed.u128(), &cfg.denom),
+            };
+            res = res.add_message(burn_vesting_msg);
+        }
     }
 
     res.messages.extend(update_membership(
