@@ -1765,6 +1765,26 @@ mod tests {
         }
 
         #[test]
+        fn slashing_stake_update_membership() {
+            let mut deps = mock_deps_tgrade();
+            default_instantiate(deps.as_mut());
+            let slasher = add_slasher(deps.as_mut());
+
+            // ensure it rounds down, and respects cut-off
+            bond(deps.as_mut(), (0, 12_000), (7_000, 0), (3_000, 4_000), 1);
+            assert_users(deps.as_ref(), Some(12), Some(7), Some(7), None);
+
+            slash(deps.as_mut(), &slasher, USER1, Decimal::percent(50)).unwrap();
+            slash(deps.as_mut(), &slasher, USER2, Decimal::percent(10)).unwrap();
+            slash(deps.as_mut(), &slasher, USER3, Decimal::percent(20)).unwrap();
+
+            // Assert updated points
+            assert_stake_liquid(deps.as_ref(), 0, 6_300, 2_400);
+            assert_stake_vesting(deps.as_ref(), 6_000, 0, 3_200);
+            assert_users(deps.as_ref(), Some(6), Some(6), Some(5), None);
+        }
+
+        #[test]
         fn slashing_claims_works() {
             let mut deps = mock_deps_tgrade();
             default_instantiate(deps.as_mut());
