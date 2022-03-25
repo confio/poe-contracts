@@ -1166,27 +1166,29 @@ mod tests {
         let height = mock_env().block.height;
 
         // ensure it rounds down, and respects cut-off
-        bond(deps.as_mut(), (0, 12_000), (500, 7_000), (2_000, 2_000), 1);
-        unbond(deps.as_mut(), 4_500, 2_600, 1_111, 2, 0);
+        bond(deps.as_mut(), (0, 12_000), (500, 7_000), (3_000, 3_000), 1);
+        assert_users(deps.as_ref(), Some(12), Some(7), Some(6), None);
+
+        unbond(deps.as_mut(), 4_500, 2_600, 1_000, 2, 0);
 
         // Assert updated points
-        assert_stake_liquid(deps.as_ref(), 0, 0, 889);
-        assert_stake_vesting(deps.as_ref(), 7_500, 4_900, 2000);
-        assert_users(deps.as_ref(), Some(7), None, None, None);
+        assert_stake_liquid(deps.as_ref(), 0, 0, 2000);
+        assert_stake_vesting(deps.as_ref(), 7_500, 4_900, 3000);
+        assert_users(deps.as_ref(), Some(7), None, Some(5), None);
 
         // Adding a little more returns points
         bond(deps.as_mut(), (500, 100), (100, 0), (0, 2_222), 3);
 
         // Assert updated points
-        assert_stake_liquid(deps.as_ref(), 500, 100, 889);
-        assert_stake_vesting(deps.as_ref(), 7_600, 4_900, 4_222);
-        assert_users(deps.as_ref(), Some(8), Some(5), Some(5), None);
+        assert_stake_liquid(deps.as_ref(), 500, 100, 2000);
+        assert_stake_vesting(deps.as_ref(), 7_600, 4_900, 5_222);
+        assert_users(deps.as_ref(), Some(8), Some(5), Some(7), None);
 
         // check historical queries all work
         assert_users(deps.as_ref(), None, None, None, Some(height + 1)); // before first stake
-        assert_users(deps.as_ref(), Some(12), Some(7), None, Some(height + 2)); // after first bond
-        assert_users(deps.as_ref(), Some(7), None, None, Some(height + 3)); // after first unbond
-        assert_users(deps.as_ref(), Some(8), Some(5), Some(5), Some(height + 4)); // after second bond
+        assert_users(deps.as_ref(), Some(12), Some(7), Some(6), Some(height + 2)); // after first bond
+        assert_users(deps.as_ref(), Some(7), None, Some(5), Some(height + 3)); // after first unbond
+        assert_users(deps.as_ref(), Some(8), Some(5), Some(7), Some(height + 4)); // after second bond
 
         // error if try to unbond more than stake (USER2 has 5000 staked)
         let msg = ExecuteMsg::Unbond {
