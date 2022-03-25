@@ -1555,6 +1555,10 @@ mod tests {
         }
 
         fn assert_burned(res: Response, expected_liquid: &[Coin], expected_vesting: &[Coin]) {
+            // Args checks for robustness
+            assert!(expected_liquid.len() <= 1);
+            assert!(expected_vesting.len() <= 1);
+
             // Find all instances of BankMsg::Burn in the response and extract the burned amounts
             let burned_amounts: Vec<_> = res
                 .messages
