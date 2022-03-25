@@ -226,15 +226,14 @@ pub fn execute_unbond<Q: CustomQuery>(
         .add_attribute("denom", &denom)
         .add_attribute("sender", &info.sender);
 
-    let mut new_vesting_stake = Uint128::zero();
-    if amount > stake {
-        // Reduce the sender's vesting stake - aborting if insufficient
-        let vesting_amount = amount - stake;
-        new_vesting_stake =
-            STAKE_VESTING.update(deps.storage, &info.sender, |stake| -> StdResult<_> {
-                Ok(stake.unwrap_or_default().checked_sub(vesting_amount)?)
-            })?;
-        // Undelegate (unstake from contract) to sender's vesting account
+    // Reduce the sender's vesting stake - aborting if insufficient
+    let vesting_amount = amount.saturating_sub(stake);
+    let new_vesting_stake =
+        STAKE_VESTING.update(deps.storage, &info.sender, |stake| -> StdResult<_> {
+            Ok(stake.unwrap_or_default().checked_sub(vesting_amount)?)
+        })?;
+    // Undelegate (unstake from contract) to sender's vesting account
+    if vesting_amount > Uint128::zero() {
         let msg = TgradeMsg::Undelegate {
             funds: coin(vesting_amount.into(), cfg.denom.clone()),
             recipient: info.sender.to_string(),
