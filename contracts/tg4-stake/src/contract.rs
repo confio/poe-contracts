@@ -759,7 +759,7 @@ mod tests {
         bond(deps, (0, user1), (0, user2), (0, user3), height_delta);
     }
 
-    // Full stake is composed of `(liquid, illiquid(vesting))` amounts
+    // Full stake is composed of `(liquid, illiquid (vesting))` amounts
     fn bond(
         mut deps: DepsMut<TgradeQuery>,
         user1_stake: (u128, u128),
@@ -921,7 +921,7 @@ mod tests {
     }
 
     #[test]
-    fn bond_stake_adds_membership() {
+    fn bond_stake_liquid_adds_membership() {
         let mut deps = mock_deps_tgrade();
         default_instantiate(deps.as_mut());
         let height = mock_env().block.height;
@@ -951,7 +951,7 @@ mod tests {
     }
 
     #[test]
-    fn bond_vesting_stake_adds_membership() {
+    fn bond_stake_vesting_adds_membership() {
         let mut deps = mock_deps_tgrade();
         default_instantiate(deps.as_mut());
         let height = mock_env().block.height;
@@ -1577,7 +1577,7 @@ mod tests {
             if !expected_vesting.is_empty() {
                 assert_eq!(
                     burned_amounts[index], &expected_vesting,
-                    "Expected to burn {} liquid, burned {}",
+                    "Expected to burn {} vesting, burned {}",
                     expected_liquid[0], burned_amounts[index][0]
                 );
             }
@@ -1689,7 +1689,7 @@ mod tests {
         }
 
         #[test]
-        fn slashing_bonded_tokens_works() {
+        fn slashing_bonded_liquid_tokens_works() {
             let mut deps = mock_deps_tgrade();
             default_instantiate(deps.as_mut());
             let cfg = CONFIG.load(&deps.storage).unwrap();
@@ -1706,6 +1706,51 @@ mod tests {
             // Tokens are burned
             assert_burned(res1, &coins(2_400, &cfg.denom), &[]);
             assert_burned(res2, &coins(2_000, &cfg.denom), &[]);
+        }
+
+        #[test]
+        fn slashing_bonded_vesting_tokens_works() {
+            let mut deps = mock_deps_tgrade();
+            default_instantiate(deps.as_mut());
+            let cfg = CONFIG.load(&deps.storage).unwrap();
+            let slasher = add_slasher(deps.as_mut());
+
+            bond_vesting(deps.as_mut(), 12_000, 7_500, 4_000, 1);
+            assert_stake_vesting(deps.as_ref(), 12_000, 7_500, 4_000);
+
+            // The slasher we added can slash
+            let res1 = slash(deps.as_mut(), &slasher, USER1, Decimal::percent(20)).unwrap();
+            let res2 = slash(deps.as_mut(), &slasher, USER3, Decimal::percent(50)).unwrap();
+            assert_stake_vesting(deps.as_ref(), 9_600, 7_500, 2_000);
+
+            // Tokens are burned
+            assert_burned(res1, &[], &coins(2_400, &cfg.denom));
+            assert_burned(res2, &[], &coins(2_000, &cfg.denom));
+        }
+
+        #[test]
+        fn slashing_bonded_mixed_tokens_works() {
+            let mut deps = mock_deps_tgrade();
+            default_instantiate(deps.as_mut());
+            let cfg = CONFIG.load(&deps.storage).unwrap();
+            let slasher = add_slasher(deps.as_mut());
+
+            bond_liquid(deps.as_mut(), 12_000, 1_500, 0, 1);
+            assert_stake_liquid(deps.as_ref(), 12_000, 1_500, 0);
+            bond_vesting(deps.as_mut(), 0, 6_000, 4_000, 1);
+            assert_stake_vesting(deps.as_ref(), 0, 6_000, 4_000);
+
+            // The slasher we added can slash
+            let res1 = slash(deps.as_mut(), &slasher, USER1, Decimal::percent(20)).unwrap();
+            let res2 = slash(deps.as_mut(), &slasher, USER3, Decimal::percent(50)).unwrap();
+            let res3 = slash(deps.as_mut(), &slasher, USER2, Decimal::percent(10)).unwrap();
+            assert_stake_liquid(deps.as_ref(), 9_600, 1_350, 0);
+            assert_stake_vesting(deps.as_ref(), 0, 5_400, 2_000);
+
+            // Tokens are burned
+            assert_burned(res1, &coins(2_400, &cfg.denom), &[]);
+            assert_burned(res2, &[], &coins(2_000, &cfg.denom));
+            assert_burned(res3, &coins(150, &cfg.denom), &coins(600, &cfg.denom));
         }
 
         #[test]
