@@ -42,7 +42,7 @@ pub enum ExecuteMsg {
     /// Unbond will start the unbonding process for the given number of tokens.
     /// The sender immediately loses points from these tokens, and can claim them
     /// back to his wallet after `unbonding_period`.
-    /// Tokens will be unbonded from the liquid pool first, and then from the vesting pool
+    /// Tokens will be unbonded from the liquid stake first, and then from the vesting stake
     /// if available.
     Unbond { tokens: Coin },
     /// Claim is used to claim your native tokens that you previously "unbonded"
