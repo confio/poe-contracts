@@ -40,6 +40,7 @@ fn initialization() {
             // This one it is basically assumed is set correctly. Other tests tests if behavior
             // of relation between those contract is correct
             validator_group: config.validator_group.clone(),
+            verify_validators: false,
         }
     );
 
@@ -431,6 +432,7 @@ mod instantiate {
             double_sign_slash_ratio: Decimal::percent(50),
             distribution_contracts: UnvalidatedDistributionContracts::default(),
             validator_group_code_id: 1,
+            verify_validators: false,
         };
 
         let err = app

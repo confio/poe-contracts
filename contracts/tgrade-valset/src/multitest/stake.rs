@@ -35,6 +35,7 @@ fn init_and_query_state() {
             double_sign_slash_ratio: Decimal::percent(50),
             distribution_contracts: vec![],
             validator_group: cfg.validator_group.clone(),
+            verify_validators: false,
         }
     );
 

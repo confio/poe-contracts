@@ -90,6 +90,13 @@ pub struct InstantiateMsg {
     ///
     /// This contract has to support all the `RewardsDistribution` messages
     pub validator_group_code_id: u64,
+
+    /// When a validator joins the valset, verify they sign the first block since joining
+    /// or jail them for a period otherwise.
+    ///
+    /// The verification happens every time the validator becomes an active validator,
+    /// including when they are unjailed or when they just gain enough power to participate.
+    pub verify_validators: bool,
 }
 
 impl InstantiateMsg {
@@ -532,6 +539,7 @@ mod test {
             double_sign_slash_ratio: Decimal::percent(50),
             distribution_contracts: UnvalidatedDistributionContracts::default(),
             validator_group_code_id: 0,
+            verify_validators: false,
         };
         proper.validate().unwrap();
 

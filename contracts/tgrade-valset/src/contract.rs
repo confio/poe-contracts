@@ -6,7 +6,7 @@ use std::convert::TryInto;
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
     to_binary, Addr, Binary, BlockInfo, CustomQuery, Decimal, Deps, DepsMut, Env, MessageInfo,
-    Order, Reply, StdError, StdResult, Timestamp, WasmMsg,
+    Order, QueryRequest, Reply, StdError, StdResult, Timestamp, WasmMsg,
 };
 
 use cw2::{get_contract_version, set_contract_version};
@@ -18,9 +18,10 @@ use semver::Version;
 use tg4::{Member, Tg4Contract};
 use tg_bindings::{
     request_privileges, Ed25519Pubkey, Evidence, EvidenceType, Privilege, PrivilegeChangeMsg,
-    Pubkey, TgradeMsg, TgradeQuery, TgradeSudoMsg, ValidatorDiff, ValidatorUpdate,
+    Pubkey, TgradeMsg, TgradeQuery, TgradeSudoMsg, ToAddress, ValidatorDiff, ValidatorUpdate,
+    ValidatorVoteResponse,
 };
-use tg_utils::{ensure_from_older_version, JailingDuration, SlashMsg, ADMIN};
+use tg_utils::{ensure_from_older_version, Duration, JailingDuration, SlashMsg, ADMIN};
 
 use crate::error::ContractError;
 use crate::migration::migrate_jailing_period;
@@ -33,7 +34,7 @@ use crate::msg::{
 use crate::rewards::pay_block_rewards;
 use crate::state::{
     operators, Config, EpochInfo, OperatorInfo, ValidatorInfo, ValidatorSlashing, CONFIG, EPOCH,
-    JAIL, VALIDATORS, VALIDATOR_SLASHING, VALIDATOR_START_HEIGHT,
+    JAIL, PENDING_VALIDATORS, VALIDATORS, VALIDATOR_SLASHING, VALIDATOR_START_HEIGHT,
 };
 
 // version info for migration info
@@ -77,6 +78,7 @@ pub fn instantiate(
         distribution_contracts,
         // Will be overwritten in reply for rewards contract instantiation
         validator_group: Addr::unchecked(""),
+        verify_validators: msg.verify_validators,
     };
     CONFIG.save(deps.storage, &cfg)?;
 
@@ -646,7 +648,7 @@ fn is_genesis_block(block: &BlockInfo) -> bool {
     block.height < 2
 }
 
-fn end_block<Q: CustomQuery>(deps: DepsMut<Q>, env: Env) -> Result<Response, ContractError> {
+fn end_block(deps: DepsMut<TgradeQuery>, env: Env) -> Result<Response, ContractError> {
     let cfg = CONFIG.load(deps.storage)?;
 
     // check if needed and quit early if we didn't hit epoch boundary
@@ -677,6 +679,29 @@ fn end_block<Q: CustomQuery>(deps: DepsMut<Q>, env: Env) -> Result<Response, Con
 
     let old_validators = VALIDATORS.load(deps.storage)?;
 
+    if cfg.verify_validators {
+        let votes = deps
+            .querier
+            .query::<ValidatorVoteResponse>(&QueryRequest::Custom(TgradeQuery::ValidatorVotes {}))?
+            .votes;
+
+        if let Some(pending) = PENDING_VALIDATORS.may_load(deps.storage)? {
+            let expiration = JailingPeriod::from_duration(
+                JailingDuration::Duration(Duration::new(600)),
+                &env.block,
+            );
+
+            for val in pending {
+                let vote = votes
+                    .iter()
+                    .find(|vote| vote.address.as_slice() == val.1.to_address());
+                if vote.is_none() || !vote.unwrap().voted {
+                    JAIL.save(deps.storage, &val.0, &expiration)?;
+                }
+            }
+        }
+    }
+
     VALIDATORS.save(deps.storage, &validators)?;
     // determine the diff to send back to tendermint
     let (diff, add, remove) = calculate_diff(validators, old_validators);
@@ -684,6 +709,27 @@ fn end_block<Q: CustomQuery>(deps: DepsMut<Q>, env: Env) -> Result<Response, Con
         add: add.clone(),
         remove: remove.clone(),
     };
+
+    if cfg.verify_validators {
+        // pending validators are validators who have just been added and have yet to verify they're online
+        // and signing blocks (or at least signing the first one)
+        let pending: Vec<_> = add
+            .iter()
+            .filter_map(|m| {
+                let addr = Addr::unchecked(&m.addr);
+                if let Ok(op) = operators().load(deps.storage, &addr) {
+                    if !op.active_validator {
+                        Some((addr, op.pubkey))
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            })
+            .collect();
+        PENDING_VALIDATORS.save(deps.storage, &pending)?;
+    }
 
     // update operators list with info about whether or not they're active validators
     for op in add {

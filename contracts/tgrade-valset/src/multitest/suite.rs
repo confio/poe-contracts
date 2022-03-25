@@ -347,6 +347,7 @@ impl SuiteBuilder {
                         inner: distribution_contract_instantiation_info,
                     },
                     validator_group_code_id: engagement_id,
+                    verify_validators: false,
                 },
                 &[],
                 "valset",
