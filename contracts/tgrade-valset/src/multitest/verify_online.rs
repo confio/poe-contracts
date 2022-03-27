@@ -26,7 +26,7 @@ fn verify_validators_works() {
     let mut suite = SuiteBuilder::new()
         .with_operators(&members)
         .with_engagement(&members_init(&members, &[2, 3]))
-        .with_verify_validators()
+        .with_verify_validators(600)
         .build();
 
     suite
@@ -71,7 +71,7 @@ fn verify_validators_jailing() {
     let mut suite = SuiteBuilder::new()
         .with_operators(&members)
         .with_engagement(&members_init(&members, &[2, 3]))
-        .with_verify_validators()
+        .with_verify_validators(600)
         .build();
 
     suite
@@ -106,3 +106,4 @@ fn validator_needs_to_verify_if_unjailed() {
 #[ignore]
 fn validator_has_minimum_power_until_verified() {
     todo!()
+}

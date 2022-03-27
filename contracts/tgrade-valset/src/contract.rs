@@ -21,7 +21,7 @@ use tg_bindings::{
     Pubkey, TgradeMsg, TgradeQuery, TgradeSudoMsg, ToAddress, ValidatorDiff, ValidatorUpdate,
     ValidatorVoteResponse,
 };
-use tg_utils::{ensure_from_older_version, Duration, JailingDuration, SlashMsg, ADMIN};
+use tg_utils::{ensure_from_older_version, JailingDuration, SlashMsg, ADMIN};
 
 use crate::error::ContractError;
 use crate::migration::migrate_jailing_period;
@@ -79,6 +79,7 @@ pub fn instantiate(
         // Will be overwritten in reply for rewards contract instantiation
         validator_group: Addr::unchecked(""),
         verify_validators: msg.verify_validators,
+        offline_jail_duration: msg.offline_jail_duration,
     };
     CONFIG.save(deps.storage, &cfg)?;
 
@@ -677,7 +678,7 @@ fn end_block(deps: DepsMut<TgradeQuery>, env: Env) -> Result<Response, ContractE
 
         if let Some(pending) = PENDING_VALIDATORS.may_load(deps.storage)? {
             let expiration = JailingPeriod::from_duration(
-                JailingDuration::Duration(Duration::new(600)),
+                JailingDuration::Duration(cfg.offline_jail_duration),
                 &env.block,
             );
 

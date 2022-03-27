@@ -100,7 +100,7 @@ pub struct SuiteBuilder {
     distribution_configs: Vec<DistributionConfig>,
     /// Funds to add on init per address
     init_funds: Vec<(String, Vec<Coin>)>,
-    verify_validators: bool,
+    verify_validators: Option<Duration>,
 }
 
 impl SuiteBuilder {
@@ -165,8 +165,8 @@ impl SuiteBuilder {
         self
     }
 
-    pub fn with_verify_validators(mut self) -> Self {
-        self.verify_validators = true;
+    pub fn with_verify_validators(mut self, duration: u64) -> Self {
+        self.verify_validators = Some(Duration::new(duration));
         self
     }
 
@@ -353,7 +353,8 @@ impl SuiteBuilder {
                         inner: distribution_contract_instantiation_info,
                     },
                     validator_group_code_id: engagement_id,
-                    verify_validators: self.verify_validators,
+                    verify_validators: self.verify_validators.is_some(),
+                    offline_jail_duration: self.verify_validators.unwrap_or(Duration::new(0)),
                 },
                 &[],
                 "valset",

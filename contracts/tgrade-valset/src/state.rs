@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use cosmwasm_std::{Addr, Coin, Decimal};
 use cw_storage_plus::{Index, IndexList, IndexedMap, Item, Map, UniqueIndex};
 use tg4::Tg4Contract;
+use tg_utils::Duration;
 
 use crate::msg::{default_fee_percentage, JailingPeriod, ValidatorMetadata};
 use tg_bindings::{Ed25519Pubkey, Pubkey};
@@ -60,6 +61,10 @@ pub struct Config {
     /// The verification happens every time the validator becomes an active validator,
     /// including when they are unjailed or when they just gain enough power to participate.
     pub verify_validators: bool,
+
+    /// The duration to jail a validator for in case they don't sign their first epoch
+    /// boundary block. After the period, they have to pass verification again, ad infinitum.
+    pub offline_jail_duration: Duration,
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]

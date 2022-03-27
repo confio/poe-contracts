@@ -8,6 +8,7 @@ use super::helpers::{addr_to_pubkey, assert_active_validators, assert_operators,
 use super::suite::SuiteBuilder;
 use assert_matches::assert_matches;
 use cosmwasm_std::{coin, Decimal};
+use tg_utils::Duration;
 
 #[test]
 fn initialization() {
@@ -41,6 +42,7 @@ fn initialization() {
             // of relation between those contract is correct
             validator_group: config.validator_group.clone(),
             verify_validators: false,
+            offline_jail_duration: Duration::new(0),
         }
     );
 
@@ -370,6 +372,7 @@ mod instantiate {
     use cosmwasm_std::{coin, Addr, Decimal, Uint128};
     use cw_multi_test::{AppBuilder, BasicApp, Executor};
     use tg_bindings::{TgradeMsg, TgradeQuery};
+    use tg_utils::Duration;
 
     use crate::error::ContractError;
     use crate::msg::{
@@ -433,6 +436,7 @@ mod instantiate {
             distribution_contracts: UnvalidatedDistributionContracts::default(),
             validator_group_code_id: 1,
             verify_validators: false,
+            offline_jail_duration: Duration::new(0),
         };
 
         let err = app
