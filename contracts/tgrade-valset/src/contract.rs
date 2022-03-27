@@ -669,16 +669,6 @@ fn end_block(deps: DepsMut<TgradeQuery>, env: Env) -> Result<Response, ContractE
     epoch.current_epoch = cur_epoch;
     EPOCH.save(deps.storage, &epoch)?;
 
-    // calculate and store new validator set
-    let (validators, auto_unjail) = calculate_validators(deps.as_ref(), &env)?;
-
-    // auto unjailing
-    for addr in &auto_unjail {
-        JAIL.remove(deps.storage, addr)
-    }
-
-    let old_validators = VALIDATORS.load(deps.storage)?;
-
     if cfg.verify_validators {
         let votes = deps
             .querier
@@ -701,6 +691,16 @@ fn end_block(deps: DepsMut<TgradeQuery>, env: Env) -> Result<Response, ContractE
             }
         }
     }
+
+    // calculate and store new validator set
+    let (validators, auto_unjail) = calculate_validators(deps.as_ref(), &env)?;
+
+    // auto unjailing
+    for addr in &auto_unjail {
+        JAIL.remove(deps.storage, addr)
+    }
+
+    let old_validators = VALIDATORS.load(deps.storage)?;
 
     VALIDATORS.save(deps.storage, &validators)?;
     // determine the diff to send back to tendermint
@@ -1001,8 +1001,8 @@ mod evidence {
 
 /// If some validators are caught on malicious behavior (for example double signing),
 /// they are reported and punished on begin of next block.
-fn begin_block<Q: CustomQuery>(
-    mut deps: DepsMut<Q>,
+fn begin_block(
+    mut deps: DepsMut<TgradeQuery>,
     env: Env,
     evidences: Vec<Evidence>,
 ) -> Result<Response, ContractError> {

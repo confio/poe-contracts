@@ -14,6 +14,8 @@ fn addr_to_vote_addr(addr: &str) -> Binary {
     Binary(pubkey.to_address().to_vec())
 }
 
+// Unreadable tests ahead! This deserves a refactor.
+
 #[test]
 fn verify_validators_works() {
     let members = vec![
@@ -49,7 +51,7 @@ fn verify_validators_works() {
     assert!(info1.active_validator);
     assert!(info2.active_validator);
 
-    suite.next_block().unwrap();
+    suite.advance_epoch().unwrap();
 
     let info1 = suite.validator(members[0]).unwrap().validator.unwrap();
     let info2 = suite.validator(members[1]).unwrap().validator.unwrap();
@@ -85,13 +87,13 @@ fn verify_validators_jailing() {
     assert!(info1.jailed_until.is_none());
     assert!(info2.jailed_until.is_none());
 
-    suite.next_block().unwrap();
+    suite.advance_epoch().unwrap();
 
     let info1 = suite.validator(members[0]).unwrap().validator.unwrap();
     let info2 = suite.validator(members[1]).unwrap().validator.unwrap();
     assert!(info1.jailed_until.is_none());
     assert!(info2.jailed_until.is_some());
-    // TODO: info2.active_validator is true - should it be true?
+    assert!(!info2.active_validator);
 }
 
 #[test]
@@ -103,5 +105,4 @@ fn validator_needs_to_verify_if_unjailed() {
 #[test]
 #[ignore]
 fn validator_has_minimum_power_until_verified() {
-    todo!();
-}
+    todo!()
