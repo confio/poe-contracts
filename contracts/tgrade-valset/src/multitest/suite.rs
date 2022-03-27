@@ -9,7 +9,7 @@ use cosmwasm_std::{
 use cw_multi_test::{next_block, AppResponse, Contract, ContractWrapper, CosmosRouter, Executor};
 use derivative::Derivative;
 use tg4::{AdminResponse, Member};
-use tg_bindings::{Evidence, Pubkey, TgradeMsg, TgradeQuery, ValidatorDiff};
+use tg_bindings::{Evidence, Pubkey, TgradeMsg, TgradeQuery, ValidatorDiff, ValidatorVote};
 use tg_bindings_test::TgradeApp;
 use tg_utils::{Duration, JailingDuration};
 
@@ -100,6 +100,7 @@ pub struct SuiteBuilder {
     distribution_configs: Vec<DistributionConfig>,
     /// Funds to add on init per address
     init_funds: Vec<(String, Vec<Coin>)>,
+    verify_validators: bool,
 }
 
 impl SuiteBuilder {
@@ -161,6 +162,11 @@ impl SuiteBuilder {
 
     pub fn with_auto_unjail(mut self) -> Self {
         self.auto_unjail = true;
+        self
+    }
+
+    pub fn with_verify_validators(mut self) -> Self {
+        self.verify_validators = true;
         self
     }
 
@@ -347,7 +353,7 @@ impl SuiteBuilder {
                         inner: distribution_contract_instantiation_info,
                     },
                     validator_group_code_id: engagement_id,
-                    verify_validators: false,
+                    verify_validators: self.verify_validators,
                 },
                 &[],
                 "valset",
@@ -792,5 +798,13 @@ impl Suite {
             msg,
             self.valset_code_id,
         )
+    }
+
+    pub fn set_votes(&mut self, votes: &[ValidatorVote]) -> AnyResult<()> {
+        Ok(self
+            .app
+            .init_modules(|router, _api, storage| -> StdResult<()> {
+                router.custom.set_votes(storage, votes.to_vec())
+            })?)
     }
 }
