@@ -10,10 +10,10 @@ license = "Apache-2.0"
 
 [dependencies]
 tg-bindings = { version = "0.7.0-alpha2", path = "../bindings" }
-cosmwasm-std = { version = "1.0.0-beta5" }
+cosmwasm-std = { version = "1.0.0-beta6" }
 schemars = "0.8"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
-cw-multi-test = { version = "0.12.1" }
-cw-storage-plus = { version = "0.12.1" }
+cw-multi-test = { version = "0.13.1" }
+cw-storage-plus = { version = "0.13.1" }
 anyhow = { version = "1" }
 thiserror = { version = "1.0.21" }
