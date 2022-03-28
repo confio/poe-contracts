@@ -354,7 +354,9 @@ impl SuiteBuilder {
                     },
                     validator_group_code_id: engagement_id,
                     verify_validators: self.verify_validators.is_some(),
-                    offline_jail_duration: self.verify_validators.unwrap_or(Duration::new(0)),
+                    offline_jail_duration: self
+                        .verify_validators
+                        .unwrap_or_else(|| Duration::new(0)),
                 },
                 &[],
                 "valset",
