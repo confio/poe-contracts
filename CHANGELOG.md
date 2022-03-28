@@ -2,33 +2,51 @@
 
 ## [Unreleased](https://github.com/confio/poe-contracts/tree/HEAD)
 
-[Full Changelog](https://github.com/confio/poe-contracts/compare/v0.7.0...HEAD)
-
-## [v0.7.0](https://github.com/confio/poe-contracts/tree/v0.7.0) (2022-03-28)
-
-[Full Changelog](https://github.com/confio/poe-contracts/compare/v0.6.2..v0.7.0)
+[Full Changelog](https://github.com/confio/poe-contracts/compare/v0.6.2-patch1...HEAD)
 
 **Closed issues:**
 
 - grade-validator-voting: Operate on all contracts [\#119](https://github.com/confio/poe-contracts/issues/119)
-- Release 0.7.0-alpha1 [\#115](https://github.com/confio/poe-contracts/issues/115)
-- Update to cw-plus 0.12.1 [\#90](https://github.com/confio/poe-contracts/issues/90)
+- QA Steps to check breakages in CI [\#71](https://github.com/confio/poe-contracts/issues/71)
 
 **Merged pull requests:**
 
 - Stake vesting accounts [\#124](https://github.com/confio/poe-contracts/pull/124) ([maurolacy](https://github.com/maurolacy))
+
+## [v0.6.2-patch1](https://github.com/confio/poe-contracts/tree/v0.6.2-patch1) (2022-02-28)
+
+[Full Changelog](https://github.com/confio/poe-contracts/compare/v0.7.0-alpha2...v0.6.2-patch1)
+
+## [v0.7.0-alpha2](https://github.com/confio/poe-contracts/tree/v0.7.0-alpha2) (2022-02-24)
+
+[Full Changelog](https://github.com/confio/poe-contracts/compare/v0.7.0-alpha1...v0.7.0-alpha2)
+
+**Merged pull requests:**
+
 - Release 0.7.0-alpha2 [\#117](https://github.com/confio/poe-contracts/pull/117) ([ueco-jb](https://github.com/ueco-jb))
-- Release 0.7.0-alpha1 [\#116](https://github.com/confio/poe-contracts/pull/116) ([maurolacy](https://github.com/maurolacy))
-- Replace ballots with indexed map [\#114](https://github.com/confio/poe-contracts/pull/114) ([ueco-jb](https://github.com/ueco-jb))
-- Implement Querier for TgradeApp [\#111](https://github.com/confio/poe-contracts/pull/111) ([ethanfrey](https://github.com/ethanfrey))
-- Add description to tgrade-gov-reflect's Cargo.toml [\#107](https://github.com/confio/poe-contracts/pull/107) ([ueco-jb](https://github.com/ueco-jb))
-- Update to cw-plus 0.12.1 [\#103](https://github.com/confio/poe-contracts/pull/103) ([maurolacy](https://github.com/maurolacy))
+
+## [v0.7.0-alpha1](https://github.com/confio/poe-contracts/tree/v0.7.0-alpha1) (2022-02-23)
+
+[Full Changelog](https://github.com/confio/poe-contracts/compare/v0.6.2...v0.7.0-alpha1)
 
 **Breaking changes:**
 
 - `JailingPeriod` - add information about start period [\#94](https://github.com/confio/poe-contracts/issues/94)
 - Refactor `BALLOTS` and `BALLOTS_BY_VOTER` in `voting-contract` [\#83](https://github.com/confio/poe-contracts/issues/83)
 - valset: store and expose the start of a jailing period [\#112](https://github.com/confio/poe-contracts/pull/112) ([uint](https://github.com/uint))
+
+**Closed issues:**
+
+- Release 0.7.0-alpha1 [\#115](https://github.com/confio/poe-contracts/issues/115)
+- Update to cw-plus 0.12.1 [\#90](https://github.com/confio/poe-contracts/issues/90)
+
+**Merged pull requests:**
+
+- Release 0.7.0-alpha1 [\#116](https://github.com/confio/poe-contracts/pull/116) ([maurolacy](https://github.com/maurolacy))
+- Replace ballots with indexed map [\#114](https://github.com/confio/poe-contracts/pull/114) ([ueco-jb](https://github.com/ueco-jb))
+- Implement Querier for TgradeApp [\#111](https://github.com/confio/poe-contracts/pull/111) ([ethanfrey](https://github.com/ethanfrey))
+- Add description to tgrade-gov-reflect's Cargo.toml [\#107](https://github.com/confio/poe-contracts/pull/107) ([ueco-jb](https://github.com/ueco-jb))
+- Update to cw-plus 0.12.1 [\#103](https://github.com/confio/poe-contracts/pull/103) ([maurolacy](https://github.com/maurolacy))
 
 ## [v0.6.2](https://github.com/confio/poe-contracts/tree/v0.6.2) (2022-02-18)
 
