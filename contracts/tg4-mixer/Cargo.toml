@@ -1,6 +1,6 @@
 [package]
 name = "tg4-mixer"
-version = "0.7.0"
+version = "0.8.0"
 authors = ["Ethan Frey <ethanfrey@users.noreply.github.com>"]
 edition = "2018"
 description = "TG4 implementation that combines two different groups with a merge function"
@@ -27,9 +27,9 @@ cw-utils = "0.13.1"
 cw2 = "0.13.1"
 cw20 = "0.13.1"
 cw-storage-plus = "0.13.1"
-tg4 = { path = "../../packages/tg4", version = "0.7.0" }
-tg-utils = { path = "../../packages/utils", version = "0.7.0" }
-tg-bindings = { path = "../../packages/bindings", version = "0.7.0" }
+tg4 = { path = "../../packages/tg4", version = "0.8.0" }
+tg-utils = { path = "../../packages/utils", version = "0.8.0" }
+tg-bindings = { path = "../../packages/bindings", version = "0.8.0" }
 cosmwasm-std = "1.0.0-beta6"
 integer-sqrt = "0.1.5"
 schemars = "0.8"
@@ -44,8 +44,8 @@ cosmwasm-vm = { version = "1.0.0-beta6", optional = true }
 [dev-dependencies]
 cosmwasm-schema = { version = "1.0.0-beta6" }
 cw-multi-test = { version = "0.13.1" }
-tg4-engagement = { path = "../tg4-engagement", version = "0.7.0", features = ["library"] }
-tg4-stake = { path = "../tg4-stake", version = "0.7.0", features = ["library"] }
+tg4-engagement = { path = "../tg4-engagement", version = "0.8.0", features = ["library"] }
+tg4-stake = { path = "../tg4-stake", version = "0.8.0", features = ["library"] }
 
 [[bench]]
 name = "main"
