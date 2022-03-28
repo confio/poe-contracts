@@ -9,5 +9,5 @@ homepage = "https://tgrade.finance"
 license = "Apache-2.0"
 
 [dependencies]
-cosmwasm-std = "1.0.0-beta5"
+cosmwasm-std = "1.0.0-beta6"
 tg-voting-contract = { path = "../voting-contract", version = "0.7.0-alpha2" }

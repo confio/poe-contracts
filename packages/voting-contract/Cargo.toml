@@ -11,10 +11,10 @@ license = "Apache-2.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-cw-utils = "0.12.1"
+cw-utils = "0.13.1"
 tg3 = { path = "../../packages/tg3", version = "0.7.0-alpha2" }
-cw-storage-plus = "0.12.1"
-cosmwasm-std = "1.0.0-beta5"
+cw-storage-plus = "0.13.1"
+cosmwasm-std = "1.0.0-beta6"
 schemars = "0.8.1"
 serde = { version = "1", default-features = false, features = ["derive"] }
 tg4 = { path = "../tg4", version = "0.7.0-alpha2" }
@@ -24,8 +24,8 @@ thiserror = { version = "1" }
 
 [dev-dependencies]
 anyhow = "1"
-cosmwasm-schema = "1.0.0-beta5"
-cw-multi-test = "0.12.1"
+cosmwasm-schema = "1.0.0-beta6"
+cw-multi-test = "0.13.1"
 derivative = "2"
 tg-bindings-test = { path = "../../packages/bindings-test", version = "0.7.0-alpha2" }
 tg4-engagement = { path = "../../contracts/tg4-engagement", version = "0.7.0-alpha2", features = ["library"] }
