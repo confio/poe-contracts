@@ -2,6 +2,7 @@
 set -o errexit -o pipefail
 
 ORIGINAL_OPTS=$*
+# Requires getopt from util-linux 2.37.4 (brew install gnu-getopt on Mac)
 OPTS=$(getopt -l "help,since-tag:,upcoming-tag:,full,token:" -o "hu:ft" -- "$@") || exit 1
 
 function print_usage() {
