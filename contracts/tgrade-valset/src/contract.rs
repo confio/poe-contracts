@@ -694,7 +694,7 @@ fn end_block(deps: DepsMut<TgradeQuery>, env: Env) -> Result<Response, ContractE
     }
 
     // calculate and store new validator set
-    let (validators, auto_unjail) = calculate_validators(deps.as_ref(), &env)?;
+    let (mut validators, auto_unjail) = calculate_validators(deps.as_ref(), &env)?;
 
     // auto unjailing
     for addr in &auto_unjail {
@@ -703,9 +703,8 @@ fn end_block(deps: DepsMut<TgradeQuery>, env: Env) -> Result<Response, ContractE
 
     let old_validators = VALIDATORS.load(deps.storage)?;
 
-    VALIDATORS.save(deps.storage, &validators)?;
     // determine the diff to send back to tendermint
-    let (diff, add, remove) = calculate_diff(validators, old_validators);
+    let (diff, add, remove) = calculate_diff(validators.clone(), old_validators);
     let update_members = RewardsDistribution::UpdateMembers {
         add: add.clone(),
         remove: remove.clone(),
@@ -730,7 +729,14 @@ fn end_block(deps: DepsMut<TgradeQuery>, env: Env) -> Result<Response, ContractE
             })
             .collect();
         PENDING_VALIDATORS.save(deps.storage, &pending)?;
+        for v in &mut validators {
+            if pending.iter().any(|(addr, _)| *addr == v.operator) {
+                v.power = cfg.min_points;
+            }
+        }
     }
+
+    VALIDATORS.save(deps.storage, &validators)?;
 
     // update operators list with info about whether or not they're active validators
     for op in add {

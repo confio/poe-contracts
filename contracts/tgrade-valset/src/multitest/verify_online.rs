@@ -3,6 +3,8 @@ use std::convert::TryInto;
 use cosmwasm_std::Binary;
 use tg_bindings::{Ed25519Pubkey, ToAddress, ValidatorVote};
 
+use crate::multitest::helpers::assert_active_validators;
+
 use super::{
     helpers::{addr_to_pubkey, members_init},
     suite::SuiteBuilder,
@@ -26,6 +28,7 @@ fn verify_validators_works() {
     let mut suite = SuiteBuilder::new()
         .with_operators(&members)
         .with_engagement(&members_init(&members, &[2, 3]))
+        .with_min_points(1)
         .with_verify_validators(600)
         .build();
 
@@ -50,6 +53,11 @@ fn verify_validators_works() {
     assert!(info2.jailed_until.is_none());
     assert!(info1.active_validator);
     assert!(info2.active_validator);
+    // Validators have min power before they're verified
+    assert_active_validators(
+        &suite.list_active_validators(None, None).unwrap(),
+        &[(members[0], 1), (members[1], 1)],
+    );
 
     suite.advance_epoch().unwrap();
 
@@ -59,6 +67,10 @@ fn verify_validators_works() {
     assert!(info2.jailed_until.is_none());
     assert!(info1.active_validator);
     assert!(info2.active_validator);
+    assert_active_validators(
+        &suite.list_active_validators(None, None).unwrap(),
+        &[(members[0], 2), (members[1], 3)],
+    );
 }
 
 #[test]
@@ -106,6 +118,7 @@ fn validator_needs_to_verify_if_unjailed() {
     let mut suite = SuiteBuilder::new()
         .with_operators(&members)
         .with_engagement(&members_init(&members, &[2, 3]))
+        .with_min_points(2)
         .with_verify_validators(600)
         .with_epoch_length(600)
         .build();
@@ -125,6 +138,10 @@ fn validator_needs_to_verify_if_unjailed() {
         .unwrap()
         .jailed_until
         .is_none());
+    assert_active_validators(
+        &suite.list_active_validators(None, None).unwrap(),
+        &[(members[0], 2), (members[1], 2)],
+    );
 
     suite.advance_epoch().unwrap();
 
@@ -136,6 +153,10 @@ fn validator_needs_to_verify_if_unjailed() {
         .unwrap()
         .jailed_until
         .is_some());
+    assert_active_validators(
+        &suite.list_active_validators(None, None).unwrap(),
+        &[(members[0], 2)],
+    );
 
     // An epoch passes and the validator gets to unjail themself
     suite.advance_epoch().unwrap();
@@ -150,6 +171,10 @@ fn validator_needs_to_verify_if_unjailed() {
         .unwrap()
         .jailed_until
         .is_none());
+    assert_active_validators(
+        &suite.list_active_validators(None, None).unwrap(),
+        &[(members[0], 2), (members[1], 2)],
+    );
 
     // Validator should be PENDING after being re-added to the valset,
     // so if they fail to sign a block to prove they're online, they get
@@ -162,10 +187,8 @@ fn validator_needs_to_verify_if_unjailed() {
         .unwrap()
         .jailed_until
         .is_some());
-}
-
-#[test]
-#[ignore]
-fn validator_has_minimum_power_until_verified() {
-    todo!()
+    assert_active_validators(
+        &suite.list_active_validators(None, None).unwrap(),
+        &[(members[0], 2)],
+    );
 }
