@@ -2,7 +2,13 @@
 
 ## [Unreleased](https://github.com/confio/poe-contracts/tree/HEAD)
 
-[Full Changelog](https://github.com/confio/poe-contracts/compare/v0.7.0...HEAD)
+[Full Changelog](https://github.com/confio/poe-contracts/compare/v0.8.1...HEAD)
+
+## [v0.8.1](https://github.com/confio/poe-contracts/tree/v0.8.1) (2022-03-29)
+
+Maintenance release. Wrong tgrade-valset version published to crates-io.
+
+[Full Changelog](https://github.com/confio/poe-contracts/compare/v0.8.0...v0.8.1)
 
 ## [v0.8.0](https://github.com/confio/poe-contracts/tree/v0.8.0) (2022-03-29)
 
