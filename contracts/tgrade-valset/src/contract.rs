@@ -671,12 +671,14 @@ fn end_block(deps: DepsMut<TgradeQuery>, env: Env) -> Result<Response, ContractE
     EPOCH.save(deps.storage, &epoch)?;
 
     if cfg.verify_validators {
-        let votes = deps
-            .querier
-            .query::<ValidatorVoteResponse>(&QueryRequest::Custom(TgradeQuery::ValidatorVotes {}))?
-            .votes;
-
         if let Some(pending) = PENDING_VALIDATORS.may_load(deps.storage)? {
+            let votes = deps
+                .querier
+                .query::<ValidatorVoteResponse>(&QueryRequest::Custom(
+                    TgradeQuery::ValidatorVotes {},
+                ))?
+                .votes;
+
             let expiration = JailingPeriod::from_duration(
                 JailingDuration::Duration(cfg.offline_jail_duration),
                 &env.block,
