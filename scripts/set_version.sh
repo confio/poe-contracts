@@ -4,8 +4,7 @@ command -v shellcheck >/dev/null && shellcheck "$0"
 
 function print_usage() {
   echo "Usage: $0 NEW_VERSION"
-  echo ""
-  echo "e.g. $0 0.5.0"
+  echo "E.g.: $0 0.5.0"
 }
 
 if [ "$#" -ne 1 ]; then
@@ -21,7 +20,7 @@ if [[ "$(realpath "$SCRIPT_DIR/..")" != "$(pwd)" ]]; then
 fi
 
 # Ensure repo is not dirty
-CHANGES_IN_REPO=$(git status --porcelain)
+CHANGES_IN_REPO=$(git status --porcelain --untracked-files=no)
 if [[ -n "$CHANGES_IN_REPO" ]]; then
     echo "Repository is dirty. Showing 'git status' and 'git --no-pager diff' for debugging now:"
     git status && git --no-pager diff

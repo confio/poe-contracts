@@ -1,6 +1,6 @@
 [package]
 name = "tgrade-validator-voting"
-version = "0.7.0-alpha2"
+version = "0.8.0"
 authors = ["Ethan Frey <ethanfrey@users.noreply.github.com>"]
 edition = "2018"
 description = "Implementing tgrade-validator-voting"
@@ -18,13 +18,13 @@ library = []
 
 [dependencies]
 cw2 = "0.13.1"
-tg3 = { path = "../../packages/tg3", version = "0.7.0-alpha2" }
+tg3 = { path = "../../packages/tg3", version = "0.8.0" }
 cosmwasm-std = "1.0.0-beta6"
 schemars = "0.8.1"
 serde = { version = "1", default-features = false, features = ["derive"] }
-tg-bindings = { path = "../../packages/bindings", version = "0.7.0-alpha2" }
-tg-utils = { path = "../../packages/utils", version = "0.7.0-alpha2" }
-tg-voting-contract = { version = "0.7.0-alpha2", path = "../../packages/voting-contract" }
+tg-bindings = { path = "../../packages/bindings", version = "0.8.0" }
+tg-utils = { path = "../../packages/utils", version = "0.8.0" }
+tg-voting-contract = { version = "0.8.0", path = "../../packages/voting-contract" }
 thiserror = "1"
 
 [dev-dependencies]
@@ -32,8 +32,8 @@ anyhow = "1"
 cosmwasm-schema = "1.0.0-beta6"
 cw-multi-test = "0.13.1"
 cw-storage-plus = "0.13.1"
-tg-bindings-test = { version = "0.7.0-alpha2", path = "../../packages/bindings-test" }
-tg-utils = { version = "0.7.0-alpha2", path = "../../packages/utils" }
-tg-voting-contract = { version = "0.7.0-alpha2", path = "../../packages/voting-contract" }
-tg4 = { path = "../../packages/tg4", version = "0.7.0-alpha2" }
-tg4-engagement = { path = "../tg4-engagement", version = "0.7.0-alpha2", features = ["library"] }
+tg-bindings-test = { version = "0.8.0", path = "../../packages/bindings-test" }
+tg-utils = { version = "0.8.0", path = "../../packages/utils" }
+tg-voting-contract = { version = "0.8.0", path = "../../packages/voting-contract" }
+tg4 = { path = "../../packages/tg4", version = "0.8.0" }
+tg4-engagement = { path = "../tg4-engagement", version = "0.8.0", features = ["library"] }
