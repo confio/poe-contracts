@@ -1,6 +1,11 @@
 #!/bin/bash
 set -o errexit -o pipefail
 
+# Customize these
+# TODO: Get it from ./.git/config
+GITHUB_USER="confio"
+GITHUB_REPO="poe-contracts"
+
 ORIGINAL_OPTS=$*
 # Requires getopt from util-linux 2.37.4 (brew install gnu-getopt on Mac)
 OPTS=$(getopt -l "help,since-tag:,upcoming-tag:,full,token:" -o "hu:ft" -- "$@") || exit 1
@@ -64,13 +69,13 @@ TAG=$(echo "$TAG" | sed -e 's/-\([A-Za-z]*\)[^A-Za-z]*/-\1/' -e 's/-$//')
 echo "Consolidated tag: $TAG"
 sed -i -n "/^## \\[${TAG}[^]]*\\]/,\$p" CHANGELOG.md
 
-github_changelog_generator -u confio -p poe-contracts --base CHANGELOG.md $ORIGINAL_OPTS || cp /tmp/CHANGELOG.md.$$ CHANGELOG.md
+github_changelog_generator -u $GITHUB_USER -p $GITHUB_REPO --base CHANGELOG.md $ORIGINAL_OPTS || cp /tmp/CHANGELOG.md.$$ CHANGELOG.md
 
 if [ -n "$UPCOMING_TAG" ]
 then
   # Add "upcoming" version tag
   TODAY=$(date "+%Y-%m-%d")
-  sed -i "s+\[Full Changelog\](https://github.com/CosmWasm/cw-plus/compare/\(.*\)\.\.\.HEAD)+[Full Changelog](https://github.com/CosmWasm/cw-plus/compare/$UPCOMING_TAG...HEAD)\n\n## [$UPCOMING_TAG](https://github.com/CosmWasm/cw-plus/tree/$UPCOMING_TAG) ($TODAY)\n\n[Full Changelog](https://github.com/CosmWasm/cw-plus/compare/\1...$UPCOMING_TAG)+" CHANGELOG.md
+  sed -i "s+\[Full Changelog\](https://github.com/$GITHUB_USER/$GITHUB_REPO/compare/\(.*\)\.\.\.HEAD)+[Full Changelog](https://github.com/$GITHUB_USER/$GITHUB_REPO/compare/$UPCOMING_TAG...HEAD)\n\n## [$UPCOMING_TAG](https://github.com/$GITHUB_USER/$GITHUB_REPO/tree/$UPCOMING_TAG) ($TODAY)\n\n[Full Changelog](https://github.com/$GITHUB_USER/$GITHUB_REPO/compare/\1...$UPCOMING_TAG)+" CHANGELOG.md
 fi
 
 rm -f /tmp/CHANGELOG.md.$$
