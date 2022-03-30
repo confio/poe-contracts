@@ -1109,7 +1109,9 @@ mod tests {
             .into(),
         )
         .unwrap();
-        let msg = tg4_stake::msg::ExecuteMsg::Bond {};
+        let msg = tg4_stake::msg::ExecuteMsg::Bond {
+            vesting_tokens: None,
+        };
         app.execute_contract(Addr::unchecked(VOTER2), staker_addr, &msg, &balance)
             .unwrap();
 
