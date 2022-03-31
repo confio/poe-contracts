@@ -9,3 +9,4 @@ mod slashing;
 mod stake;
 mod suite;
 mod update_config;
+mod verify_online;

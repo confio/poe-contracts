@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use cosmwasm_std::{Addr, Coin, Decimal};
 use cw_storage_plus::{Index, IndexList, IndexedMap, Item, Map, UniqueIndex};
 use tg4::Tg4Contract;
+use tg_utils::Duration;
 
 use crate::msg::{default_fee_percentage, JailingPeriod, ValidatorMetadata};
 use tg_bindings::{Ed25519Pubkey, Pubkey};
@@ -53,6 +54,17 @@ pub struct Config {
 
     /// Address of contract for validator group voting.
     pub validator_group: Addr,
+
+    /// When a validator joins the valset, verify they sign the first block since joining
+    /// or jail them for a period otherwise.
+    ///
+    /// The verification happens every time the validator becomes an active validator,
+    /// including when they are unjailed or when they just gain enough power to participate.
+    pub verify_validators: bool,
+
+    /// The duration to jail a validator for in case they don't sign their first epoch
+    /// boundary block. After the period, they have to pass verification again, ad infinitum.
+    pub offline_jail_duration: Duration,
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
@@ -90,6 +102,10 @@ pub const EPOCH: Item<EpochInfo> = Item::new("epoch");
 /// VALIDATORS is the calculated list of the active validators from the last execution.
 /// This will be empty only on the first run.
 pub const VALIDATORS: Item<Vec<ValidatorInfo>> = Item::new("validators");
+
+/// A list of validators who have just became active and have yet to sign a block
+/// to verify they're online.
+pub const PENDING_VALIDATORS: Item<Vec<(Addr, Ed25519Pubkey)>> = Item::new("pending");
 
 /// Map of operator addr to block height it initially became a validator. If operator doesn't
 /// appear in this map, he was never in the validator set.

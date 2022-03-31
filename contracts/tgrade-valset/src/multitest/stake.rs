@@ -1,5 +1,6 @@
 #![cfg(test)]
 use cosmwasm_std::{coin, Addr, Decimal};
+use tg_utils::Duration;
 
 use crate::multitest::suite::SuiteBuilder;
 use crate::state::{Config, ValidatorInfo};
@@ -35,6 +36,8 @@ fn init_and_query_state() {
             double_sign_slash_ratio: Decimal::percent(50),
             distribution_contracts: vec![],
             validator_group: cfg.validator_group.clone(),
+            verify_validators: false,
+            offline_jail_duration: Duration::new(0),
         }
     );
 
