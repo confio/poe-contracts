@@ -43,6 +43,7 @@ impl SuiteBuilder {
         self.members.push(Member {
             addr: addr.to_owned(),
             points,
+            start_height: None,
         });
         self
     }
@@ -127,6 +128,7 @@ impl Suite {
             .map(|(addr, points)| Member {
                 addr: (*addr).to_owned(),
                 points: *points,
+                start_height: None,
             })
             .collect();
 

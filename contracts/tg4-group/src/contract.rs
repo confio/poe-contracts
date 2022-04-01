@@ -175,7 +175,10 @@ fn query_member(deps: Deps, addr: String, height: Option<u64>) -> StdResult<Memb
         Some(h) => MEMBERS.may_load_at_height(deps.storage, &addr, h),
         None => MEMBERS.may_load(deps.storage, &addr),
     }?;
-    Ok(MemberResponse { points })
+    Ok(MemberResponse {
+        points,
+        start_height: None,
+    })
 }
 
 // settings for pagination
@@ -198,6 +201,7 @@ fn list_members(
             item.map(|(addr, points)| Member {
                 addr: addr.into(),
                 points,
+                start_height: None,
             })
         })
         .collect::<StdResult<_>>()?;
@@ -225,10 +229,12 @@ mod tests {
                 Member {
                     addr: USER1.into(),
                     points: 11,
+                    start_height: None,
                 },
                 Member {
                     addr: USER2.into(),
                     points: 6,
+                    start_height: None,
                 },
             ],
         };
@@ -309,6 +315,7 @@ mod tests {
         let add = vec![Member {
             addr: USER3.into(),
             points: 15,
+            start_height: None,
         }];
         let remove = vec![USER1.into()];
 
@@ -358,6 +365,7 @@ mod tests {
         let add = vec![Member {
             addr: USER1.into(),
             points: 4,
+            start_height: None,
         }];
         let remove = vec![USER3.into()];
 
@@ -385,10 +393,12 @@ mod tests {
             Member {
                 addr: USER1.into(),
                 points: 20,
+                start_height: None,
             },
             Member {
                 addr: USER3.into(),
                 points: 5,
+                start_height: None,
             },
         ];
         let remove = vec![USER1.into()];
@@ -504,10 +514,12 @@ mod tests {
             Member {
                 addr: USER1.into(),
                 points: 20,
+                start_height: None,
             },
             Member {
                 addr: USER3.into(),
                 points: 5,
+                start_height: None,
             },
         ];
         let remove = vec![USER2.into()];

@@ -10,7 +10,8 @@ use tg_bindings::TgradeMsg;
 use crate::msg::Tg4ExecuteMsg;
 use crate::query::HooksResponse;
 use crate::{
-    member_key, AdminResponse, Member, MemberListResponse, MemberResponse, Tg4QueryMsg, TOTAL_KEY,
+    member_key, AdminResponse, Member, MemberInfo, MemberListResponse, MemberResponse, Tg4QueryMsg,
+    TOTAL_KEY,
 };
 
 pub type SubMsg = cosmwasm_std::SubMsg<TgradeMsg>;
@@ -118,7 +119,7 @@ impl Tg4Contract {
                 if value.is_empty() {
                     Ok(None)
                 } else {
-                    from_slice(&value)
+                    Ok(from_slice::<MemberInfo>(&value)?.points.into())
                 }
             }
         }

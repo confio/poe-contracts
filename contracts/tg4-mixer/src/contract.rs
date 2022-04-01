@@ -11,17 +11,18 @@ use cw_utils::maybe_addr;
 
 use tg_bindings::{TgradeMsg, TgradeQuery};
 use tg_utils::{
-    ensure_from_older_version, members, validate_portion, SlashMsg, HOOKS, PREAUTH_HOOKS,
-    PREAUTH_SLASHING, SLASHERS, TOTAL,
+    ensure_from_older_version, validate_portion, SlashMsg, HOOKS, PREAUTH_HOOKS, PREAUTH_SLASHING,
+    SLASHERS, TOTAL,
 };
 
 use tg4::{
-    HooksResponse, Member, MemberChangedHookMsg, MemberDiff, MemberListResponse, MemberResponse,
-    Tg4Contract, TotalPointsResponse,
+    HooksResponse, Member, MemberChangedHookMsg, MemberDiff, MemberInfo, MemberListResponse,
+    MemberResponse, Tg4Contract, TotalPointsResponse,
 };
 
 use crate::error::ContractError;
 use crate::functions::PoEFunction;
+use crate::member_indexes::members;
 use crate::msg::{
     ExecuteMsg, GroupsResponse, InstantiateMsg, MixerFunctionResponse, PoEFunctionType,
     PreauthResponse, QueryMsg,
@@ -114,7 +115,12 @@ fn initialize_members<Q: CustomQuery>(
             if let Some(right) = other {
                 let points = poe_function.mix(member.points, right)?;
                 total += points;
-                members().save(deps.storage, &addr, &points, height)?;
+                members().save(
+                    deps.storage,
+                    &addr,
+                    &MemberInfo::new_with_height(points, height),
+                    height,
+                )?;
             }
         }
         // and get the next page
@@ -212,17 +218,29 @@ pub fn update_members<Q: CustomQuery>(
         // update the total with changes.
         // to calculate this, we need to load the old points before saving the new points
         let prev_points = mems.may_load(deps.storage, &member_addr)?;
-        total -= prev_points.unwrap_or_default();
+        // convenience unwrap or default
+        let prev_points_unwrap = prev_points.clone().unwrap_or_default();
+        total -= prev_points_unwrap.points;
         total += new_points.unwrap_or_default();
+        let prev_height = prev_points_unwrap.start_height.unwrap_or(height);
 
         // store the new value
         match new_points {
-            Some(points) => mems.save(deps.storage, &member_addr, &points, height)?,
+            Some(points) => mems.save(
+                deps.storage,
+                &member_addr,
+                &MemberInfo::new_with_height(points, prev_height),
+                height,
+            )?,
             None => mems.remove(deps.storage, &member_addr, height)?,
         };
 
         // return the diff
-        diffs.push(MemberDiff::new(member_addr, prev_points, new_points));
+        diffs.push(MemberDiff::new(
+            member_addr,
+            prev_points.map(|mi| mi.points),
+            new_points,
+        ));
     }
 
     TOTAL.save(deps.storage, &total)?;
@@ -404,11 +422,11 @@ fn query_member<Q: CustomQuery>(
     height: Option<u64>,
 ) -> StdResult<MemberResponse> {
     let addr = deps.api.addr_validate(&addr)?;
-    let points = match height {
+    let mi = match height {
         Some(h) => members().may_load_at_height(deps.storage, &addr, h),
         None => members().may_load(deps.storage, &addr),
     }?;
-    Ok(MemberResponse { points })
+    Ok(mi.into())
 }
 
 // settings for pagination
@@ -428,10 +446,17 @@ fn list_members<Q: CustomQuery>(
         .range(deps.storage, start, None, Order::Ascending)
         .take(limit)
         .map(|item| {
-            let (addr, points) = item?;
+            let (
+                addr,
+                MemberInfo {
+                    points,
+                    start_height,
+                },
+            ) = item?;
             Ok(Member {
                 addr: addr.into(),
                 points,
+                start_height,
             })
         })
         .collect();
@@ -446,22 +471,33 @@ fn list_members_by_points<Q: CustomQuery>(
 ) -> StdResult<MemberListResponse> {
     let limit = limit.unwrap_or(DEFAULT_LIMIT).min(MAX_LIMIT) as usize;
     let start = start_after
-        .map(|m| {
-            deps.api
+        .map(|m| match m.start_height {
+            None => Err(StdError::generic_err(
+                "The 'start_height' parameter is required for proper pagination",
+            )),
+            Some(start_height) => deps
+                .api
                 .addr_validate(&m.addr)
-                .map(|addr| Bound::exclusive((m.points, addr)))
+                .map(|addr| Bound::exclusive(((m.points, -(start_height as i64)), addr))),
         })
         .transpose()?;
     let members: StdResult<Vec<_>> = members()
         .idx
-        .points
+        .points_tie_break
         .range(deps.storage, None, start, Order::Descending)
         .take(limit)
         .map(|item| {
-            let (addr, points) = item?;
+            let (
+                addr,
+                MemberInfo {
+                    points,
+                    start_height,
+                },
+            ) = item?;
             Ok(Member {
                 addr: addr.into(),
                 points,
+                start_height,
             })
         })
         .collect();
@@ -516,6 +552,7 @@ mod tests {
         Member {
             addr: addr.into(),
             points,
+            start_height: None,
         }
     }
 
@@ -689,6 +726,22 @@ mod tests {
         assert_eq!(points(VOTER5), voter5);
     }
 
+    fn list_members_by_points(
+        app: &BasicApp<TgradeMsg, TgradeQuery>,
+        mixer_addr: &Addr,
+        start_after: Option<Member>,
+        limit: Option<u32>,
+    ) -> Vec<Member> {
+        let res: MemberListResponse = app
+            .wrap()
+            .query_wasm_smart(
+                mixer_addr,
+                &QueryMsg::ListMembersByPoints { start_after, limit },
+            )
+            .unwrap();
+        res.members
+    }
+
     #[test]
     fn basic_init() {
         let stakers = vec![
@@ -803,10 +856,12 @@ mod tests {
                 Member {
                     addr: VOTER2.into(),
                     points: 300,
+                    start_height: None,
                 },
                 Member {
                     addr: VOTER3.into(),
                     points: 1200,
+                    start_height: None,
                 },
             ],
         };
@@ -878,10 +933,12 @@ mod tests {
                     Member {
                         addr: VOTER2.to_owned(),
                         points: 400,
+                        start_height: None,
                     },
                     Member {
                         addr: VOTER1.to_owned(),
                         points: 8000,
+                        start_height: None,
                     },
                 ],
                 remove: vec![VOTER3.to_owned()],
@@ -976,6 +1033,170 @@ mod tests {
             None,
             None,
         );
+    }
+
+    #[test]
+    fn list_members_by_points_tie_breaking() {
+        let stakers = vec![
+            member(VOTER1, 10000), // 10000 stake, 100 points -> 1000 mixed
+            member(VOTER3, 7500),  // 7500 stake, 300 points -> 1500 mixed
+            member(VOTER2, 50),    // below stake threshold -> None
+        ];
+
+        let mut app = AppBuilder::new_custom().build(|router, _, storage| {
+            router
+                .bank
+                .init_balance(
+                    storage,
+                    &Addr::unchecked(RESERVE),
+                    coins(10000, STAKE_DENOM),
+                )
+                .unwrap();
+
+            for staker in &stakers {
+                router
+                    .bank
+                    .init_balance(
+                        storage,
+                        &Addr::unchecked(&staker.addr),
+                        coins(staker.points as u128, STAKE_DENOM),
+                    )
+                    .unwrap();
+            }
+        });
+
+        let (mixer_addr, _, staker_addr) = setup_test_case(&mut app, stakers);
+
+        // query the membership values
+        check_membership(
+            &app,
+            &mixer_addr,
+            None,
+            Some(1000),
+            None,
+            Some(1500),
+            None,
+            None,
+        );
+
+        // list members by points
+        let members = list_members_by_points(&app, &mixer_addr, None, None);
+
+        assert_eq!(
+            members,
+            vec![
+                Member {
+                    addr: VOTER3.into(),
+                    points: 1500,
+                    start_height: Some(12347)
+                },
+                Member {
+                    addr: VOTER1.into(),
+                    points: 1000,
+                    start_height: Some(12347)
+                },
+            ]
+        );
+
+        // add an extra member for tie-breaking tests
+        let balance = coins(4950, STAKE_DENOM); // Total equivalent as voter1
+        app.execute(
+            Addr::unchecked(RESERVE),
+            BankMsg::Send {
+                to_address: VOTER2.to_owned(),
+                amount: balance.clone(),
+            }
+            .into(),
+        )
+        .unwrap();
+        let msg = tg4_stake::msg::ExecuteMsg::Bond {
+            vesting_tokens: None,
+        };
+        app.execute_contract(Addr::unchecked(VOTER2), staker_addr, &msg, &balance)
+            .unwrap();
+
+        // check updated points
+        check_membership(
+            &app,
+            &mixer_addr,
+            None,
+            Some(1000),
+            Some(1000),
+            Some(1500),
+            None,
+            None,
+        );
+
+        // list members by points
+        let members = list_members_by_points(&app, &mixer_addr, None, None);
+
+        // Assert the set is sorted by (descending) points, breaking ties by (ascending) start_height
+        assert_eq!(
+            members,
+            vec![
+                Member {
+                    addr: VOTER3.into(),
+                    points: 1500,
+                    start_height: Some(12347)
+                },
+                Member {
+                    addr: VOTER1.into(),
+                    points: 1000,
+                    start_height: Some(12347)
+                },
+                Member {
+                    addr: VOTER2.into(),
+                    points: 1000,
+                    start_height: Some(12348) // VOTER2 should come first, lexicographically (descending order)
+                },
+            ]
+        );
+
+        // Test pagination / limits work
+        let members = list_members_by_points(&app, &mixer_addr, None, Some(1));
+        assert_eq!(members.len(), 1);
+        // Assert the set is proper
+        assert_eq!(
+            members,
+            vec![Member {
+                addr: VOTER3.into(),
+                points: 1500,
+                start_height: Some(12347)
+            }]
+        );
+
+        // Next page
+        let start_after = Some(members[0].clone());
+        let members = list_members_by_points(&app, &mixer_addr, start_after, Some(1));
+        assert_eq!(members.len(), 1);
+        // Assert the set is proper
+        assert_eq!(
+            members,
+            vec![Member {
+                addr: VOTER1.into(),
+                points: 1000,
+                start_height: Some(12347)
+            },]
+        );
+
+        // Next page
+        let start_after = Some(members[0].clone());
+        let members = list_members_by_points(&app, &mixer_addr, start_after, Some(1));
+        assert_eq!(members.len(), 1);
+        // Assert the set is proper
+        assert_eq!(
+            members,
+            vec![Member {
+                addr: VOTER2.into(),
+                points: 1000,
+                start_height: Some(12348) // VOTER2 should come first, lexicographically (descending order)
+            },]
+        );
+
+        // Assert there's no more
+        let start_after = Some(members[0].clone());
+        let members = list_members_by_points(&app, &mixer_addr, start_after, Some(1));
+        assert_eq!(members.len(), 0);
     }
 
     // TODO: multi-test to init!

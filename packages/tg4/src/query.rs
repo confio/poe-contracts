@@ -33,6 +33,28 @@ pub struct AdminResponse {
     pub admin: Option<String>,
 }
 
+#[derive(Serialize, Deserialize, Default, Clone, PartialEq, Debug)]
+pub struct MemberInfo {
+    pub points: u64,
+    pub start_height: Option<u64>,
+}
+
+impl MemberInfo {
+    pub fn new(points: u64) -> Self {
+        Self {
+            points,
+            start_height: None,
+        }
+    }
+
+    pub fn new_with_height(points: u64, height: u64) -> Self {
+        Self {
+            points,
+            start_height: Some(height),
+        }
+    }
+}
+
 /// A group member has some points associated with them.
 /// This may all be equal, or may have meaning in the app that
 /// makes use of the group (eg. voting power)
@@ -40,6 +62,7 @@ pub struct AdminResponse {
 pub struct Member {
     pub addr: String,
     pub points: u64,
+    pub start_height: Option<u64>,
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
@@ -50,6 +73,22 @@ pub struct MemberListResponse {
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 pub struct MemberResponse {
     pub points: Option<u64>,
+    pub start_height: Option<u64>,
+}
+
+impl From<Option<MemberInfo>> for MemberResponse {
+    fn from(mi: Option<MemberInfo>) -> Self {
+        match mi {
+            None => Self {
+                points: None,
+                start_height: None,
+            },
+            Some(mi) => Self {
+                points: Some(mi.points),
+                start_height: mi.start_height,
+            },
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]

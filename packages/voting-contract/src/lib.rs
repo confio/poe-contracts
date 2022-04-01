@@ -419,7 +419,7 @@ pub fn list_voters<Q: CustomQuery>(
         .group_contract
         .list_members(&deps.querier, start_after, limit)?
         .into_iter()
-        .map(|Member { addr, points }| VoterDetail { addr, points })
+        .map(|Member { addr, points, .. }| VoterDetail { addr, points })
         .collect();
     Ok(VoterListResponse { voters })
 }

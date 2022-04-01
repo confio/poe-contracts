@@ -11,7 +11,8 @@ use cw2::set_contract_version;
 use cw_storage_plus::Bound;
 use cw_utils::maybe_addr;
 use tg4::{
-    HooksResponse, Member, MemberChangedHookMsg, MemberDiff, MemberListResponse, MemberResponse,
+    HooksResponse, Member, MemberChangedHookMsg, MemberDiff, MemberInfo, MemberListResponse,
+    MemberResponse,
 };
 use tg_bindings::{
     request_privileges, Privilege, PrivilegeChangeMsg, TgradeMsg, TgradeQuery, TgradeSudoMsg,
@@ -414,7 +415,7 @@ fn update_membership(
 ) -> StdResult<Vec<SubMsg>> {
     // update their membership points
     let new = calc_points(new_stake, cfg);
-    let old = members().may_load(storage, &sender)?;
+    let old = members().may_load(storage, &sender)?.map(|mi| mi.points);
 
     // short-circuit if no change
     if new == old {
@@ -422,7 +423,7 @@ fn update_membership(
     }
     // otherwise, record change of points
     match new.as_ref() {
-        Some(w) => members().save(storage, &sender, w, height),
+        Some(&p) => members().save(storage, &sender, &MemberInfo::new(p), height),
         None => members().remove(storage, &sender, height),
     }?;
 
@@ -617,11 +618,11 @@ fn query_member<Q: CustomQuery>(
     height: Option<u64>,
 ) -> StdResult<MemberResponse> {
     let addr = deps.api.addr_validate(&addr)?;
-    let points = match height {
+    let mi = match height {
         Some(h) => members().may_load_at_height(deps.storage, &addr, h),
         None => members().may_load(deps.storage, &addr),
     }?;
-    Ok(MemberResponse { points })
+    Ok(mi.into())
 }
 
 // settings for pagination
@@ -641,10 +642,17 @@ fn list_members<Q: CustomQuery>(
         .range(deps.storage, start, None, Order::Ascending)
         .take(limit)
         .map(|item| {
-            let (addr, points) = item?;
+            let (
+                addr,
+                MemberInfo {
+                    points,
+                    start_height,
+                },
+            ) = item?;
             Ok(Member {
                 addr: addr.into(),
                 points,
+                start_height,
             })
         })
         .collect();
@@ -672,10 +680,17 @@ fn list_members_by_points<Q: CustomQuery>(
         .range(deps.storage, None, start, Order::Descending)
         .take(limit)
         .map(|item| {
-            let (addr, points) = item?;
+            let (
+                addr,
+                MemberInfo {
+                    points,
+                    start_height,
+                },
+            ) = item?;
             Ok(Member {
                 addr: addr.into(),
                 points,
+                start_height,
             })
         })
         .collect();
@@ -1039,11 +1054,13 @@ mod tests {
             vec![
                 Member {
                     addr: USER1.into(),
-                    points: 12
+                    points: 12,
+                    start_height: None
                 },
                 Member {
                     addr: USER2.into(),
-                    points: 7
+                    points: 7,
+                    start_height: None
                 },
             ]
         );
@@ -1056,7 +1073,8 @@ mod tests {
             members,
             vec![Member {
                 addr: USER1.into(),
-                points: 12
+                points: 12,
+                start_height: None
             },]
         );
 
@@ -1071,7 +1089,8 @@ mod tests {
             members,
             vec![Member {
                 addr: USER2.into(),
-                points: 7
+                points: 7,
+                start_height: None
             },]
         );
 
@@ -1100,15 +1119,18 @@ mod tests {
             vec![
                 Member {
                     addr: USER1.into(),
-                    points: 11
+                    points: 11,
+                    start_height: None
                 },
                 Member {
                     addr: USER2.into(),
-                    points: 6
+                    points: 6,
+                    start_height: None
                 },
                 Member {
                     addr: USER3.into(),
-                    points: 5
+                    points: 5,
+                    start_height: None
                 }
             ]
         );
@@ -1123,7 +1145,8 @@ mod tests {
             members,
             vec![Member {
                 addr: USER1.into(),
-                points: 11
+                points: 11,
+                start_height: None
             },]
         );
 
@@ -1140,11 +1163,13 @@ mod tests {
             vec![
                 Member {
                     addr: USER2.into(),
-                    points: 6
+                    points: 6,
+                    start_height: None
                 },
                 Member {
                     addr: USER3.into(),
-                    points: 5
+                    points: 5,
+                    start_height: None
                 }
             ]
         );
@@ -1222,8 +1247,8 @@ mod tests {
 
         // get member votes from raw key
         let member2_raw = deps.storage.get(&member_key(USER2)).unwrap();
-        let member2: u64 = from_slice(&member2_raw).unwrap();
-        assert_eq!(6, member2);
+        let member2: MemberInfo = from_slice(&member2_raw).unwrap();
+        assert_eq!(6, member2.points);
 
         // and execute misses
         let member3_raw = deps.storage.get(&member_key(USER3));
