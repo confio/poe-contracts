@@ -628,6 +628,7 @@ fn privilege_change<Q: CustomQuery>(_deps: DepsMut<Q>, change: PrivilegeChangeMs
                 Privilege::ValidatorSetUpdater,
                 Privilege::TokenMinter,
                 Privilege::BeginBlocker,
+                Privilege::StateExporterImporter,
             ]);
             Response::new().add_submessages(msgs)
         }
