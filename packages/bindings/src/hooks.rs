@@ -24,6 +24,8 @@ pub enum Privilege {
     /// contracts registered here are allowed to use Delegate / Undelegate to stake funds using the
     /// Cosmos SDK
     Delegator,
+    /// contracts registered here are allowed to use Export / Import to export / import their state
+    StateExporterImporter,
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
