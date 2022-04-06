@@ -1,3 +1,4 @@
+use cosmwasm_std::Empty;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -5,7 +6,7 @@ use crate::validator::{Validator, ValidatorUpdate};
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
-pub enum TgradeSudoMsg {
+pub enum TgradeSudoMsg<S = Empty> {
     /// This will be delivered every block if the contract is currently registered for Begin Block
     /// types based on subset of https://github.com/tendermint/tendermint/blob/v0.34.8/proto/tendermint/abci/types.proto#L81
     BeginBlock {
@@ -20,6 +21,12 @@ pub enum TgradeSudoMsg {
     /// which will be used to change the validator set.
     EndWithValidatorUpdate {},
     PrivilegeChange(PrivilegeChangeMsg),
+    /// This will export contract state. Requires `StateExporterImporter` privilege.
+    Export {},
+    /// This will import contract state. Requires `StateExporterImporter` privilege.
+    Import {
+        import: ExportImport<S>,
+    },
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
@@ -62,4 +69,10 @@ pub struct Evidence {
 pub enum EvidenceType {
     DuplicateVote,
     LightClientAttack,
+}
+
+#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+pub struct ExportImport<S = Empty> {
+    pub version: String,
+    pub state: S,
 }
