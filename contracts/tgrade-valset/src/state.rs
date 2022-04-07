@@ -1,13 +1,15 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use cosmwasm_std::{Addr, Coin, Decimal};
+use cosmwasm_std::{to_binary, Addr, Coin, Decimal, Deps, DepsMut, Empty, Response};
+use cw2::get_contract_version;
 use cw_storage_plus::{Index, IndexList, IndexedMap, Item, Map, UniqueIndex};
 use tg4::Tg4Contract;
 use tg_utils::Duration;
 
+use crate::error::ContractError;
 use crate::msg::{default_fee_percentage, JailingPeriod, ValidatorMetadata};
-use tg_bindings::{Ed25519Pubkey, Pubkey};
+use tg_bindings::{Ed25519Pubkey, ExportImport, Pubkey, TgradeMsg, TgradeQuery};
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 pub struct Config {
@@ -154,4 +156,27 @@ impl<'a> IndexList<OperatorInfo> for OperatorIndexes<'a> {
         let v: Vec<&dyn Index<OperatorInfo>> = vec![&self.pubkey];
         Box::new(v.into_iter())
     }
+}
+
+/// Export state
+pub fn export(deps: Deps<TgradeQuery>) -> Result<Response<TgradeMsg>, ContractError> {
+    // TODO
+    let export = ExportImport {
+        version: get_contract_version(deps.storage)?.version,
+        state: Empty {},
+    };
+
+    Ok(Response::new().set_data(to_binary(&export)?))
+}
+
+/// Import state
+pub fn import(
+    deps: DepsMut<TgradeQuery>,
+    import: ExportImport,
+) -> Result<Response<TgradeMsg>, ContractError> {
+    if import.version < get_contract_version(deps.storage)?.version {
+        return Err(ContractError::WrongVersion {});
+    }
+    // TODO
+    Ok(Response::default())
 }
