@@ -32,8 +32,8 @@ use crate::msg::{
 };
 use crate::rewards::pay_block_rewards;
 use crate::state::{
-    operators, Config, EpochInfo, OperatorInfo, ValidatorInfo, ValidatorSlashing, CONFIG, EPOCH,
-    JAIL, VALIDATORS, VALIDATOR_SLASHING, VALIDATOR_START_HEIGHT,
+    export, import, operators, Config, EpochInfo, OperatorInfo, ValidatorInfo, ValidatorSlashing,
+    CONFIG, EPOCH, JAIL, VALIDATORS, VALIDATOR_SLASHING, VALIDATOR_START_HEIGHT,
 };
 
 // version info for migration info
@@ -617,6 +617,8 @@ pub fn sudo(
         TgradeSudoMsg::PrivilegeChange(change) => Ok(privilege_change(deps, change)),
         TgradeSudoMsg::EndWithValidatorUpdate {} => end_block(deps, env),
         TgradeSudoMsg::BeginBlock { evidence } => begin_block(deps, env, evidence),
+        TgradeSudoMsg::Export {} => export(deps.as_ref()),
+        TgradeSudoMsg::Import { import: imp } => import(deps, imp),
         _ => Err(ContractError::UnsupportedSudoType {}),
     }
 }

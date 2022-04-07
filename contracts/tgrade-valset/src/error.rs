@@ -78,6 +78,9 @@ pub enum ContractError {
 
     #[error("Invalid metadata - website needs to start with http:// or https://")]
     InvalidMetadataWebsitePrefix {},
+
+    #[error("Wrong version")]
+    WrongVersion {},
 }
 
 impl From<Ed25519PubkeyConversionError> for ContractError {
