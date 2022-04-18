@@ -3,3 +3,4 @@ artifacts
 .idea
 packages/*/schema
 contracts/*/schema
+.DS_Store
