@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use cosmwasm_std::Order::Ascending;
 use cosmwasm_std::{to_binary, Addr, Coin, Decimal, Deps, DepsMut, Response, StdResult};
-use cw2::{get_contract_version, ContractVersion};
+use cw2::{get_contract_version, set_contract_version, ContractVersion};
 use cw_storage_plus::{Index, IndexList, IndexedMap, Item, Map, UniqueIndex};
 use tg4::Tg4Contract;
 
@@ -213,9 +213,38 @@ pub fn export(deps: Deps<TgradeQuery>) -> Result<Response<TgradeMsg>, ContractEr
 
 /// Import state
 pub fn import(
-    _deps: DepsMut<TgradeQuery>,
-    _import: ExportImport<ValsetState>,
+    deps: DepsMut<TgradeQuery>,
+    import: ExportImport<ValsetState>,
 ) -> Result<Response<TgradeMsg>, ContractError> {
-    // TODO
+    // Valset state items
+    set_contract_version(
+        deps.storage,
+        import.state.contract_version.contract,
+        import.state.contract_version.version,
+    )?;
+    CONFIG.save(deps.storage, &import.state.config)?;
+    EPOCH.save(deps.storage, &import.state.epoch)?;
+    VALIDATORS.save(deps.storage, &import.state.validators)?;
+
+    // Operator items
+    for (k, v) in &import.state.operators {
+        operators().save(deps.storage, &deps.api.addr_validate(k)?, v)?;
+    }
+
+    // Validator start height items
+    for (k, v) in &import.state.validators_start_height {
+        VALIDATOR_START_HEIGHT.save(deps.storage, &deps.api.addr_validate(k)?, v)?;
+    }
+
+    // Validator slashing items
+    for (k, v) in &import.state.validators_slashing {
+        VALIDATOR_SLASHING.save(deps.storage, &deps.api.addr_validate(k)?, v)?;
+    }
+
+    // Validator jail items
+    for (k, v) in &import.state.validators_jail {
+        JAIL.save(deps.storage, &deps.api.addr_validate(k)?, v)?;
+    }
+
     Ok(Response::default())
 }
