@@ -155,12 +155,9 @@ pub fn export(deps: Deps<TgradeQuery>) -> Result<Response<TgradeMsg>, ContractEr
 
 /// Import state
 pub fn import(
-    deps: DepsMut<TgradeQuery>,
-    import: ExportImport,
+    _deps: DepsMut<TgradeQuery>,
+    _import: ExportImport,
 ) -> Result<Response<TgradeMsg>, ContractError> {
-    if import.version < get_contract_version(deps.storage)?.version {
-        return Err(ContractError::WrongVersion {});
-    }
     // TODO
     Ok(Response::default())
 }
