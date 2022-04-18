@@ -7,7 +7,7 @@ pub use tgrade_valset::msg::{
     DistributionMsg, EpochResponse, ExecuteMsg, InstantiateMsg, ListActiveValidatorsResponse,
     ListValidatorResponse, QueryMsg, RewardsDistribution, RewardsInstantiateMsg, ValidatorResponse,
 };
-pub use tgrade_valset::state::Config;
+pub use tgrade_valset::state::{Config, ValsetState};
 
 fn main() {
     let mut out_dir = current_dir().unwrap();
@@ -28,4 +28,6 @@ fn main() {
     export_schema(&schema_for!(RewardsInstantiateMsg), &out_dir);
     export_schema(&schema_for!(RewardsDistribution), &out_dir);
     export_schema(&schema_for!(Config), &out_dir);
+
+    export_schema(&schema_for!(ValsetState), &out_dir);
 }
