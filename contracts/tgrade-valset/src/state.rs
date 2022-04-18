@@ -9,7 +9,7 @@ use tg4::Tg4Contract;
 
 use crate::error::ContractError;
 use crate::msg::{default_fee_percentage, JailingPeriod, ValidatorMetadata};
-use tg_bindings::{Ed25519Pubkey, ExportImport, Pubkey, TgradeMsg, TgradeQuery};
+use tg_bindings::{Ed25519Pubkey, Pubkey, TgradeMsg, TgradeQuery};
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 pub struct Config {
@@ -206,43 +206,41 @@ pub fn export(deps: Deps<TgradeQuery>) -> Result<Response<TgradeMsg>, ContractEr
         })
         .collect::<StdResult<_>>()?;
 
-    let exp = ExportImport { state };
-
-    Ok(Response::new().set_data(to_binary(&exp)?))
+    Ok(Response::new().set_data(to_binary(&state)?))
 }
 
 /// Import state
 pub fn import(
     deps: DepsMut<TgradeQuery>,
-    import: ExportImport<ValsetState>,
+    import: ValsetState,
 ) -> Result<Response<TgradeMsg>, ContractError> {
     // Valset state items
     set_contract_version(
         deps.storage,
-        import.state.contract_version.contract,
-        import.state.contract_version.version,
+        import.contract_version.contract,
+        import.contract_version.version,
     )?;
-    CONFIG.save(deps.storage, &import.state.config)?;
-    EPOCH.save(deps.storage, &import.state.epoch)?;
-    VALIDATORS.save(deps.storage, &import.state.validators)?;
+    CONFIG.save(deps.storage, &import.config)?;
+    EPOCH.save(deps.storage, &import.epoch)?;
+    VALIDATORS.save(deps.storage, &import.validators)?;
 
     // Operator items
-    for (k, v) in &import.state.operators {
+    for (k, v) in &import.operators {
         operators().save(deps.storage, &Addr::unchecked(k), v)?;
     }
 
     // Validator start height items
-    for (k, v) in &import.state.validators_start_height {
+    for (k, v) in &import.validators_start_height {
         VALIDATOR_START_HEIGHT.save(deps.storage, &Addr::unchecked(k), v)?;
     }
 
     // Validator slashing items
-    for (k, v) in &import.state.validators_slashing {
+    for (k, v) in &import.validators_slashing {
         VALIDATOR_SLASHING.save(deps.storage, &Addr::unchecked(k), v)?;
     }
 
     // Validator jail items
-    for (k, v) in &import.state.validators_jail {
+    for (k, v) in &import.validators_jail {
         JAIL.save(deps.storage, &Addr::unchecked(k), v)?;
     }
 
