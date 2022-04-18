@@ -1,15 +1,15 @@
 use super::helpers::addr_to_pubkey;
-use crate::state::Config;
+use crate::state::{Config, ValsetState};
 use crate::test_helpers::{mock_metadata, mock_pubkey};
 use crate::{msg::*, state::ValidatorInfo};
 use anyhow::{bail, Result as AnyResult};
 use cosmwasm_std::{
-    coin, Addr, BlockInfo, Coin, CosmosMsg, Decimal, StdResult, Timestamp, Uint128,
+    coin, from_binary, Addr, BlockInfo, Coin, CosmosMsg, Decimal, StdResult, Timestamp, Uint128,
 };
 use cw_multi_test::{next_block, AppResponse, Contract, ContractWrapper, CosmosRouter, Executor};
 use derivative::Derivative;
 use tg4::{AdminResponse, Member};
-use tg_bindings::{Evidence, Pubkey, TgradeMsg, TgradeQuery, ValidatorDiff};
+use tg_bindings::{Evidence, Pubkey, TgradeMsg, TgradeQuery, TgradeSudoMsg, ValidatorDiff};
 use tg_bindings_test::TgradeApp;
 use tg_utils::{Duration, JailingDuration};
 
@@ -415,9 +415,9 @@ pub struct Suite {
     /// The code id of the valset contract
     valset_code_id: u64,
     /// tgrade-valset contract address
-    valset: Addr,
+    pub valset: Addr,
     /// membership contract address
-    membership: Addr,
+    pub membership: Addr,
     /// tg4-engagement contracts used e.g. for engagement distribution
     distribution_contracts: Vec<Addr>,
     /// Admin used for any administrative messages, but also admin of tgrade-valset contract
@@ -429,7 +429,7 @@ pub struct Suite {
     /// Reward denom
     denom: String,
     /// Rewards distribution contract address
-    validator_group: Addr,
+    pub validator_group: Addr,
 }
 
 impl Suite {
@@ -791,5 +791,17 @@ impl Suite {
             msg,
             self.valset_code_id,
         )
+    }
+
+    pub fn export(&mut self) -> AnyResult<ValsetState> {
+        let res = self
+            .app
+            .wasm_sudo(
+                self.valset.clone(),
+                &TgradeSudoMsg::<ValsetState>::Export {},
+            )
+            .unwrap();
+        let state: ValsetState = from_binary(&res.data.unwrap())?;
+        Ok(state)
     }
 }

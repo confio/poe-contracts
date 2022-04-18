@@ -37,8 +37,8 @@ use crate::state::{
 };
 
 // version info for migration info
-const CONTRACT_NAME: &str = "crates.io:tgrade-valset";
-const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
+pub(crate) const CONTRACT_NAME: &str = "crates.io:tgrade-valset";
+pub(crate) const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 const REWARDS_INIT_REPLY_ID: u64 = 1;
 
@@ -618,7 +618,7 @@ pub fn sudo(
         TgradeSudoMsg::EndWithValidatorUpdate {} => end_block(deps, env),
         TgradeSudoMsg::BeginBlock { evidence } => begin_block(deps, env, evidence),
         TgradeSudoMsg::Export {} => export(deps.as_ref()),
-        TgradeSudoMsg::Import(imp) => import(deps, imp),
+        TgradeSudoMsg::Import(state) => import(deps, state),
         _ => Err(ContractError::UnsupportedSudoType {}),
     }
 }

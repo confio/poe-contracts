@@ -146,14 +146,14 @@ impl<'a> IndexList<OperatorInfo> for OperatorIndexes<'a> {
 /// Export / Import state
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 pub struct ValsetState {
-    contract_version: ContractVersion,
-    config: Config,
-    epoch: EpochInfo,
-    operators: Vec<(String, OperatorInfo)>,
-    validators: Vec<ValidatorInfo>,
-    validators_start_height: Vec<(String, u64)>,
-    validators_slashing: Vec<(String, Vec<ValidatorSlashing>)>,
-    validators_jail: Vec<(String, JailingPeriod)>,
+    pub contract_version: ContractVersion,
+    pub config: Config,
+    pub epoch: EpochInfo,
+    pub operators: Vec<(String, OperatorInfo)>,
+    pub validators: Vec<ValidatorInfo>,
+    pub validators_start_height: Vec<(String, u64)>,
+    pub validators_slashing: Vec<(String, Vec<ValidatorSlashing>)>,
+    pub validators_jail: Vec<(String, JailingPeriod)>,
 }
 
 /// Export state
@@ -212,35 +212,35 @@ pub fn export(deps: Deps<TgradeQuery>) -> Result<Response<TgradeMsg>, ContractEr
 /// Import state
 pub fn import(
     deps: DepsMut<TgradeQuery>,
-    import: ValsetState,
+    state: ValsetState,
 ) -> Result<Response<TgradeMsg>, ContractError> {
     // Valset state items
     set_contract_version(
         deps.storage,
-        import.contract_version.contract,
-        import.contract_version.version,
+        state.contract_version.contract,
+        state.contract_version.version,
     )?;
-    CONFIG.save(deps.storage, &import.config)?;
-    EPOCH.save(deps.storage, &import.epoch)?;
-    VALIDATORS.save(deps.storage, &import.validators)?;
+    CONFIG.save(deps.storage, &state.config)?;
+    EPOCH.save(deps.storage, &state.epoch)?;
+    VALIDATORS.save(deps.storage, &state.validators)?;
 
     // Operator items
-    for (k, v) in &import.operators {
+    for (k, v) in &state.operators {
         operators().save(deps.storage, &Addr::unchecked(k), v)?;
     }
 
     // Validator start height items
-    for (k, v) in &import.validators_start_height {
+    for (k, v) in &state.validators_start_height {
         VALIDATOR_START_HEIGHT.save(deps.storage, &Addr::unchecked(k), v)?;
     }
 
     // Validator slashing items
-    for (k, v) in &import.validators_slashing {
+    for (k, v) in &state.validators_slashing {
         VALIDATOR_SLASHING.save(deps.storage, &Addr::unchecked(k), v)?;
     }
 
     // Validator jail items
-    for (k, v) in &import.validators_jail {
+    for (k, v) in &state.validators_jail {
         JAIL.save(deps.storage, &Addr::unchecked(k), v)?;
     }
 
