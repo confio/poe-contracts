@@ -161,7 +161,7 @@ impl<'a> IndexList<OperatorInfo> for OperatorIndexes<'a> {
 
 /// Export / Import state
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
-struct ValsetState {
+pub struct ValsetState {
     contract_version: ContractVersion,
     config: Config,
     epoch: EpochInfo,
@@ -230,7 +230,7 @@ pub fn export(deps: Deps<TgradeQuery>) -> Result<Response<TgradeMsg>, ContractEr
 /// Import state
 pub fn import(
     _deps: DepsMut<TgradeQuery>,
-    _import: ExportImport,
+    _import: ExportImport<ValsetState>,
 ) -> Result<Response<TgradeMsg>, ContractError> {
     // TODO
     Ok(Response::default())

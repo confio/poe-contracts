@@ -34,7 +34,7 @@ use crate::msg::{
 use crate::rewards::pay_block_rewards;
 use crate::state::{
     export, import, operators, Config, EpochInfo, OperatorInfo, ValidatorInfo, ValidatorSlashing,
-    CONFIG, EPOCH, JAIL, PENDING_VALIDATORS, VALIDATORS, VALIDATOR_SLASHING,
+    ValsetState, CONFIG, EPOCH, JAIL, PENDING_VALIDATORS, VALIDATORS, VALIDATOR_SLASHING,
     VALIDATOR_START_HEIGHT,
 };
 
@@ -615,7 +615,7 @@ fn list_validator_slashing<Q: CustomQuery>(
 pub fn sudo(
     deps: DepsMut<TgradeQuery>,
     env: Env,
-    msg: TgradeSudoMsg,
+    msg: TgradeSudoMsg<ValsetState>,
 ) -> Result<Response, ContractError> {
     match msg {
         TgradeSudoMsg::PrivilegeChange(change) => Ok(privilege_change(deps, change)),
