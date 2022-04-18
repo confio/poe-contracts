@@ -24,9 +24,7 @@ pub enum TgradeSudoMsg<S = Empty> {
     /// This will export contract state. Requires `StateExporterImporter` privilege.
     Export {},
     /// This will import contract state. Requires `StateExporterImporter` privilege.
-    Import {
-        import: ExportImport<S>,
-    },
+    Import(ExportImport<S>),
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]

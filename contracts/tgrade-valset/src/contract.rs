@@ -622,7 +622,7 @@ pub fn sudo(
         TgradeSudoMsg::EndWithValidatorUpdate {} => end_block(deps, env),
         TgradeSudoMsg::BeginBlock { evidence } => begin_block(deps, env, evidence),
         TgradeSudoMsg::Export {} => export(deps.as_ref()),
-        TgradeSudoMsg::Import { import: imp } => import(deps, imp),
+        TgradeSudoMsg::Import(imp) => import(deps, imp),
         _ => Err(ContractError::UnsupportedSudoType {}),
     }
 }
