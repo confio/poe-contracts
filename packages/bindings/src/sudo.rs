@@ -71,6 +71,5 @@ pub enum EvidenceType {
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 pub struct ExportImport<S = Empty> {
-    pub version: String,
     pub state: S,
 }
