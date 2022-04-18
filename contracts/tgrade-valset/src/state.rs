@@ -1,8 +1,9 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use cosmwasm_std::{to_binary, Addr, Coin, Decimal, Deps, DepsMut, Empty, Response};
-use cw2::get_contract_version;
+use cosmwasm_std::Order::Ascending;
+use cosmwasm_std::{to_binary, Addr, Coin, Decimal, Deps, DepsMut, Response, StdResult};
+use cw2::{get_contract_version, ContractVersion};
 use cw_storage_plus::{Index, IndexList, IndexedMap, Item, Map, UniqueIndex};
 use tg4::Tg4Contract;
 
@@ -142,15 +143,72 @@ impl<'a> IndexList<OperatorInfo> for OperatorIndexes<'a> {
     }
 }
 
+/// Export / Import state
+#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+struct ValsetState {
+    contract_version: ContractVersion,
+    config: Config,
+    epoch: EpochInfo,
+    operators: Vec<(String, OperatorInfo)>,
+    validators: Vec<ValidatorInfo>,
+    validators_start_height: Vec<(String, u64)>,
+    validators_slashing: Vec<(String, Vec<ValidatorSlashing>)>,
+    validators_jail: Vec<(String, JailingPeriod)>,
+}
+
 /// Export state
 pub fn export(deps: Deps<TgradeQuery>) -> Result<Response<TgradeMsg>, ContractError> {
-    // TODO
-    let export = ExportImport {
-        version: get_contract_version(deps.storage)?.version,
-        state: Empty {},
+    // Valset state items
+    let mut state = ValsetState {
+        contract_version: get_contract_version(deps.storage)?,
+        config: CONFIG.load(deps.storage)?,
+        epoch: EPOCH.load(deps.storage)?,
+        operators: vec![],
+        validators: VALIDATORS.load(deps.storage)?,
+        validators_start_height: vec![],
+        validators_slashing: vec![],
+        validators_jail: vec![],
     };
 
-    Ok(Response::new().set_data(to_binary(&export)?))
+    // Operator items
+    state.operators = operators()
+        .range(deps.storage, None, None, Ascending)
+        .map(|r| {
+            let (operator, info) = r?;
+            Ok((operator.to_string(), info))
+        })
+        .collect::<StdResult<_>>()?;
+
+    // Validator start height items
+    state.validators_start_height = VALIDATOR_START_HEIGHT
+        .range(deps.storage, None, None, Ascending)
+        .map(|r| {
+            let (validator, height) = r?;
+            Ok((validator.to_string(), height))
+        })
+        .collect::<StdResult<_>>()?;
+
+    // Validator slashing items
+    state.validators_slashing = VALIDATOR_SLASHING
+        .range(deps.storage, None, None, Ascending)
+        .map(|r| {
+            let (validator, slashings) = r?;
+            Ok((validator.to_string(), slashings))
+        })
+        .collect::<StdResult<_>>()?;
+
+    // Validator jail items
+    state.validators_jail = JAIL
+        .range(deps.storage, None, None, Ascending)
+        .map(|r| {
+            let (validator, period) = r?;
+            Ok((validator.to_string(), period))
+        })
+        .collect::<StdResult<_>>()?;
+
+    let exp = ExportImport { state };
+
+    Ok(Response::new().set_data(to_binary(&exp)?))
 }
 
 /// Import state
