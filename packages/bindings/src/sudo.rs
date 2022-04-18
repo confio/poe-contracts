@@ -24,7 +24,7 @@ pub enum TgradeSudoMsg<S = Empty> {
     /// This will export contract state. Requires `StateExporterImporter` privilege.
     Export {},
     /// This will import contract state. Requires `StateExporterImporter` privilege.
-    Import(ExportImport<S>),
+    Import(S),
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
@@ -67,9 +67,4 @@ pub struct Evidence {
 pub enum EvidenceType {
     DuplicateVote,
     LightClientAttack,
-}
-
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
-pub struct ExportImport<S = Empty> {
-    pub state: S,
 }
