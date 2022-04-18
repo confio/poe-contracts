@@ -244,22 +244,22 @@ pub fn import(
 
     // Operator items
     for (k, v) in &import.state.operators {
-        operators().save(deps.storage, &deps.api.addr_validate(k)?, v)?;
+        operators().save(deps.storage, &Addr::unchecked(k), v)?;
     }
 
     // Validator start height items
     for (k, v) in &import.state.validators_start_height {
-        VALIDATOR_START_HEIGHT.save(deps.storage, &deps.api.addr_validate(k)?, v)?;
+        VALIDATOR_START_HEIGHT.save(deps.storage, &Addr::unchecked(k), v)?;
     }
 
     // Validator slashing items
     for (k, v) in &import.state.validators_slashing {
-        VALIDATOR_SLASHING.save(deps.storage, &deps.api.addr_validate(k)?, v)?;
+        VALIDATOR_SLASHING.save(deps.storage, &Addr::unchecked(k), v)?;
     }
 
     // Validator jail items
     for (k, v) in &import.state.validators_jail {
-        JAIL.save(deps.storage, &deps.api.addr_validate(k)?, v)?;
+        JAIL.save(deps.storage, &Addr::unchecked(k), v)?;
     }
 
     Ok(Response::default())
