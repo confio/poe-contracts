@@ -1,5 +1,6 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use std::convert::TryFrom;
 
 use cosmwasm_std::Order::Ascending;
 use cosmwasm_std::{to_binary, Addr, Coin, Decimal, Deps, DepsMut, Response, StdResult};
@@ -8,7 +9,7 @@ use cw_storage_plus::{Index, IndexList, IndexedMap, Item, Map, UniqueIndex};
 use tg4::Tg4Contract;
 
 use crate::error::ContractError;
-use crate::msg::{default_fee_percentage, JailingPeriod, ValidatorMetadata};
+use crate::msg::{default_fee_percentage, JailingPeriod, OperatorResponse, ValidatorMetadata};
 use tg_bindings::{Ed25519Pubkey, Pubkey, TgradeMsg, TgradeQuery};
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
@@ -149,7 +150,7 @@ pub struct ValsetState {
     pub contract_version: ContractVersion,
     pub config: Config,
     pub epoch: EpochInfo,
-    pub operators: Vec<(String, OperatorInfo)>,
+    pub operators: Vec<OperatorResponse>,
     pub validators: Vec<ValidatorInfo>,
     pub validators_start_height: Vec<(String, u64)>,
     pub validators_slashing: Vec<(String, Vec<ValidatorSlashing>)>,
@@ -175,7 +176,11 @@ pub fn export(deps: Deps<TgradeQuery>) -> Result<Response<TgradeMsg>, ContractEr
         .range(deps.storage, None, None, Ascending)
         .map(|r| {
             let (operator, info) = r?;
-            Ok((operator.to_string(), info))
+            Ok(OperatorResponse::from_info(
+                info,
+                operator.to_string(),
+                None,
+            ))
         })
         .collect::<StdResult<_>>()?;
 
@@ -225,8 +230,13 @@ pub fn import(
     VALIDATORS.save(deps.storage, &state.validators)?;
 
     // Operator items
-    for (k, v) in &state.operators {
-        operators().save(deps.storage, &Addr::unchecked(k), v)?;
+    for op in state.operators {
+        let info = OperatorInfo {
+            pubkey: Ed25519Pubkey::try_from(op.pubkey)?,
+            metadata: op.metadata,
+            active_validator: op.active_validator,
+        };
+        operators().save(deps.storage, &Addr::unchecked(&op.operator), &info)?;
     }
 
     // Validator start height items
