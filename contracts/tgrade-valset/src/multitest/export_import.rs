@@ -1,23 +1,21 @@
 use crate::contract::{CONTRACT_NAME, CONTRACT_VERSION};
+use crate::msg::OperatorResponse;
 use crate::multitest::helpers::addr_to_pubkey;
 use crate::multitest::suite::SuiteBuilder;
-use crate::state::{Config, EpochInfo, OperatorInfo, ValsetState};
+use crate::state::{Config, EpochInfo, ValsetState};
 use cosmwasm_std::{coin, Addr, Decimal};
 use cw2::ContractVersion;
-use std::convert::TryFrom;
 use tg4::Tg4Contract;
-use tg_bindings::Ed25519Pubkey;
 
 #[test]
 fn export_works() {
     let mut suite = SuiteBuilder::new()
         .with_max_validators(6)
         .with_min_points(3)
-        .with_operators(&vec!["member1"])
+        .with_operators(&["member1"])
         .build();
 
     let exp = suite.export().unwrap();
-    println!("state: {:#?}", exp);
 
     // Contract version
     assert_eq!(
@@ -58,14 +56,8 @@ fn export_works() {
 
     // One operator
     assert_eq!(exp.operators.len(), 1);
-    assert_eq!(exp.operators[0].0, "member1");
-    assert!(matches!(
-        exp.operators[0].1,
-        OperatorInfo {
-            active_validator: false,
-            ..
-        }
-    ));
+    assert_eq!(exp.operators[0].operator, "member1");
+    assert!(!exp.operators[0].active_validator);
 
     // No validators
     assert!(exp.validators.is_empty());
@@ -108,14 +100,13 @@ fn import_works() {
             last_update_time: 1,
             last_update_height: 2,
         },
-        operators: vec![(
-            "".to_owned(),
-            OperatorInfo {
-                pubkey: Ed25519Pubkey::try_from(addr_to_pubkey(member_addr)).unwrap(),
-                metadata: Default::default(),
-                active_validator: false,
-            },
-        )],
+        operators: vec![OperatorResponse {
+            operator: member_addr.to_owned(),
+            pubkey: addr_to_pubkey(member_addr),
+            metadata: Default::default(),
+            active_validator: false,
+            jailed_until: None, // FIXME? Add jailing info here
+        }],
         validators: vec![],
         validators_start_height: vec![],
         validators_slashing: vec![],
