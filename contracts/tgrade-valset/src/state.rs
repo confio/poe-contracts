@@ -256,6 +256,14 @@ pub fn import(
     VALIDATORS.save(deps.storage, &state.validators)?;
 
     // Operator items
+    // Delete all existing operators
+    let ops = operators()
+        .keys(deps.storage, None, None, Ascending)
+        .collect::<StdResult<Vec<_>>>()?;
+    for op in ops.iter() {
+        operators().remove(deps.storage, op)?;
+    }
+    // Import operators
     for op in state.operators {
         let info = OperatorInfo {
             pubkey: Ed25519Pubkey::try_from(op.pubkey)?,
