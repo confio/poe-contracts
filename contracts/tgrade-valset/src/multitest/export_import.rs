@@ -70,9 +70,6 @@ fn export_works() {
 
     // No validators slashing height
     assert!(exp.validators_slashing.is_empty());
-
-    // No validators jail
-    assert!(exp.validators_jail.is_empty());
 }
 
 #[test]
@@ -110,12 +107,11 @@ fn import_works() {
             pubkey: addr_to_pubkey(member_addr),
             metadata: Default::default(),
             active_validator: false,
-            jailed_until: None, // FIXME? Add jailing info here
+            jailed_until: None,
         }],
         validators: vec![],
         validators_start_height: vec![],
         validators_slashing: vec![],
-        validators_jail: vec![],
     };
 
     suite.import(imp.clone()).unwrap();
