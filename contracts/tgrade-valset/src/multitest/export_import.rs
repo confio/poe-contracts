@@ -120,3 +120,54 @@ fn import_works() {
 
     assert_eq!(imp, exp);
 }
+
+#[test]
+fn import_deletes_existing_entries() {
+    let member_addr_ori = "reallylongaddresstofit32charact1";
+    let member_addr_new = "reallylongaddresstofit32charact2";
+
+    let mut suite = SuiteBuilder::new()
+        .with_operators(&[member_addr_ori])
+        .build();
+
+    let imp = ValsetState {
+        contract_version: ContractVersion {
+            contract: "contract_name".to_owned(),
+            version: "version".to_owned(),
+        },
+        config: Config {
+            membership: Tg4Contract(Addr::unchecked("membership")),
+            min_points: 30,
+            max_validators: 60,
+            scaling: None,
+            epoch_reward: coin(200, "usdc"),
+            fee_percentage: Default::default(),
+            auto_unjail: true,
+            double_sign_slash_ratio: Decimal::percent(100),
+            distribution_contracts: vec![],
+            validator_group: Addr::unchecked("validator_group"),
+        },
+        epoch: EpochInfo {
+            epoch_length: 1000,
+            current_epoch: 1234,
+            last_update_time: 1,
+            last_update_height: 2,
+        },
+        operators: vec![OperatorResponse {
+            operator: member_addr_new.to_owned(),
+            pubkey: addr_to_pubkey(member_addr_new),
+            metadata: Default::default(),
+            active_validator: false,
+            jailed_until: None,
+        }],
+        validators: vec![],
+        validators_start_height: vec![],
+        validators_slashing: vec![],
+    };
+
+    suite.import(imp.clone()).unwrap();
+
+    let exp = suite.export().unwrap();
+
+    assert_eq!(imp, exp);
+}
