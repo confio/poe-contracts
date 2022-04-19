@@ -155,6 +155,8 @@ fn import_deletes_existing_entries() {
             double_sign_slash_ratio: Decimal::percent(100),
             distribution_contracts: vec![],
             validator_group: Addr::unchecked("validator_group"),
+            verify_validators: true,
+            offline_jail_duration: Duration::new(86400),
         },
         epoch: EpochInfo {
             epoch_length: 1000,
