@@ -151,6 +151,13 @@ pub struct StartHeightResponse {
     pub height: u64,
 }
 
+/// Ancillary struct for exporting validator slashing
+#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+pub struct SlashingResponse {
+    pub validator: String,
+    pub slashing: Vec<ValidatorSlashing>,
+}
+
 /// Export / Import state
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 pub struct ValsetState {
@@ -160,7 +167,7 @@ pub struct ValsetState {
     pub operators: Vec<OperatorResponse>,
     pub validators: Vec<ValidatorInfo>,
     pub validators_start_height: Vec<StartHeightResponse>,
-    pub validators_slashing: Vec<(String, Vec<ValidatorSlashing>)>,
+    pub validators_slashing: Vec<SlashingResponse>,
     pub validators_jail: Vec<(String, JailingPeriod)>,
 }
 
@@ -208,7 +215,10 @@ pub fn export(deps: Deps<TgradeQuery>) -> Result<Response<TgradeMsg>, ContractEr
         .range(deps.storage, None, None, Ascending)
         .map(|r| {
             let (validator, slashings) = r?;
-            Ok((validator.to_string(), slashings))
+            Ok(SlashingResponse {
+                validator: validator.to_string(),
+                slashing: slashings,
+            })
         })
         .collect::<StdResult<_>>()?;
 
@@ -259,8 +269,12 @@ pub fn import(
     }
 
     // Validator slashing items
-    for (k, v) in &state.validators_slashing {
-        VALIDATOR_SLASHING.save(deps.storage, &Addr::unchecked(k), v)?;
+    for slash in &state.validators_slashing {
+        VALIDATOR_SLASHING.save(
+            deps.storage,
+            &Addr::unchecked(&slash.validator),
+            &slash.slashing,
+        )?;
     }
 
     // Validator jail items
