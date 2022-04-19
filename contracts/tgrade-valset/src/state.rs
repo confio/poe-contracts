@@ -160,6 +160,13 @@ impl<'a> IndexList<OperatorInfo> for OperatorIndexes<'a> {
     }
 }
 
+/// Ancillary struct for exporting validator start height
+#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+pub struct StartHeightResponse {
+    pub validator: String,
+    pub height: u64,
+}
+
 /// Export / Import state
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 pub struct ValsetState {
@@ -168,7 +175,7 @@ pub struct ValsetState {
     pub epoch: EpochInfo,
     pub operators: Vec<OperatorResponse>,
     pub validators: Vec<ValidatorInfo>,
-    pub validators_start_height: Vec<(String, u64)>,
+    pub validators_start_height: Vec<StartHeightResponse>,
     pub validators_slashing: Vec<(String, Vec<ValidatorSlashing>)>,
     pub validators_jail: Vec<(String, JailingPeriod)>,
 }
@@ -205,7 +212,10 @@ pub fn export(deps: Deps<TgradeQuery>) -> Result<Response<TgradeMsg>, ContractEr
         .range(deps.storage, None, None, Ascending)
         .map(|r| {
             let (validator, height) = r?;
-            Ok((validator.to_string(), height))
+            Ok(StartHeightResponse {
+                validator: validator.to_string(),
+                height,
+            })
         })
         .collect::<StdResult<_>>()?;
 
@@ -256,8 +266,12 @@ pub fn import(
     }
 
     // Validator start height items
-    for (k, v) in &state.validators_start_height {
-        VALIDATOR_START_HEIGHT.save(deps.storage, &Addr::unchecked(k), v)?;
+    for start_height in &state.validators_start_height {
+        VALIDATOR_START_HEIGHT.save(
+            deps.storage,
+            &Addr::unchecked(&start_height.validator),
+            &start_height.height,
+        )?;
     }
 
     // Validator slashing items
