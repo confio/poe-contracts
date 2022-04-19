@@ -20,7 +20,6 @@ fn export_works() {
 
     let exp = suite.export().unwrap();
 
-    // Contract version
     assert_eq!(
         exp.contract_version,
         ContractVersion {
@@ -29,7 +28,6 @@ fn export_works() {
         }
     );
 
-    // Config
     assert_eq!(
         exp.config,
         Config {
@@ -46,7 +44,6 @@ fn export_works() {
         }
     );
 
-    // Epoch
     assert_eq!(
         exp.epoch,
         EpochInfo {
@@ -57,18 +54,14 @@ fn export_works() {
         }
     );
 
-    // One operator
     assert_eq!(exp.operators.len(), 1);
     assert_eq!(exp.operators[0].operator, "member1");
     assert!(!exp.operators[0].active_validator);
 
-    // No validators
     assert!(exp.validators.is_empty());
 
-    // No validators start height
     assert!(exp.validators_start_height.is_empty());
 
-    // No validators slashing height
     assert!(exp.validators_slashing.is_empty());
 }
 
