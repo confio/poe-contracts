@@ -295,6 +295,14 @@ pub fn import(
     }
 
     // Validator slashing items
+    // Delete all existing slashings
+    let slashings = VALIDATOR_SLASHING
+        .keys(deps.storage, None, None, Ascending)
+        .collect::<StdResult<Vec<_>>>()?;
+    for slash in slashings.iter() {
+        VALIDATOR_SLASHING.remove(deps.storage, slash);
+    }
+    // Import slashings
     for slash in &state.validators_slashing {
         VALIDATOR_SLASHING.save(
             deps.storage,
