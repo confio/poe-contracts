@@ -262,6 +262,14 @@ pub fn import(
     }
 
     // Validator start height items
+    // Delete all existing start heights
+    let heights = VALIDATOR_START_HEIGHT
+        .keys(deps.storage, None, None, Ascending)
+        .collect::<StdResult<Vec<_>>>()?;
+    for height in heights.iter() {
+        VALIDATOR_START_HEIGHT.remove(deps.storage, height);
+    }
+    // Import start heights
     for start_height in &state.validators_start_height {
         VALIDATOR_START_HEIGHT.save(
             deps.storage,
