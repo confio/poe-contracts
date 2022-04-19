@@ -2,7 +2,10 @@ use crate::contract::{CONTRACT_NAME, CONTRACT_VERSION};
 use crate::msg::OperatorResponse;
 use crate::multitest::helpers::addr_to_pubkey;
 use crate::multitest::suite::SuiteBuilder;
-use crate::state::{Config, EpochInfo, ValsetState};
+use crate::state::{
+    Config, EpochInfo, SlashingResponse, StartHeightResponse, ValidatorInfo, ValidatorSlashing,
+    ValsetState,
+};
 use cosmwasm_std::{coin, Addr, Decimal};
 use cw2::ContractVersion;
 use tg4::Tg4Contract;
@@ -104,9 +107,22 @@ fn import_works() {
             active_validator: false,
             jailed_until: None,
         }],
-        validators: vec![],
-        validators_start_height: vec![],
-        validators_slashing: vec![],
+        validators: vec![ValidatorInfo {
+            validator_pubkey: addr_to_pubkey(member_addr),
+            operator: Addr::unchecked(member_addr),
+            power: 10,
+        }],
+        validators_start_height: vec![StartHeightResponse {
+            validator: member_addr.to_owned(),
+            height: 1234,
+        }],
+        validators_slashing: vec![SlashingResponse {
+            validator: member_addr.to_owned(),
+            slashing: vec![ValidatorSlashing {
+                slash_height: 1234,
+                portion: Decimal::percent(25),
+            }],
+        }],
     };
 
     suite.import(imp.clone()).unwrap();
