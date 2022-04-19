@@ -168,7 +168,6 @@ pub struct ValsetState {
     pub validators: Vec<ValidatorInfo>,
     pub validators_start_height: Vec<StartHeightResponse>,
     pub validators_slashing: Vec<SlashingResponse>,
-    pub validators_jail: Vec<(String, JailingPeriod)>,
 }
 
 /// Export state
@@ -182,7 +181,6 @@ pub fn export(deps: Deps<TgradeQuery>) -> Result<Response<TgradeMsg>, ContractEr
         validators: VALIDATORS.load(deps.storage)?,
         validators_start_height: vec![],
         validators_slashing: vec![],
-        validators_jail: vec![],
     };
 
     // Operator items
@@ -190,10 +188,11 @@ pub fn export(deps: Deps<TgradeQuery>) -> Result<Response<TgradeMsg>, ContractEr
         .range(deps.storage, None, None, Ascending)
         .map(|r| {
             let (operator, info) = r?;
+            let jailed = JAIL.may_load(deps.storage, &operator)?;
             Ok(OperatorResponse::from_info(
                 info,
                 operator.to_string(),
-                None,
+                jailed,
             ))
         })
         .collect::<StdResult<_>>()?;
@@ -222,15 +221,6 @@ pub fn export(deps: Deps<TgradeQuery>) -> Result<Response<TgradeMsg>, ContractEr
         })
         .collect::<StdResult<_>>()?;
 
-    // Validator jail items
-    state.validators_jail = JAIL
-        .range(deps.storage, None, None, Ascending)
-        .map(|r| {
-            let (validator, period) = r?;
-            Ok((validator.to_string(), period))
-        })
-        .collect::<StdResult<_>>()?;
-
     Ok(Response::new().set_data(to_binary(&state)?))
 }
 
@@ -256,7 +246,11 @@ pub fn import(
             metadata: op.metadata,
             active_validator: op.active_validator,
         };
-        operators().save(deps.storage, &Addr::unchecked(&op.operator), &info)?;
+        let addr = Addr::unchecked(&op.operator);
+        operators().save(deps.storage, &addr, &info)?;
+        op.jailed_until
+            .map(|jp| JAIL.save(deps.storage, &addr, &jp))
+            .transpose()?;
     }
 
     // Validator start height items
@@ -275,11 +269,6 @@ pub fn import(
             &Addr::unchecked(&slash.validator),
             &slash.slashing,
         )?;
-    }
-
-    // Validator jail items
-    for (k, v) in &state.validators_jail {
-        JAIL.save(deps.storage, &Addr::unchecked(k), v)?;
     }
 
     Ok(Response::default())
