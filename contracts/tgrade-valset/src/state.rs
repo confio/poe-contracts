@@ -247,6 +247,13 @@ pub fn import(
     for op in ops.iter() {
         operators().remove(deps.storage, op)?;
     }
+    // Delete all existing jails
+    let jails = JAIL
+        .keys(deps.storage, None, None, Ascending)
+        .collect::<StdResult<Vec<_>>>()?;
+    for jail in jails.iter() {
+        JAIL.remove(deps.storage, jail);
+    }
     // Import operators
     for op in state.operators {
         let info = OperatorInfo {
