@@ -804,4 +804,11 @@ impl Suite {
         let state: ValsetState = from_binary(&res.data.unwrap())?;
         Ok(state)
     }
+
+    pub fn import(&mut self, state: ValsetState) -> AnyResult<AppResponse> {
+        self.app.wasm_sudo(
+            self.valset.clone(),
+            &TgradeSudoMsg::<ValsetState>::Import(state),
+        )
+    }
 }
