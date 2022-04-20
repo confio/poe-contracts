@@ -19,7 +19,7 @@ library = []
 [dependencies]
 cw2 = "0.13.1"
 tg3 = { path = "../../packages/tg3", version = "0.8.1" }
-cosmwasm-std = "1.0.0-beta6"
+cosmwasm-std = "1.0.0-beta8"
 schemars = "0.8.1"
 serde = { version = "1", default-features = false, features = ["derive"] }
 tg-bindings = { path = "../../packages/bindings", version = "0.8.1" }
@@ -30,7 +30,7 @@ thiserror = "1"
 
 [dev-dependencies]
 anyhow = "1"
-cosmwasm-schema = "1.0.0-beta6"
+cosmwasm-schema = "1.0.0-beta8"
 cw-multi-test = "0.13.1"
 tg-bindings-test = { path = "../../packages/bindings-test", version = "0.8.1" }
 tg4 = { path = "../../packages/tg4", version = "0.8.1" }

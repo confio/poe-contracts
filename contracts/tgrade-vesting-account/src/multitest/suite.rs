@@ -36,9 +36,9 @@ impl SuiteBuilder {
         let mut app = TgradeApp::new(default_owner);
         app.back_to_genesis();
         SuiteBuilder {
-            recipient: "RECIPIENT".to_owned(),
-            operator: "OPERATOR".to_owned(),
-            oversight: "OVERSIGHT".to_owned(),
+            recipient: "recipient".to_owned(),
+            operator: "operator".to_owned(),
+            oversight: "oversight".to_owned(),
             denom: "DENOM".to_owned(),
             // create any vesting plan, just to decrease boilerplate code
             // in a lot of cases it's not needed

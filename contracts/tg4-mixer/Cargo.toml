@@ -30,7 +30,7 @@ cw-storage-plus = "0.13.1"
 tg4 = { path = "../../packages/tg4", version = "0.8.1" }
 tg-utils = { path = "../../packages/utils", version = "0.8.1" }
 tg-bindings = { path = "../../packages/bindings", version = "0.8.1" }
-cosmwasm-std = "1.0.0-beta6"
+cosmwasm-std = "1.0.0-beta8"
 integer-sqrt = "0.1.5"
 schemars = "0.8"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
@@ -39,10 +39,10 @@ rust_decimal = { version = "1.16", default-features = false, features = ["maths"
 rust_decimal_macros = { version = "1.16", default-features = false }
 
 # bench dependencies
-cosmwasm-vm = { version = "1.0.0-beta6", optional = true }
+cosmwasm-vm = { version = "1.0.0-beta8", optional = true }
 
 [dev-dependencies]
-cosmwasm-schema = { version = "1.0.0-beta6" }
+cosmwasm-schema = { version = "1.0.0-beta8" }
 cw-multi-test = { version = "0.13.1" }
 tg4-engagement = { path = "../tg4-engagement", version = "0.8.1", features = ["library"] }
 tg4-stake = { path = "../tg4-stake", version = "0.8.1", features = ["library"] }
