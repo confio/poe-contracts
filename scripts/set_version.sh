@@ -3,11 +3,12 @@ set -o errexit -o nounset -o pipefail
 command -v shellcheck >/dev/null && shellcheck "$0"
 
 function print_usage() {
-  echo "Usage: $0 NEW_VERSION"
+  echo "Usage: $0 [-h|--help] <new_version>"
   echo "E.g.: $0 0.5.0"
 }
 
-if [ "$#" -ne 1 ]; then
+if [ "$#" -ne 1 ] || [ "$1" = "-h" ] || [ "$1" = "--help" ]
+then
     print_usage
     exit 1
 fi
