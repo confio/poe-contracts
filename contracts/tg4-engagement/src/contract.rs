@@ -935,12 +935,12 @@ mod tests {
     use tg_bindings_test::mock_deps_tgrade;
     use tg_utils::{HookError, PreauthError};
 
-    const INIT_ADMIN: &str = "ADMIN";
-    const USER1: &str = "USER1";
+    const INIT_ADMIN: &str = "admin";
+    const USER1: &str = "user1";
     const USER1_POINTS: u64 = 11;
-    const USER2: &str = "USER2";
+    const USER2: &str = "user2";
     const USER2_POINTS: u64 = 6;
-    const USER3: &str = "USER3";
+    const USER3: &str = "user3";
     const HALFLIFE: u64 = 180 * 24 * 60 * 60;
 
     fn mock_env_height(height_offset: u64) -> Env {
@@ -1015,7 +1015,7 @@ mod tests {
             WithdrawAdjustment {
                 shares_correction: Int128::zero(),
                 withdrawn_rewards: Uint128::zero(),
-                delegated: Addr::unchecked("USER1"),
+                delegated: Addr::unchecked("user1"),
             }
         );
     }
@@ -1652,7 +1652,7 @@ mod tests {
             let info = mock_info(INIT_ADMIN, &[]);
 
             // Originally USER1 has 11 points of points
-            execute_add_points(deps.as_mut(), env, info, "USER1".to_string(), 10).unwrap();
+            execute_add_points(deps.as_mut(), env, info, "user1".to_string(), 10).unwrap();
             assert_users(&deps, Some(21), Some(6), None, None);
         }
 
@@ -1664,7 +1664,7 @@ mod tests {
             let env = mock_env();
             let info = mock_info(INIT_ADMIN, &[]);
 
-            let new_user = "USER111".to_owned();
+            let new_user = "user111".to_owned();
             execute_add_points(deps.as_mut(), env, info, new_user.clone(), 10).unwrap();
             let new_member = query_member(deps.as_ref(), new_user, None).unwrap();
             assert_eq!(new_member.points, Some(10));
