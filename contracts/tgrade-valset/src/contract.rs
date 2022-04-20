@@ -33,13 +33,14 @@ use crate::msg::{
 };
 use crate::rewards::pay_block_rewards;
 use crate::state::{
-    operators, Config, EpochInfo, OperatorInfo, ValidatorInfo, ValidatorSlashing, CONFIG, EPOCH,
-    JAIL, PENDING_VALIDATORS, VALIDATORS, VALIDATOR_SLASHING, VALIDATOR_START_HEIGHT,
+    export, import, operators, Config, EpochInfo, OperatorInfo, ValidatorInfo, ValidatorSlashing,
+    ValsetState, CONFIG, EPOCH, JAIL, PENDING_VALIDATORS, VALIDATORS, VALIDATOR_SLASHING,
+    VALIDATOR_START_HEIGHT,
 };
 
 // version info for migration info
-const CONTRACT_NAME: &str = "crates.io:tgrade-valset";
-const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
+pub(crate) const CONTRACT_NAME: &str = "crates.io:tgrade-valset";
+pub(crate) const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 const REWARDS_INIT_REPLY_ID: u64 = 1;
 
@@ -614,12 +615,14 @@ fn list_validator_slashing<Q: CustomQuery>(
 pub fn sudo(
     deps: DepsMut<TgradeQuery>,
     env: Env,
-    msg: TgradeSudoMsg,
+    msg: TgradeSudoMsg<ValsetState>,
 ) -> Result<Response, ContractError> {
     match msg {
         TgradeSudoMsg::PrivilegeChange(change) => Ok(privilege_change(deps, change)),
         TgradeSudoMsg::EndWithValidatorUpdate {} => end_block(deps, env),
         TgradeSudoMsg::BeginBlock { evidence } => begin_block(deps, env, evidence),
+        TgradeSudoMsg::Export {} => export(deps.as_ref()),
+        TgradeSudoMsg::Import(state) => import(deps, state),
         _ => Err(ContractError::UnsupportedSudoType {}),
     }
 }
@@ -631,6 +634,7 @@ fn privilege_change<Q: CustomQuery>(_deps: DepsMut<Q>, change: PrivilegeChangeMs
                 Privilege::ValidatorSetUpdater,
                 Privilege::TokenMinter,
                 Privilege::BeginBlocker,
+                Privilege::StateExporterImporter,
             ]);
             Response::new().add_submessages(msgs)
         }

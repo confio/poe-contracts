@@ -181,7 +181,7 @@ impl Module for TgradeModule {
                         })?;
 
                         // call into contract
-                        let msg = to_binary(&TgradeSudoMsg::PrivilegeChange(
+                        let msg = to_binary(&TgradeSudoMsg::<Empty>::PrivilegeChange(
                             PrivilegeChangeMsg::Promoted {},
                         ))?;
                         let sudo = WasmSudo { contract_addr, msg };
@@ -193,7 +193,7 @@ impl Module for TgradeModule {
                         PRIVILEGES.remove(storage, &contract_addr);
 
                         // call into contract
-                        let msg = to_binary(&TgradeSudoMsg::PrivilegeChange(
+                        let msg = to_binary(&TgradeSudoMsg::<Empty>::PrivilegeChange(
                             PrivilegeChangeMsg::Demoted {},
                         ))?;
                         let sudo = WasmSudo { contract_addr, msg };
@@ -467,7 +467,7 @@ impl TgradeApp {
     /// with the BeginBlocker Privilege
     pub fn begin_block(&mut self, evidence: Vec<Evidence>) -> AnyResult<Vec<AppResponse>> {
         let to_call = self.with_privilege(Privilege::BeginBlocker)?;
-        let msg = TgradeSudoMsg::BeginBlock { evidence };
+        let msg = TgradeSudoMsg::<Empty>::BeginBlock { evidence };
         let res = to_call
             .into_iter()
             .map(|contract| self.wasm_sudo(contract, &msg))
@@ -480,7 +480,7 @@ impl TgradeApp {
     /// on any registered valset_updater.
     pub fn end_block(&mut self) -> AnyResult<(Vec<AppResponse>, Option<ValidatorDiff>)> {
         let to_call = self.with_privilege(Privilege::EndBlocker)?;
-        let msg = TgradeSudoMsg::EndBlock {};
+        let msg = TgradeSudoMsg::<Empty>::EndBlock {};
 
         let mut res: Vec<AppResponse> = to_call
             .into_iter()
@@ -489,7 +489,8 @@ impl TgradeApp {
 
         let diff = match self.valset_updater()? {
             Some(contract) => {
-                let mut r = self.wasm_sudo(contract, &TgradeSudoMsg::EndWithValidatorUpdate {})?;
+                let mut r =
+                    self.wasm_sudo(contract, &TgradeSudoMsg::<Empty>::EndWithValidatorUpdate {})?;
                 let data = r.data.take();
                 res.push(r);
                 match data {

@@ -1,13 +1,17 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use std::convert::TryFrom;
 
-use cosmwasm_std::{Addr, Coin, Decimal};
+use cosmwasm_std::Order::Ascending;
+use cosmwasm_std::{to_binary, Addr, Coin, Decimal, Deps, DepsMut, Response, StdResult};
+use cw2::{get_contract_version, set_contract_version, ContractVersion};
 use cw_storage_plus::{Index, IndexList, IndexedMap, Item, Map, UniqueIndex};
 use tg4::Tg4Contract;
 use tg_utils::Duration;
 
-use crate::msg::{default_fee_percentage, JailingPeriod, ValidatorMetadata};
-use tg_bindings::{Ed25519Pubkey, Pubkey};
+use crate::error::ContractError;
+use crate::msg::{default_fee_percentage, JailingPeriod, OperatorResponse, ValidatorMetadata};
+use tg_bindings::{Ed25519Pubkey, Pubkey, TgradeMsg, TgradeQuery};
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 pub struct Config {
@@ -154,4 +158,165 @@ impl<'a> IndexList<OperatorInfo> for OperatorIndexes<'a> {
         let v: Vec<&dyn Index<OperatorInfo>> = vec![&self.pubkey];
         Box::new(v.into_iter())
     }
+}
+
+/// Ancillary struct for exporting validator start height
+#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+pub struct StartHeightResponse {
+    pub validator: String,
+    pub height: u64,
+}
+
+/// Ancillary struct for exporting validator slashing
+#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+pub struct SlashingResponse {
+    pub validator: String,
+    pub slashing: Vec<ValidatorSlashing>,
+}
+
+/// Export / Import state
+#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+pub struct ValsetState {
+    pub contract_version: ContractVersion,
+    pub config: Config,
+    pub epoch: EpochInfo,
+    pub operators: Vec<OperatorResponse>,
+    pub validators: Vec<ValidatorInfo>,
+    pub validators_start_height: Vec<StartHeightResponse>,
+    pub validators_slashing: Vec<SlashingResponse>,
+}
+
+/// Export state
+pub fn export(deps: Deps<TgradeQuery>) -> Result<Response<TgradeMsg>, ContractError> {
+    // Valset state items
+    let mut state = ValsetState {
+        contract_version: get_contract_version(deps.storage)?,
+        config: CONFIG.load(deps.storage)?,
+        epoch: EPOCH.load(deps.storage)?,
+        operators: vec![],
+        validators: VALIDATORS.load(deps.storage)?,
+        validators_start_height: vec![],
+        validators_slashing: vec![],
+    };
+
+    // Operator items
+    state.operators = operators()
+        .range(deps.storage, None, None, Ascending)
+        .map(|r| {
+            let (operator, info) = r?;
+            let jailed = JAIL.may_load(deps.storage, &operator)?;
+            Ok(OperatorResponse::from_info(
+                info,
+                operator.to_string(),
+                jailed,
+            ))
+        })
+        .collect::<StdResult<_>>()?;
+
+    // Validator start height items
+    state.validators_start_height = VALIDATOR_START_HEIGHT
+        .range(deps.storage, None, None, Ascending)
+        .map(|r| {
+            let (validator, height) = r?;
+            Ok(StartHeightResponse {
+                validator: validator.to_string(),
+                height,
+            })
+        })
+        .collect::<StdResult<_>>()?;
+
+    // Validator slashing items
+    state.validators_slashing = VALIDATOR_SLASHING
+        .range(deps.storage, None, None, Ascending)
+        .map(|r| {
+            let (validator, slashings) = r?;
+            Ok(SlashingResponse {
+                validator: validator.to_string(),
+                slashing: slashings,
+            })
+        })
+        .collect::<StdResult<_>>()?;
+
+    Ok(Response::new().set_data(to_binary(&state)?))
+}
+
+/// Import state
+pub fn import(
+    deps: DepsMut<TgradeQuery>,
+    state: ValsetState,
+) -> Result<Response<TgradeMsg>, ContractError> {
+    // Valset state items
+    set_contract_version(
+        deps.storage,
+        state.contract_version.contract,
+        state.contract_version.version,
+    )?;
+    CONFIG.save(deps.storage, &state.config)?;
+    EPOCH.save(deps.storage, &state.epoch)?;
+    VALIDATORS.save(deps.storage, &state.validators)?;
+
+    // Operator items
+    // Delete all existing operators
+    let ops = operators()
+        .keys(deps.storage, None, None, Ascending)
+        .collect::<StdResult<Vec<_>>>()?;
+    for op in ops.iter() {
+        operators().remove(deps.storage, op)?;
+    }
+    // Delete all existing jails
+    let jails = JAIL
+        .keys(deps.storage, None, None, Ascending)
+        .collect::<StdResult<Vec<_>>>()?;
+    for jail in jails.iter() {
+        JAIL.remove(deps.storage, jail);
+    }
+    // Import operators
+    for op in state.operators {
+        let info = OperatorInfo {
+            pubkey: Ed25519Pubkey::try_from(op.pubkey)?,
+            metadata: op.metadata,
+            active_validator: op.active_validator,
+        };
+        let addr = Addr::unchecked(&op.operator);
+        operators().save(deps.storage, &addr, &info)?;
+        op.jailed_until
+            .map(|jp| JAIL.save(deps.storage, &addr, &jp))
+            .transpose()?;
+    }
+
+    // Validator start height items
+    // Delete all existing start heights
+    let heights = VALIDATOR_START_HEIGHT
+        .keys(deps.storage, None, None, Ascending)
+        .collect::<StdResult<Vec<_>>>()?;
+    for height in heights.iter() {
+        VALIDATOR_START_HEIGHT.remove(deps.storage, height);
+    }
+    // Import start heights
+    for start_height in &state.validators_start_height {
+        VALIDATOR_START_HEIGHT.save(
+            deps.storage,
+            &Addr::unchecked(&start_height.validator),
+            &start_height.height,
+        )?;
+    }
+
+    // Validator slashing items
+    // Delete all existing slashings
+    let slashings = VALIDATOR_SLASHING
+        .keys(deps.storage, None, None, Ascending)
+        .collect::<StdResult<Vec<_>>>()?;
+    for slash in slashings.iter() {
+        VALIDATOR_SLASHING.remove(deps.storage, slash);
+    }
+    // Import slashings
+    for slash in &state.validators_slashing {
+        VALIDATOR_SLASHING.save(
+            deps.storage,
+            &Addr::unchecked(&slash.validator),
+            &slash.slashing,
+        )?;
+    }
+
+    Ok(Response::default())
 }
