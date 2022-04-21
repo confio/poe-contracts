@@ -1,11 +1,6 @@
 #!/bin/bash
 set -o errexit -o pipefail
 
-# Customize these
-# TODO: Get it from ./.git/config
-GITHUB_USER="confio"
-GITHUB_REPO="poe-contracts"
-
 ORIGINAL_OPTS=$*
 # Requires getopt from util-linux 2.37.4 (brew install gnu-getopt on Mac)
 OPTS=$(getopt -l "help,since-tag:,upcoming-tag:,full,token:" -o "hu:ft" -- "$@") || exit 1
@@ -53,6 +48,12 @@ esac
 shift
 done
 
+# Get user and repo from ./.git/config
+ORIGIN_URL=$(git config --local remote.origin.url)
+GITHUB_USER=$(echo $ORIGIN_URL | sed -n 's#.*:\([^\/]*\)\/.*#\1#p')
+echo "Github user: $GITHUB_USER"
+GITHUB_REPO=$(echo $ORIGIN_URL | sed -n 's#.*/\(.*\)\.git#\1#p')
+echo "Github repo: $GITHUB_REPO"
 
 if [ -z "$TAG" ]
 then

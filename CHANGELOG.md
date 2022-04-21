@@ -2,7 +2,23 @@
 
 ## [Unreleased](https://github.com/confio/poe-contracts/tree/HEAD)
 
-[Full Changelog](https://github.com/confio/poe-contracts/compare/v0.8.1...HEAD)
+[Full Changelog](https://github.com/confio/poe-contracts/compare/v0.9.0...HEAD)
+
+## [v0.9.0](https://github.com/confio/poe-contracts/tree/v0.9.0) (2022-04-20)
+
+[Full Changelog](https://github.com/confio/poe-contracts/compare/v0.8.1...v0.9.0)
+
+**Breaking changes:**
+
+- Ensure validator is online before adding to the active set [\#36](https://github.com/confio/poe-contracts/issues/36)
+- valset: fair rule to determine active valset when equal EP/Stake [\#22](https://github.com/confio/poe-contracts/issues/22)
+- Verify new validators are online [\#127](https://github.com/confio/poe-contracts/pull/127) ([uint](https://github.com/uint))
+- Valset tie-breaking \#3 [\#118](https://github.com/confio/poe-contracts/pull/118) ([maurolacy](https://github.com/maurolacy))
+
+**Merged pull requests:**
+
+- Update to latest cw-plus [\#134](https://github.com/confio/poe-contracts/pull/134) ([maurolacy](https://github.com/maurolacy))
+- `tgrade-valset` export import against `main` [\#133](https://github.com/confio/poe-contracts/pull/133) ([maurolacy](https://github.com/maurolacy))
 
 ## [v0.8.1](https://github.com/confio/poe-contracts/tree/v0.8.1) (2022-03-29)
 
