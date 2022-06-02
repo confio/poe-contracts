@@ -1,6 +1,6 @@
 [package]
 name = "tg-utils"
-version = "0.9.0"
+version = "0.10.0"
 authors = ["Ethan Frey <ethanfrey@users.noreply.github.com>"]
 edition = "2018"
 description = "Tgrade Utils: helpers for various contracts"
@@ -18,7 +18,7 @@ cw-storage-plus = "0.13.4"
 cw2 = "0.13.4"
 schemars = "0.8.1"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
-tg4 = { path = "../tg4", version = "0.9.0" }
-tg-bindings = { path = "../bindings", version = "0.9.0" }
+tg4 = { path = "../tg4", version = "0.10.0" }
+tg-bindings = { path = "../bindings", version = "0.10.0" }
 thiserror = { version = "1.0.21" }
 semver = "1"
