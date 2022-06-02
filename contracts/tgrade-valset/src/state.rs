@@ -7,7 +7,7 @@ use cosmwasm_std::{to_binary, Addr, Coin, Decimal, Deps, DepsMut, Response, StdR
 use cw2::{get_contract_version, set_contract_version, ContractVersion};
 use cw_storage_plus::{Index, IndexList, IndexedMap, Item, Map, UniqueIndex};
 use tg4::Tg4Contract;
-use tg_utils::Duration;
+use tg_utils::{Duration, ADMIN};
 
 use crate::error::ContractError;
 use crate::msg::{default_fee_percentage, JailingPeriod, OperatorResponse, ValidatorMetadata};
@@ -178,6 +178,7 @@ pub struct SlashingResponse {
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 pub struct ValsetState {
     pub contract_version: ContractVersion,
+    pub admin: Option<Addr>,
     pub config: Config,
     pub epoch: EpochInfo,
     pub operators: Vec<OperatorResponse>,
@@ -190,6 +191,7 @@ pub struct ValsetState {
 pub fn export(deps: Deps<TgradeQuery>) -> Result<Response<TgradeMsg>, ContractError> {
     // Valset state items
     let mut state = ValsetState {
+        admin: ADMIN.get(deps)?,
         contract_version: get_contract_version(deps.storage)?,
         config: CONFIG.load(deps.storage)?,
         epoch: EPOCH.load(deps.storage)?,
@@ -242,7 +244,7 @@ pub fn export(deps: Deps<TgradeQuery>) -> Result<Response<TgradeMsg>, ContractEr
 
 /// Import state
 pub fn import(
-    deps: DepsMut<TgradeQuery>,
+    mut deps: DepsMut<TgradeQuery>,
     state: ValsetState,
 ) -> Result<Response<TgradeMsg>, ContractError> {
     // Valset state items
@@ -251,6 +253,7 @@ pub fn import(
         state.contract_version.contract,
         state.contract_version.version,
     )?;
+    ADMIN.set(deps.branch(), state.admin)?;
     CONFIG.save(deps.storage, &state.config)?;
     EPOCH.save(deps.storage, &state.epoch)?;
     VALIDATORS.save(deps.storage, &state.validators)?;
