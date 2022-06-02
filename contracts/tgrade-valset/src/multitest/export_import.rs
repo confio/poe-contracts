@@ -32,7 +32,6 @@ fn export_contains_all_state() {
 
     // compare two snapshots
     assert_eq!(orig_state, new_state);
-
 }
 
 #[test]
