@@ -29,6 +29,8 @@ fn export_works() {
         }
     );
 
+    assert_eq!(exp.admin, Some(Addr::unchecked("admin")));
+
     assert_eq!(
         exp.config,
         Config {
@@ -78,7 +80,7 @@ fn import_works() {
             contract: "contract_name".to_owned(),
             version: "version".to_owned(),
         },
-        admin: None,
+        admin: Some(Addr::unchecked("imported_admin")),
         config: Config {
             membership: Tg4Contract(Addr::unchecked("membership")),
             min_points: 30,
