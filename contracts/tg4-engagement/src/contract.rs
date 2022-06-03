@@ -1223,9 +1223,9 @@ mod tests {
         assert_eq!(members.len(), 2);
 
         // we write some garbage non-utf8 key in the same key space as members, with some tricks
-        const BIN_MEMBERS: Map<Vec<u8>, u64> = Map::new(tg4::MEMBERS_KEY);
+        const BIN_MEMBERS: Map<Vec<u8>, MemberInfo> = Map::new(tg4::MEMBERS_KEY);
         BIN_MEMBERS
-            .save(&mut deps.storage, vec![226, 130, 40], &123)
+            .save(&mut deps.storage, vec![226, 130, 40], &MemberInfo::new(123))
             .unwrap();
 
         // this should now error when trying to parse the invalid data (in the same keyspace)
