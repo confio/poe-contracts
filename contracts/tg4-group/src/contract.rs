@@ -184,10 +184,7 @@ fn query_member(deps: Deps, addr: String, height: Option<u64>) -> StdResult<Memb
         Some(h) => MEMBERS.may_load_at_height(deps.storage, &addr, h),
         None => MEMBERS.may_load(deps.storage, &addr),
     }?;
-    Ok(MemberResponse {
-        points: member_info.map(|mi| mi.points),
-        start_height: None,
-    })
+    Ok(member_info.into())
 }
 
 // settings for pagination
