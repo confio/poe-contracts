@@ -1,7 +1,7 @@
 # TG4 Spec: Group Members
 
-Based on [cosmwasm-plus](https://github.com/CosmWasm/cosmwasm-plus)
-[CW4](https://github.com/CosmWasm/cosmwasm-plus/tree/master/packages/cw4).
+Based on [cw-plus](https://github.com/CosmWasm/cw-plus)
+[CW4](https://github.com/CosmWasm/cw-plus/tree/master/packages/cw4).
 
 TG4 is a spec for storing group membership, which can be combined
 with [TG3](https://github.com/confio/poe-contracts/tree/main/packages/tg3) multisigs.
@@ -40,7 +40,7 @@ There are three messages supported by a group contract:
   by `AddHook`.
 
 Only the `admin` may execute any of these function. Thus, by omitting an
-`admin`, we end up with a similar functionality ad `cw3-fixed-multisig`.
+`admin`, we end up with a similar functionality than `cw3-fixed-multisig`.
 If we include one, it may often be desired to be a `tg3` contract that
 uses this group contract as a group. This leads to a bit of chicken-and-egg
 problem, but we cover how to instantiate that in
@@ -76,10 +76,13 @@ in contract-contract calls. These use keys exported by `tg4`
 `TOTAL_KEY` - making a raw query with this key (`b"total"`) will return a
   JSON-encoded `u64`
 
-`members_key()` - takes an `Addr` and returns a key that can be
+`member_key()` - takes an `Addr` and returns a key that can be
    used for raw query (`"\x00\x07members" || addr`). This will return
    empty bytes if the member is not inside the group, otherwise a
-   JSON-encoded `u64`
+   JSON-encoded `MemberInfo` struct, that contains the member points
+   and optionally their membership start height. Which can be used
+   for tie breaking between members with the same number of points.
+   See [query.rs](./src/query.rs) for details.
 
 ## Hooks
 
