@@ -29,7 +29,7 @@ pub struct Member {
 }
 ```
 
-Members are defined by an address, a number of points, and an optional start height.
+Members are defined by an address, a number of points and an optional start height.
 This is transformed and stored under their `Addr`, in a format defined in
 [tg4 raw queries](../../packages/tg4/README.md#raw).
 
