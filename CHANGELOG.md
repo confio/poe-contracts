@@ -2,7 +2,20 @@
 
 ## [Unreleased](https://github.com/confio/poe-contracts/tree/HEAD)
 
-[Full Changelog](https://github.com/confio/poe-contracts/compare/v0.9.0...HEAD)
+[Full Changelog](https://github.com/confio/poe-contracts/compare/v0.10.0...HEAD)
+
+## [v0.10.0](https://github.com/confio/poe-contracts/tree/v0.10.0) (2022-06-02)
+
+[Full Changelog](https://github.com/confio/poe-contracts/compare/v0.9.0...v0.10.0)
+
+**Fixed bugs:**
+
+- Valset: export/ import `admin` [\#139](https://github.com/confio/poe-contracts/issues/139)
+
+**Merged pull requests:**
+
+- Add missing Admin to state export / import [\#141](https://github.com/confio/poe-contracts/pull/141) ([maurolacy](https://github.com/maurolacy))
+- \[tgrade-valset\] Offline validator auto-unjail tests [\#140](https://github.com/confio/poe-contracts/pull/140) ([maurolacy](https://github.com/maurolacy))
 
 ## [v0.9.0](https://github.com/confio/poe-contracts/tree/v0.9.0) (2022-04-20)
 

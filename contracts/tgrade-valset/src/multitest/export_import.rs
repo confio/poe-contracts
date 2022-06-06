@@ -1,7 +1,7 @@
 use crate::contract::{CONTRACT_NAME, CONTRACT_VERSION};
 use crate::msg::OperatorResponse;
 use crate::multitest::helpers::addr_to_pubkey;
-use crate::multitest::suite::SuiteBuilder;
+use crate::multitest::suite::{Suite, SuiteBuilder};
 use crate::state::{
     Config, EpochInfo, SlashingResponse, StartHeightResponse, ValidatorInfo, ValidatorSlashing,
     ValsetState,
@@ -10,6 +10,29 @@ use cosmwasm_std::{coin, Addr, Decimal};
 use cw2::ContractVersion;
 use tg4::Tg4Contract;
 use tg_utils::Duration;
+
+#[test]
+fn export_contains_all_state() {
+    let mut suite: Suite = SuiteBuilder::new()
+        .with_max_validators(6)
+        .with_min_points(3)
+        .with_operators(&["member1"])
+        .build();
+
+    // state snapshot
+    let orig_state = suite.dump_raw_valset_state();
+
+    // export and import into new contract
+    let exp = suite.export().unwrap();
+    let mut suite = SuiteBuilder::new().build();
+    suite.import(exp).unwrap();
+
+    // state snapshot
+    let new_state = suite.dump_raw_valset_state();
+
+    // compare two snapshots
+    assert_eq!(orig_state, new_state);
+}
 
 #[test]
 fn export_works() {
