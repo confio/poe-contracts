@@ -26,9 +26,9 @@ backtraces = ["cosmwasm-std/backtraces"]
 [dependencies]
 cosmwasm-std = "1.0.0"
 cw-storage-plus = "0.13.4"
-tg-bindings = { version = "0.10.0", path = "../../packages/bindings" }
 schemars = "0.8.1"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
+tg-bindings = { version = "0.10.0", path = "../../packages/bindings" }
 thiserror = "1"
 
 [dev-dependencies]

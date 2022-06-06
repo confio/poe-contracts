@@ -20,19 +20,19 @@ backtraces = ["cosmwasm-std/backtraces"]
 library = []
 
 [dependencies]
+cosmwasm-std = "1.0.0"
 cw-utils = "0.13.4"
 cw2 = "0.13.4"
 cw-controllers = "0.13.4"
 cw-storage-plus = "0.13.4"
+itertools = "0.10"
+schemars = "0.8.1"
+serde = { version = "1.0.103", default-features = false, features = ["derive"] }
 tg4 = { path = "../../packages/tg4", version = "0.10.0" }
 tg-utils = { path = "../../packages/utils", version = "0.10.0" }
 tg-bindings = { path = "../../packages/bindings", version = "0.10.0" }
-cosmwasm-std = "1.0.0"
-schemars = "0.8.1"
-serde = { version = "1.0.103", default-features = false, features = ["derive"] }
-thiserror = { version = "1.0.21" }
-itertools = "0.10"
+thiserror = "1.0.21"
 
 [dev-dependencies]
-cosmwasm-schema = { version = "1.0.0" }
+cosmwasm-schema = "1.0.0"
 tg-bindings-test = { path = "../../packages/bindings-test", version = "0.10.0" }

@@ -17,14 +17,14 @@ backtraces = ["cosmwasm-std/backtraces"]
 library = []
 
 [dependencies]
-cw2 = "0.13.4"
-tg3 = { path = "../../packages/tg3", version = "0.10.0" }
 cosmwasm-std = "1.0.0"
+cw2 = "0.13.4"
 schemars = "0.8.1"
 serde = { version = "1", default-features = false, features = ["derive"] }
 tg-bindings = { path = "../../packages/bindings", version = "0.10.0" }
 tg-utils = { path = "../../packages/utils", version = "0.10.0" }
 tg-voting-contract = { version = "0.10.0", path = "../../packages/voting-contract" }
+tg3 = { path = "../../packages/tg3", version = "0.10.0" }
 tg4-engagement = { path = "../tg4-engagement", version = "0.10.0", features = ["library"] }
 thiserror = "1"
 
