@@ -11,16 +11,16 @@ license = "Apache-2.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-cw-utils = "0.13.4"
-tg3 = { path = "../../packages/tg3", version = "0.10.0" }
-cw-storage-plus = "0.13.4"
 cosmwasm-std = "1.0.0"
+cw-utils = "0.13.4"
+cw-storage-plus = "0.13.4"
 schemars = "0.8.1"
 serde = { version = "1", default-features = false, features = ["derive"] }
+tg3 = { path = "../../packages/tg3", version = "0.10.0" }
 tg4 = { path = "../tg4", version = "0.10.0" }
 tg-bindings = { path = "../bindings", version = "0.10.0" }
 tg-utils = { version = "0.10.0", path = "../utils" }
-thiserror = { version = "1" }
+thiserror = "1"
 
 [dev-dependencies]
 anyhow = "1"

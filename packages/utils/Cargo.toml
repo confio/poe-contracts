@@ -17,8 +17,8 @@ cw-controllers = "0.13.4"
 cw-storage-plus = "0.13.4"
 cw2 = "0.13.4"
 schemars = "0.8.1"
+semver = "1"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
 tg4 = { path = "../tg4", version = "0.10.0" }
 tg-bindings = { path = "../bindings", version = "0.10.0" }
-thiserror = { version = "1.0.21" }
-semver = "1"
+thiserror = "1.0.21"
