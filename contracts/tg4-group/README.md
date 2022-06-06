@@ -2,8 +2,8 @@
 
 This is a basic implementation of the [tg4 spec](../../packages/tg4/README.md).
 It fulfills all elements of the spec, including the raw query lookups,
-and it designed to be used as a backing storage for
-[cw3 compliant contracts](../../packages/cw3/README.md).
+and it is designed to be used as a backing storage for
+[tg3 compliant contracts](../../packages/tg3/README.md).
 
 It stores a set of members along with an admin, and allows the admin to
 update the state. Raw queries (intended for cross-contract queries)
@@ -25,11 +25,12 @@ pub struct InitMsg {
 pub struct Member {
     pub addr: HumanAddr,
     pub points: u64,
+    pub start_height: Option<u64>
 }
 ```
 
-Members are defined by an address and a number of points. This is transformed
-and stored under their `CanonicalAddr`, in a format defined in
+Members are defined by an address, a number of points and an optional start height.
+This is transformed and stored under their `Addr`, in a format defined in
 [tg4 raw queries](../../packages/tg4/README.md#raw).
 
 Note that 0 *is an allowed number of points*. This doesn't give any voting rights, but
@@ -48,4 +49,3 @@ Basic update messages, queries, and hooks are defined by the
 members, as well as removing any provided addresses. If an address is on both
 lists, it will be removed. If it appears multiple times in `add`, only the
 last occurrence will be used.
-

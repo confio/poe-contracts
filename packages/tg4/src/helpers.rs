@@ -103,7 +103,7 @@ impl Tg4Contract {
         let query = self.encode_raw_query::<_, Q>(path);
 
         // We have to copy the logic of Querier.query to handle the empty case, and not
-        // try to decode empty result into a u64.
+        // try to decode an empty result into a `MemberInfo`.
         // TODO: add similar API on Querier - this is not the first time I came across it
         let raw = to_vec(&query)?;
         match querier.raw_query(&raw) {

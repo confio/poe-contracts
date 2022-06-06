@@ -450,6 +450,10 @@ pub struct Suite {
 }
 
 impl Suite {
+    pub fn dump_raw_valset_state(&self) -> Vec<(Vec<u8>, Vec<u8>)> {
+        self.app.dump_wasm_raw(&self.valset)
+    }
+
     pub fn admin(&self) -> &str {
         &self.admin
     }

@@ -9,7 +9,7 @@ use cw_storage_plus::Bound;
 use cw_utils::maybe_addr;
 
 use cw4::{MemberChangedHookMsg, MemberDiff};
-use tg4::{Member, MemberListResponse, MemberResponse, TotalPointsResponse};
+use tg4::{Member, MemberInfo, MemberListResponse, MemberResponse, TotalPointsResponse};
 
 use crate::error::ContractError;
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
@@ -50,7 +50,12 @@ pub fn create(
     for member in members.into_iter() {
         total += member.points;
         let member_addr = deps.api.addr_validate(&member.addr)?;
-        MEMBERS.save(deps.storage, &member_addr, &member.points, height)?;
+        MEMBERS.save(
+            deps.storage,
+            &member_addr,
+            &MemberInfo::new(member.points),
+            height,
+        )?;
     }
     TOTAL.save(deps.storage, &total)?;
 
@@ -126,10 +131,14 @@ pub fn update_members(
     for add in to_add.into_iter() {
         let add_addr = deps.api.addr_validate(&add.addr)?;
         MEMBERS.update(deps.storage, &add_addr, height, |old| -> StdResult<_> {
-            total -= old.unwrap_or_default();
+            total -= old.clone().unwrap_or_default().points;
             total += add.points;
-            diffs.push(MemberDiff::new(add.addr, old, Some(add.points)));
-            Ok(add.points)
+            diffs.push(MemberDiff::new(
+                add.addr,
+                old.map(|mi| mi.points),
+                Some(add.points),
+            ));
+            Ok(MemberInfo::new(add.points))
         })?;
     }
 
@@ -137,9 +146,9 @@ pub fn update_members(
         let remove_addr = deps.api.addr_validate(&remove)?;
         let old = MEMBERS.may_load(deps.storage, &remove_addr)?;
         // Only process this if they were actually in the list before
-        if let Some(points) = old {
-            diffs.push(MemberDiff::new(remove, Some(points), None));
-            total -= points;
+        if let Some(member_info) = old {
+            diffs.push(MemberDiff::new(remove, Some(member_info.points), None));
+            total -= member_info.points;
             MEMBERS.remove(deps.storage, &remove_addr, height)?;
         }
     }
@@ -171,14 +180,11 @@ fn query_total_points(deps: Deps) -> StdResult<TotalPointsResponse> {
 
 fn query_member(deps: Deps, addr: String, height: Option<u64>) -> StdResult<MemberResponse> {
     let addr = deps.api.addr_validate(&addr)?;
-    let points = match height {
+    let member_info = match height {
         Some(h) => MEMBERS.may_load_at_height(deps.storage, &addr, h),
         None => MEMBERS.may_load(deps.storage, &addr),
     }?;
-    Ok(MemberResponse {
-        points,
-        start_height: None,
-    })
+    Ok(member_info.into())
 }
 
 // settings for pagination
@@ -198,10 +204,10 @@ fn list_members(
         .range(deps.storage, start, None, Order::Ascending)
         .take(limit)
         .map(|item| {
-            item.map(|(addr, points)| Member {
+            item.map(|(addr, member_info)| Member {
                 addr: addr.into(),
-                points,
-                start_height: None,
+                points: member_info.points,
+                start_height: member_info.start_height,
             })
         })
         .collect::<StdResult<_>>()?;
@@ -557,7 +563,7 @@ mod tests {
 
         // get member votes from raw key
         let member2_raw = deps.storage.get(&member_key(USER2)).unwrap();
-        let member2: u64 = from_slice(&member2_raw).unwrap();
+        let member2: u64 = from_slice::<MemberInfo>(&member2_raw).unwrap().points;
         assert_eq!(6, member2);
 
         // and execute misses
