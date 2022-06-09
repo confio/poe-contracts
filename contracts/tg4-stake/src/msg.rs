@@ -12,16 +12,16 @@ const fn default_auto_return_limit() -> u64 {
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 pub struct InstantiateMsg {
-    /// denom of the token to stake
+    /// Denom of the token to stake
     pub denom: String,
     pub tokens_per_point: Uint128,
     pub min_bond: Uint128,
-    /// unbounding period in seconds
+    /// Unbounding period in seconds
     pub unbonding_period: u64,
 
     // admin can only add/remove hooks and slashers, not change other parameters
     pub admin: Option<String>,
-    // or you can simply pre-authorize a number of hooks (to be done in following messages)
+    // or you can simply pre-authorize a number of hooks (to be done in the following messages)
     #[serde(default)]
     pub preauths_hooks: u64,
     // and you can pre-authorize a number of slashers the same way
@@ -77,16 +77,16 @@ pub enum QueryMsg {
         limit: Option<u32>,
         start_after: Option<Expiration>,
     },
-    // Show the number of tokens currently staked by this address.
-    Staked {
-        address: String,
-    },
-    // Returns the unbonding period of this contract
+    /// Shows the number of liquid and vesting tokens currently staked by this address.
+    /// Returns StakedResponse.
+    Staked { address: String },
+    /// Returns the unbonding period of this contract.
+    /// Returns UnbondingPeriodResponse.
     UnbondingPeriod {},
 
     /// Return AdminResponse
     Admin {},
-    /// Return TotalPointsResponse. This is the amount of tokens bonded divided by
+    /// Returns TotalPointsResponse. This is the amount of tokens bonded divided by
     /// tokens_per_point.
     TotalPoints {},
     /// Returns MemberListResponse
@@ -108,11 +108,9 @@ pub enum QueryMsg {
     Hooks {},
     /// Return the current number of preauths. Returns PreauthResponse.
     Preauths {},
-    /// Returns information (bool) whether given address is an active slasher
-    IsSlasher {
-        addr: String,
-    },
-    /// Returns all active slashers as vector of addresses
+    /// Returns information (bool) about whether a given address is an active slasher
+    IsSlasher { addr: String },
+    /// Returns all active slashers as a vector of addresses.
     ListSlashers {},
 }
 
@@ -135,12 +133,6 @@ pub struct UnbondingPeriodResponse {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct ClaimsResponse {
     pub claims: Vec<Claim>,
-}
-
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
-pub struct TotalPointsResponse {
-    pub points: u64,
-    pub denom: String,
 }
 
 #[cfg(test)]
