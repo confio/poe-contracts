@@ -12,7 +12,7 @@ use cw_storage_plus::Bound;
 use cw_utils::maybe_addr;
 use tg4::{
     HooksResponse, Member, MemberChangedHookMsg, MemberDiff, MemberInfo, MemberListResponse,
-    MemberResponse,
+    MemberResponse, TotalPointsResponse,
 };
 use tg_bindings::{
     request_privileges, Privilege, PrivilegeChangeMsg, TgradeMsg, TgradeQuery, TgradeSudoMsg,
@@ -25,7 +25,7 @@ use tg_utils::{
 use crate::error::ContractError;
 use crate::msg::{
     ClaimsResponse, ExecuteMsg, InstantiateMsg, PreauthResponse, QueryMsg, StakedResponse,
-    TotalPointsResponse, UnbondingPeriodResponse,
+    UnbondingPeriodResponse,
 };
 use crate::state::{claims, Config, CONFIG, STAKE, STAKE_VESTING};
 
@@ -445,8 +445,8 @@ fn calc_points(stake: Uint128, cfg: &Config) -> Option<u64> {
     if stake < cfg.min_bond {
         None
     } else {
-        let w = stake.u128() / (cfg.tokens_per_point.u128());
-        Some(w as u64)
+        let p = stake.u128() / cfg.tokens_per_point.u128();
+        Some(p as u64)
     }
 }
 
@@ -594,8 +594,7 @@ pub fn query(deps: Deps<TgradeQuery>, _env: Env, msg: QueryMsg) -> StdResult<Bin
 
 fn query_total_points<Q: CustomQuery>(deps: Deps<Q>) -> StdResult<TotalPointsResponse> {
     let points = TOTAL.load(deps.storage)?;
-    let denom = CONFIG.load(deps.storage)?.denom;
-    Ok(TotalPointsResponse { points, denom })
+    Ok(TotalPointsResponse { points })
 }
 
 pub fn query_staked<Q: CustomQuery>(deps: Deps<Q>, addr: String) -> StdResult<StakedResponse> {
@@ -842,7 +841,6 @@ mod tests {
 
         let res = query_total_points(deps.as_ref()).unwrap();
         assert_eq!(0, res.points);
-        assert_eq!("stake".to_owned(), res.denom);
 
         let raw = query(deps.as_ref(), mock_env(), QueryMsg::Configuration {}).unwrap();
         let res: Config = from_slice(&raw).unwrap();
@@ -856,6 +854,11 @@ mod tests {
                 auto_return_limit: 0,
             }
         );
+
+        // query the admin's staked amount (just to confirm the query works)
+        let res = query_staked(deps.as_ref(), INIT_ADMIN.into()).unwrap();
+        assert_eq!(coin(0, "stake"), res.liquid);
+        assert_eq!(coin(0, "stake"), res.vesting);
     }
 
     #[test]
