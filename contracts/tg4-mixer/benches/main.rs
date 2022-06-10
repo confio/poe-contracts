@@ -3,11 +3,25 @@
 //! Then running `cargo bench` will validate we can properly call into that generated Wasm.
 //!
 use cosmwasm_std::{Decimal, Uint64};
-use cosmwasm_vm::from_slice;
-use cosmwasm_vm::testing::{mock_env, mock_instance, query};
+use cosmwasm_vm::testing::{
+    mock_env, mock_instance_with_options, query, MockApi, MockInstanceOptions,
+    MockQuerier, MockStorage,
+};
+use cosmwasm_vm::{features_from_csv, from_slice, Instance};
 
 use tg4_mixer::msg::PoEFunctionType::{AlgebraicSigmoid, GeometricMean, Sigmoid, SigmoidSqrt};
 use tg4_mixer::msg::{MixerFunctionResponse, QueryMsg};
+
+fn mock_instance_on_tgrade(wasm: &[u8]) -> Instance<MockApi, MockStorage, MockQuerier> {
+    mock_instance_with_options(
+        wasm,
+        MockInstanceOptions {
+            supported_features: features_from_csv("iterator,tgrade"),
+            gas_limit: 100_000_000_000_000,
+            ..Default::default()
+        },
+    )
+}
 
 // Output of cargo wasm
 static WASM: &[u8] =
@@ -24,7 +38,7 @@ fn main() {
     const STAKE: u64 = 100000;
     const ENGAGEMENT: u64 = 5000;
 
-    let mut deps = mock_instance(WASM, &[]);
+    let mut deps = mock_instance_on_tgrade(WASM);
 
     let max_points = Uint64::new(MAX_POINTS);
     let a = Decimal::from_ratio(37u128, 10u128);
