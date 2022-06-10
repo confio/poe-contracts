@@ -20,7 +20,6 @@ bench = false
 backtraces = ["cosmwasm-std/backtraces"]
 # use library feature to disable all instantiate/execute/query exports
 library = []
-benches = [ "cosmwasm-vm" ]
 
 [dependencies]
 cosmwasm-std = "1.0.0"
@@ -38,11 +37,10 @@ tg4 = { path = "../../packages/tg4", version = "0.10.0" }
 tg-utils = { path = "../../packages/utils", version = "0.10.0" }
 tg-bindings = { path = "../../packages/bindings", version = "0.10.0" }
 
-# bench dependencies
-cosmwasm-vm = { version = "1.0.0", optional = true }
-
 [dev-dependencies]
 cosmwasm-schema = "1.0.0"
+# bench dependencies
+cosmwasm-vm = { version = "1.0.0" }
 cw-multi-test = "0.13.4"
 tg4-engagement = { path = "../tg4-engagement", version = "0.10.0", features = ["library"] }
 tg4-stake = { path = "../tg4-stake", version = "0.10.0", features = ["library"] }
@@ -50,4 +48,3 @@ tg4-stake = { path = "../tg4-stake", version = "0.10.0", features = ["library"] 
 [[bench]]
 name = "main"
 harness = false
-required-features = [ "benches" ]
