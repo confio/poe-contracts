@@ -2,7 +2,29 @@
 
 ## [Unreleased](https://github.com/confio/poe-contracts/tree/HEAD)
 
-[Full Changelog](https://github.com/confio/poe-contracts/compare/v0.10.0...HEAD)
+[Full Changelog](https://github.com/confio/poe-contracts/compare/v0.11.0...HEAD)
+
+## [v0.11.0](https://github.com/confio/poe-contracts/tree/v0.11.0) (2022-06-10)
+
+[Full Changelog](https://github.com/confio/poe-contracts/compare/v0.10.0...v0.11.0)
+
+**Breaking changes:**
+
+- Rename rewards to points in mixer [\#151](https://github.com/confio/poe-contracts/pull/151) ([maurolacy](https://github.com/maurolacy))
+- Remove denom from the `TotalPoints` query [\#150](https://github.com/confio/poe-contracts/pull/150) ([maurolacy](https://github.com/maurolacy))
+
+**Fixed bugs:**
+
+- \[tg4-stake\] TotalPoints query shouldn't return denom [\#147](https://github.com/confio/poe-contracts/issues/147)
+- valset: errors with "VerifyValidators" enabled on startup block 0 [\#146](https://github.com/confio/poe-contracts/issues/146)
+
+**Closed issues:**
+
+- Create documentation for `voting-contract` [\#59](https://github.com/confio/poe-contracts/issues/59)
+
+**Merged pull requests:**
+
+- Mixer mixing fn benches [\#152](https://github.com/confio/poe-contracts/pull/152) ([maurolacy](https://github.com/maurolacy))
 
 ## [v0.10.0](https://github.com/confio/poe-contracts/tree/v0.10.0) (2022-06-02)
 
