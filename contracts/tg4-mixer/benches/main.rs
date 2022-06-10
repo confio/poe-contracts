@@ -19,14 +19,14 @@ const DESERIALIZATION_LIMIT: usize = 20_000;
 const GAS_MULTIPLIER: u64 = 140_000_000;
 
 fn main() {
-    const MAX_REWARDS: u64 = 1000;
+    const MAX_POINTS: u64 = 1000;
 
     const STAKE: u64 = 100000;
     const ENGAGEMENT: u64 = 5000;
 
     let mut deps = mock_instance(WASM, &[]);
 
-    let max_rewards = Uint64::new(MAX_REWARDS);
+    let max_points = Uint64::new(MAX_POINTS);
     let a = Decimal::from_ratio(37u128, 10u128);
     let p = Decimal::from_ratio(68u128, 100u128);
     let s = Decimal::from_ratio(3u128, 100000u128);
@@ -37,14 +37,14 @@ fn main() {
         ("GeometricMean", GeometricMean {}, 22360, 5893350000),
         (
             "Sigmoid",
-            Sigmoid { max_rewards, p, s },
-            MAX_REWARDS,
+            Sigmoid { max_points, p, s },
+            MAX_POINTS,
             91848300000,
         ),
         (
             "SigmoidSqrt",
             SigmoidSqrt {
-                max_rewards,
+                max_points,
                 s: s_sqrt,
             },
             997,
@@ -53,7 +53,7 @@ fn main() {
         (
             "AlgebraicSigmoid",
             AlgebraicSigmoid {
-                max_rewards,
+                max_points,
                 a,
                 p,
                 s,

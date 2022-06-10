@@ -29,9 +29,9 @@ pub enum PoEFunctionType {
     /// GeometricMean returns the geometric mean of staked amount and engagement points
     GeometricMean {},
     /// Sigmoid returns a sigmoid-like value of staked amount times engagement points.
-    /// See the Proof-of-Engagement whitepaper for details
+    /// See the Proof-of-Engagement white-paper for details.
     Sigmoid {
-        max_rewards: Uint64,
+        max_points: Uint64,
         p: StdDecimal,
         s: StdDecimal,
     },
@@ -39,11 +39,11 @@ pub enum PoEFunctionType {
     /// engagement points.
     /// It is equal to `Sigmoid` with `p = 0.5`, but implemented using integer sqrt instead of
     /// fixed-point fractional power.
-    SigmoidSqrt { max_rewards: Uint64, s: StdDecimal },
+    SigmoidSqrt { max_points: Uint64, s: StdDecimal },
     /// `AlgebraicSigmoid` returns a sigmoid-like value of staked amount times engagement points.
     /// It is similar to `Sigmoid`, but uses integer sqrt instead of a fixed-point exponential.
     AlgebraicSigmoid {
-        max_rewards: Uint64,
+        max_points: Uint64,
         a: StdDecimal,
         p: StdDecimal,
         s: StdDecimal,
@@ -54,18 +54,18 @@ impl PoEFunctionType {
     pub fn to_poe_fn(&self) -> Result<Box<dyn PoEFunction>, ContractError> {
         match self.clone() {
             PoEFunctionType::GeometricMean {} => Ok(Box::new(GeometricMean::new())),
-            PoEFunctionType::Sigmoid { max_rewards, p, s } => {
-                Ok(Box::new(Sigmoid::new(max_rewards, p, s)?))
+            PoEFunctionType::Sigmoid { max_points, p, s } => {
+                Ok(Box::new(Sigmoid::new(max_points, p, s)?))
             }
-            PoEFunctionType::SigmoidSqrt { max_rewards, s } => {
-                Ok(Box::new(SigmoidSqrt::new(max_rewards, s)?))
+            PoEFunctionType::SigmoidSqrt { max_points, s } => {
+                Ok(Box::new(SigmoidSqrt::new(max_points, s)?))
             }
             PoEFunctionType::AlgebraicSigmoid {
-                max_rewards,
+                max_points,
                 a,
                 p,
                 s,
-            } => Ok(Box::new(AlgebraicSigmoid::new(max_rewards, a, p, s)?)),
+            } => Ok(Box::new(AlgebraicSigmoid::new(max_points, a, p, s)?)),
         }
     }
 }
