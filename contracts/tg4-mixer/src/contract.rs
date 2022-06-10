@@ -391,9 +391,9 @@ pub fn query(deps: Deps<TgradeQuery>, _env: Env, msg: QueryMsg) -> StdResult<Bin
             engagement,
             poe_function,
         } => {
-            let reward = query_mixer_function(deps, stake.u64(), engagement.u64(), poe_function)
+            let points = query_mixer_function(deps, stake.u64(), engagement.u64(), poe_function)
                 .map_err(|err| StdError::generic_err(err.to_string()))?;
-            to_binary(&MixerFunctionResponse { points: reward })
+            to_binary(&MixerFunctionResponse { points })
         }
         IsSlasher { addr } => {
             let addr = deps.api.addr_validate(&addr)?;

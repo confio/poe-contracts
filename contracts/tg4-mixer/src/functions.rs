@@ -11,9 +11,9 @@ pub fn std_to_decimal(std_decimal: StdDecimal) -> Decimal {
     Decimal::from_i128_with_scale(std_decimal.numerator().u128() as i128, 18) // FIXME: StdDecimal::DECIMAL_PLACES is private
 }
 
-/// This defines the functions we can use for proof of engagement rewards.
+/// This defines the functions we can use for proof of engagement points.
 pub trait PoEFunction {
-    /// Returns the rewards based on the amount of stake and engagement points.
+    /// Returns the points based on the amount of stake and engagement points.
     /// `f(x)` from the README.
     fn mix(&self, stake: u64, engagement: u64) -> Result<u64, ContractError>;
 }
@@ -36,10 +36,10 @@ impl PoEFunction for GeometricMean {
 }
 
 /// Sigmoid function. `f(x) = 1 / (1 + e^-x)`.
-/// Fitting the sigmoid-like function from the PoE whitepaper:
+/// Fitting the sigmoid-like function from the PoE white-paper:
 /// `f(x) = r_max * (2 / (1 + e ^(-s * x^p) - 1)`
 pub struct Sigmoid {
-    pub max_rewards: Decimal,
+    pub max_points: Decimal,
     pub p: Decimal,
     pub s: Decimal,
     zero: Decimal,
@@ -48,10 +48,10 @@ pub struct Sigmoid {
 }
 
 impl Sigmoid {
-    pub fn new(max_rewards: Uint64, p: StdDecimal, s: StdDecimal) -> Result<Self, ContractError> {
-        Self::validate(&max_rewards, &p, &s)?;
+    pub fn new(max_points: Uint64, p: StdDecimal, s: StdDecimal) -> Result<Self, ContractError> {
+        Self::validate(&max_points, &p, &s)?;
         Ok(Self {
-            max_rewards: Decimal::new(max_rewards.u64() as i64, 0),
+            max_points: Decimal::new(max_points.u64() as i64, 0),
             p: std_to_decimal(p),
             s: std_to_decimal(s),
             zero: dec!(0),
@@ -60,12 +60,12 @@ impl Sigmoid {
         })
     }
 
-    fn validate(max_rewards: &Uint64, p: &StdDecimal, s: &StdDecimal) -> Result<(), ContractError> {
-        // validate `max_rewards`
-        if max_rewards.u64() > i64::MAX as u64 {
+    fn validate(max_points: &Uint64, p: &StdDecimal, s: &StdDecimal) -> Result<(), ContractError> {
+        // validate `max_points`
+        if max_points.u64() > i64::MAX as u64 {
             return Err(ContractError::ParameterRange(
-                "max_rewards",
-                max_rewards.to_string(),
+                "max_points",
+                max_points.to_string(),
             ));
         }
 
@@ -93,13 +93,13 @@ impl PoEFunction for Sigmoid {
             return Err(ContractError::PointsOverflow {});
         }
 
-        // This is the implementation of the PoE whitepaper, Appendix A,
+        // This is the implementation of the PoE white-paper, Appendix A,
         // "root of engagement" sigmoid-like function, using fixed point math.
         // `reward = r_max * (2 / (1 + e^(-s * (stake * engagement)^p) ) - 1)`
         // We distribute the power over the factors here, just to extend the range of the function.
         // Given that `s` is always positive, we also replace the underflowed exponential case
         // with zero (also to extend the range).
-        let reward = self.max_rewards
+        let points = self.max_points
             * (self.two
                 / (self.one
                     + (-self.s
@@ -116,7 +116,7 @@ impl PoEFunction for Sigmoid {
                     .unwrap_or(self.zero))
                 - self.one);
 
-        reward.to_u64().ok_or(ContractError::MixerOverflow {})
+        points.to_u64().ok_or(ContractError::MixerOverflow {})
     }
 }
 
@@ -124,7 +124,7 @@ impl PoEFunction for Sigmoid {
 /// Fitting the sigmoid-like to a 1/2 (sqrt) exponent.
 /// `f(x) = r_max * (2 / (1 + e ^(-s * sqrt(x)) - 1)`
 pub struct SigmoidSqrt {
-    pub max_rewards: Decimal,
+    pub max_points: Decimal,
     pub s: Decimal,
     geometric: GeometricMean,
     zero: Decimal,
@@ -133,10 +133,10 @@ pub struct SigmoidSqrt {
 }
 
 impl SigmoidSqrt {
-    pub fn new(max_rewards: Uint64, s: StdDecimal) -> Result<Self, ContractError> {
-        Self::validate(&max_rewards, &s)?;
+    pub fn new(max_points: Uint64, s: StdDecimal) -> Result<Self, ContractError> {
+        Self::validate(&max_points, &s)?;
         Ok(Self {
-            max_rewards: Decimal::new(max_rewards.u64() as i64, 0),
+            max_points: Decimal::new(max_points.u64() as i64, 0),
             s: std_to_decimal(s),
             geometric: GeometricMean::new(),
             zero: dec!(0),
@@ -145,12 +145,12 @@ impl SigmoidSqrt {
         })
     }
 
-    fn validate(max_rewards: &Uint64, s: &StdDecimal) -> Result<(), ContractError> {
-        // validate `max_rewards`
-        if max_rewards.u64() > i64::MAX as u64 {
+    fn validate(max_points: &Uint64, s: &StdDecimal) -> Result<(), ContractError> {
+        // validate `max_points`
+        if max_points.u64() > i64::MAX as u64 {
             return Err(ContractError::ParameterRange(
-                "max_rewards",
-                max_rewards.to_string(),
+                "max_points",
+                max_points.to_string(),
             ));
         }
 
@@ -173,7 +173,7 @@ impl PoEFunction for SigmoidSqrt {
 
         // Given that `s` is always positive, we replace the underflowed exponential case
         // with zero (also to extend the range).
-        let reward = self.max_rewards
+        let points = self.max_points
             * (self.two
                 / (self.one
                     + (-self.s * geometric_mean)
@@ -181,7 +181,7 @@ impl PoEFunction for SigmoidSqrt {
                         .unwrap_or(self.zero))
                 - self.one);
 
-        reward.to_u64().ok_or(ContractError::MixerOverflow {})
+        points.to_u64().ok_or(ContractError::MixerOverflow {})
     }
 }
 
@@ -191,7 +191,7 @@ impl PoEFunction for SigmoidSqrt {
 /// `a` is an adjustment / fitting parameter (`1 <= a < 5`), to better match the
 /// two curves differing slopes.
 pub struct AlgebraicSigmoid {
-    pub max_rewards: Decimal,
+    pub max_points: Decimal,
     pub a: Decimal,
     pub p: Decimal,
     pub s: Decimal,
@@ -199,14 +199,14 @@ pub struct AlgebraicSigmoid {
 
 impl AlgebraicSigmoid {
     pub fn new(
-        max_rewards: Uint64,
+        max_points: Uint64,
         a: StdDecimal,
         p: StdDecimal,
         s: StdDecimal,
     ) -> Result<Self, ContractError> {
-        Self::validate(&max_rewards, &a, &p, &s)?;
+        Self::validate(&max_points, &a, &p, &s)?;
         Ok(Self {
-            max_rewards: Decimal::new(max_rewards.u64() as i64, 0),
+            max_points: Decimal::new(max_points.u64() as i64, 0),
             a: std_to_decimal(a),
             p: std_to_decimal(p),
             s: std_to_decimal(s),
@@ -214,16 +214,16 @@ impl AlgebraicSigmoid {
     }
 
     fn validate(
-        max_rewards: &Uint64,
+        max_points: &Uint64,
         a: &StdDecimal,
         p: &StdDecimal,
         s: &StdDecimal,
     ) -> Result<(), ContractError> {
-        // validate `max_rewards`
-        if max_rewards.u64() > i64::MAX as u64 {
+        // validate `max_points`
+        if max_points.u64() > i64::MAX as u64 {
             return Err(ContractError::ParameterRange(
-                "max_rewards",
-                max_rewards.to_string(),
+                "max_points",
+                max_points.to_string(),
             ));
         }
 
@@ -256,7 +256,7 @@ impl PoEFunction for AlgebraicSigmoid {
             return Err(ContractError::PointsOverflow {});
         }
 
-        // x = s * (reward * engagement)^p
+        // x = s * (stake * engagement)^p
         // We distribute the power over the factors here, just to extend the range of the function.
         let x = self.s
             * left
@@ -269,8 +269,8 @@ impl PoEFunction for AlgebraicSigmoid {
                 )
                 .ok_or(ContractError::ComputationOverflow("mul"))?;
 
-        // reward = r_max * x / sqrt(a + x^2)
-        let points = self.max_rewards * x
+        // `reward = r_max * x / sqrt(a + x^2)`
+        let points = self.max_points * x
             / (self.a
                 + x.checked_powu(2)
                     .ok_or(ContractError::ComputationOverflow("powu"))?)
