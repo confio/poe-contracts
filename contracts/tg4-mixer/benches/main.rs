@@ -4,8 +4,8 @@
 //!
 use cosmwasm_std::{Decimal, Uint64};
 use cosmwasm_vm::testing::{
-    mock_env, mock_instance_with_options, query, MockApi, MockInstanceOptions,
-    MockQuerier, MockStorage,
+    mock_env, mock_instance_with_options, query, MockApi, MockInstanceOptions, MockQuerier,
+    MockStorage,
 };
 use cosmwasm_vm::{features_from_csv, from_slice, Instance};
 
@@ -48,12 +48,12 @@ fn main() {
 
     println!();
     for (poe_fn_name, poe_fn, result, gas) in [
-        ("GeometricMean", GeometricMean {}, 22360, 5893350000),
+        ("GeometricMean", GeometricMean {}, 22360, 5900100000),
         (
             "Sigmoid",
             Sigmoid { max_points, p, s },
             MAX_POINTS,
-            91848300000,
+            89959950000,
         ),
         (
             "SigmoidSqrt",
@@ -62,7 +62,7 @@ fn main() {
                 s: s_sqrt,
             },
             997,
-            21120000000,
+            20597550000,
         ),
         (
             "AlgebraicSigmoid",
@@ -73,7 +73,7 @@ fn main() {
                 s,
             },
             996,
-            86607900000,
+            85284750000,
         ),
     ] {
         let benchmark_msg = QueryMsg::MixerFunction {
