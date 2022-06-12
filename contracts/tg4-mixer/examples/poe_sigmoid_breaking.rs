@@ -1,7 +1,7 @@
 //! This example tries to run and call the generated wasm.
 //! It depends on a Wasm build being available, which you can create with `cargo wasm`.
 //! Then running `cargo example` will validate we can properly call into that generated Wasm.
-//!
+
 use cosmwasm_std::{Decimal, Uint64};
 use cosmwasm_vm::testing::{
     mock_env, mock_instance_with_options, query, MockApi, MockInstanceOptions, MockQuerier,
@@ -101,7 +101,6 @@ fn main() {
                     "Sigmoid(p={}, s={})(stake={}, engagement={}) broke.",
                     p, s, stake, ENGAGEMENT
                 );
-                // println!("Error: {:#?}", res);
                 break;
             }
         }
