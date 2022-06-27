@@ -189,6 +189,13 @@ pub fn execute_execute<Q: CustomQuery>(
             })
         }
         Text {} => execute_text(deps, proposal_id, proposal)?,
+        ChangeParams(params) => {
+            res = res.add_message(TgradeMsg::ExecuteGovProposal {
+                title: proposal.title,
+                description: proposal.description,
+                proposal: GovProposal::ChangeParams(params),
+            })
+        }
     };
 
     Ok(res
