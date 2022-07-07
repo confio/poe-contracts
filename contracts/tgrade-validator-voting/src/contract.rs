@@ -189,6 +189,13 @@ pub fn execute_execute<Q: CustomQuery>(
             })
         }
         Text {} => execute_text(deps, proposal_id, proposal)?,
+        ChangeParams(params) => {
+            res = res.add_message(TgradeMsg::ExecuteGovProposal {
+                title: proposal.title,
+                description: proposal.description,
+                proposal: GovProposal::ChangeParams(params),
+            })
+        }
     };
 
     Ok(res
@@ -304,6 +311,7 @@ mod tests {
 
     use super::*;
     use tg3::Status;
+    use tg_bindings::ParamChange;
     use tg_bindings_test::mock_deps_tgrade;
 
     #[derive(serde::Serialize)]
@@ -505,8 +513,8 @@ mod tests {
                 &mut deps.storage,
                 1,
                 &Proposal {
-                    title: "UnpinCodes".to_owned(),
-                    description: "UnpinCodes testing proposal".to_owned(),
+                    title: "UpdateConsensusBlockParams".to_owned(),
+                    description: "BlockParams testing proposal".to_owned(),
                     created_by: "mock_person".to_owned(),
                     start_height: env.block.height,
                     expires: Expiration::at_timestamp(env.block.time.plus_seconds(66666)),
@@ -544,6 +552,60 @@ mod tests {
                     evidence: None,
                 }
             )))]
+        );
+    }
+
+    #[test]
+    fn change_params() {
+        let mut deps = mock_deps_tgrade();
+        let env = mock_env();
+        proposals()
+            .save(
+                &mut deps.storage,
+                1,
+                &Proposal {
+                    title: "ChangeParams".to_owned(),
+                    description: "Change params testing proposal".to_owned(),
+                    created_by: "mock_person".to_owned(),
+                    start_height: env.block.height,
+                    expires: Expiration::at_timestamp(env.block.time.plus_seconds(66666)),
+                    proposal: ValidatorProposal::ChangeParams(vec![ParamChange {
+                        subspace: "foo".to_string(),
+                        key: "bar".to_string(),
+                        value: "baz".to_string(),
+                    }]),
+                    status: Status::Passed,
+                    rules: VotingRules {
+                        voting_period: 1,
+                        quorum: Decimal::percent(50),
+                        threshold: Decimal::percent(40),
+                        allow_end_early: true,
+                    },
+                    total_points: 20,
+                    votes: Votes {
+                        yes: 20,
+                        no: 0,
+                        abstain: 0,
+                        veto: 0,
+                    },
+                },
+            )
+            .unwrap();
+
+        let res = execute_execute(deps.as_mut(), env, mock_info("sender", &[]), 1).unwrap();
+        assert_eq!(
+            res.messages,
+            vec![SubMsg::new(CosmosMsg::Custom(
+                TgradeMsg::ExecuteGovProposal {
+                    title: "ChangeParams".to_string(),
+                    description: "Change params testing proposal".to_string(),
+                    proposal: GovProposal::ChangeParams(vec![ParamChange {
+                        subspace: "foo".to_string(),
+                        key: "bar".to_string(),
+                        value: "baz".to_string()
+                    }])
+                }
+            ))]
         );
     }
 

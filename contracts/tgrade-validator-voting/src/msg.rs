@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use cosmwasm_std::Binary;
 use tg3::Vote;
+use tg_bindings::ParamChange;
 
 use tg_voting_contract::state::VotingRules;
 
@@ -81,6 +82,8 @@ pub enum ValidatorProposal {
     },
     /// An open text proposal with no actual logic executed when it passes
     Text {},
+    /// Defines a proposal to change one or more parameters.
+    ChangeParams(Vec<ParamChange>),
 }
 
 // We can also add this as a tg3 extension
