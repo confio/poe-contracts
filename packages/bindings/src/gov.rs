@@ -89,7 +89,7 @@ pub enum GovProposal {
 }
 
 /// ParamChange defines an individual parameter change, for use in ParameterChangeProposal.
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, PartialOrd, Ord, JsonSchema, Debug)]
 pub struct ParamChange {
     pub subspace: String,
     pub key: String,

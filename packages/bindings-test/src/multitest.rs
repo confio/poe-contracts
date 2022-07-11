@@ -38,6 +38,7 @@ const PRIVILEGES: Map<&Addr, Privileges> = Map::new("privileges");
 const VOTES: Item<ValidatorVoteResponse> = Item::new("votes");
 const PINNED: Item<Vec<u64>> = Item::new("pinned");
 const PLANNED_UPGRADE: Item<UpgradePlan> = Item::new("planned_upgrade");
+const PARAMS: Map<(String, String), String> = Map::new("params");
 
 const ADMIN_PRIVILEGES: &[Privilege] = &[
     Privilege::GovProposalExecutor,
@@ -243,6 +244,26 @@ impl Module for TgradeModule {
                     // these cannot be implemented, should fail
                     GovProposal::MigrateContract { .. } => {
                         bail!("GovProposal::MigrateContract not implemented")
+                    }
+                    GovProposal::ChangeParams(params) => {
+                        let mut sorted_params = params.clone();
+                        sorted_params.sort_unstable();
+                        sorted_params.dedup_by(|a, b| a.subspace == b.subspace && a.key == b.key);
+                        if sorted_params.len() < params.len() {
+                            return Err(anyhow::anyhow!(
+                                "duplicate subspace + keys in params vector"
+                            ));
+                        }
+                        for p in params {
+                            if p.subspace.is_empty() {
+                                return Err(anyhow::anyhow!("empty subspace key"));
+                            }
+                            if p.key.is_empty() {
+                                return Err(anyhow::anyhow!("empty key key"));
+                            }
+                            PARAMS.save(storage, (p.subspace, p.key), &p.value)?;
+                        }
+                        Ok(AppResponse::default())
                     }
                     // most are ignored
                     _ => Ok(AppResponse::default()),
