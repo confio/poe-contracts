@@ -105,3 +105,28 @@ fn cancel_upgrade() {
     // We canceled the upgrade, so there should be no upgrade planned on the chain.
     assert_eq!(suite.check_upgrade().unwrap(), None);
 }
+
+#[test]
+fn change_params() {
+    let rules = RulesBuilder::new()
+        .with_threshold(Decimal::percent(50))
+        .build();
+
+    let mut suite = SuiteBuilder::new()
+        .with_group_member("member", 1)
+        .with_voting_rules(rules)
+        .build();
+
+    // We haven't executed a params change, so nothing yet
+    assert_eq!(suite.check_params().unwrap(), None);
+
+    let proposal = suite.propose_change_params("member").unwrap();
+    let proposal_id = get_proposal_id(&proposal).unwrap();
+    suite.execute("member", proposal_id).unwrap();
+
+    // There should now be a param change in the map
+    assert_eq!(
+        suite.check_params().unwrap(),
+        Some(vec![("foo/bar".to_string(), "baz".to_string())])
+    );
+}
