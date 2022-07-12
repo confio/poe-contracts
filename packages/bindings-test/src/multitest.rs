@@ -11,6 +11,7 @@ use cosmwasm_std::testing::{MockApi, MockQuerier, MockStorage};
 use cosmwasm_std::OwnedDeps;
 use std::marker::PhantomData;
 
+use cosmwasm_std::Order::Ascending;
 use cosmwasm_std::{
     from_slice, to_binary, Addr, Api, Binary, BlockInfo, Coin, CustomQuery, Empty, Order, Querier,
     QuerierResult, StdError, StdResult, Storage, Timestamp,
@@ -38,7 +39,7 @@ const PRIVILEGES: Map<&Addr, Privileges> = Map::new("privileges");
 const VOTES: Item<ValidatorVoteResponse> = Item::new("votes");
 const PINNED: Item<Vec<u64>> = Item::new("pinned");
 const PLANNED_UPGRADE: Item<UpgradePlan> = Item::new("planned_upgrade");
-const PARAMS: Map<(String, String), String> = Map::new("params");
+const PARAMS: Map<String, String> = Map::new("params");
 
 const ADMIN_PRIVILEGES: &[Privilege] = &[
     Privilege::GovProposalExecutor,
@@ -81,6 +82,10 @@ impl TgradeModule {
 
     pub fn upgrade_is_planned(&self, storage: &dyn Storage) -> StdResult<Option<UpgradePlan>> {
         PLANNED_UPGRADE.may_load(storage)
+    }
+
+    pub fn get_params(&self, storage: &dyn Storage) -> StdResult<Vec<(String, String)>> {
+        PARAMS.range(storage, None, None, Ascending).collect()
     }
 
     fn require_privilege(
@@ -261,7 +266,7 @@ impl Module for TgradeModule {
                             if p.key.is_empty() {
                                 return Err(anyhow::anyhow!("empty key key"));
                             }
-                            PARAMS.save(storage, (p.subspace, p.key), &p.value)?;
+                            PARAMS.save(storage, format!("{}/{}", p.subspace, p.key), &p.value)?;
                         }
                         Ok(AppResponse::default())
                     }
