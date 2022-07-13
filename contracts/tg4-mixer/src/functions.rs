@@ -8,7 +8,7 @@ use cosmwasm_std::{Decimal as StdDecimal, Fraction, Uint64};
 use crate::error::ContractError;
 
 pub fn std_to_decimal(std_decimal: StdDecimal) -> Decimal {
-    Decimal::from_i128_with_scale(std_decimal.numerator().u128() as i128, 18) // FIXME: StdDecimal::DECIMAL_PLACES is private
+    Decimal::from_i128_with_scale(std_decimal.numerator().u128() as i128, 18) // FIXME: StdDecimal::DECIMAL_PLACES is private (https://github.com/CosmWasm/cosmwasm/issues/1361)
 }
 
 /// This defines the functions we can use for proof of engagement points.
