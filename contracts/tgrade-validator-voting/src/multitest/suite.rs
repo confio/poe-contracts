@@ -4,7 +4,7 @@ use cosmwasm_std::{to_binary, Addr, ContractInfoResponse, Decimal};
 use cw_multi_test::{AppResponse, Contract, ContractWrapper, Executor};
 use tg3::Status;
 use tg4::{Member, Tg4ExecuteMsg};
-use tg_bindings::{TgradeMsg, TgradeQuery};
+use tg_bindings::{ParamChange, TgradeMsg, TgradeQuery};
 use tg_bindings_test::{TgradeApp, UpgradePlan};
 
 use crate::msg::ValidatorProposal;
@@ -247,6 +247,19 @@ impl Suite {
         )
     }
 
+    pub fn propose_change_params(&mut self, executor: &str) -> AnyResult<AppResponse> {
+        self.propose(
+            executor,
+            "proposal title",
+            "proposal description",
+            ValidatorProposal::ChangeParams(vec![ParamChange {
+                subspace: "foo".to_string(),
+                key: "bar".to_string(),
+                value: "baz".to_string(),
+            }]),
+        )
+    }
+
     pub fn check_pinned(&self, code_id: u64) -> AnyResult<bool> {
         Ok(self
             .app
@@ -257,6 +270,16 @@ impl Suite {
         Ok(self
             .app
             .read_module(|router, _, storage| router.custom.upgrade_is_planned(storage))?)
+    }
+
+    pub fn check_params(&self) -> AnyResult<Option<Vec<(String, String)>>> {
+        let params = self
+            .app
+            .read_module(|router, _, storage| router.custom.get_params(storage))?;
+        Ok(match params.len() {
+            0 => None,
+            _ => Some(params),
+        })
     }
 
     pub fn execute(&mut self, executor: &str, proposal_id: u64) -> AnyResult<AppResponse> {
