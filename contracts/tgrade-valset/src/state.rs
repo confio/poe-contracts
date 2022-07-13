@@ -19,7 +19,6 @@ pub struct Config {
     pub membership: Tg4Contract,
     /// minimum points needed by an address in `membership` to be considered for the validator set.
     /// 0-point members are always filtered out.
-    /// TODO: if we allow sub-1 scaling factors, determine if this is pre-/post- scaling
     /// (use points for tg4, power for tendermint)
     pub min_points: u64,
     /// The maximum number of validators that can be included in the Tendermint validator set.
@@ -28,7 +27,6 @@ pub struct Config {
     /// lexicographically sorted).
     pub max_validators: u32,
     /// A scaling factor to multiply tg4-engagement points to produce the tendermint validator power
-    /// (TODO: should we allow this to reduce points? Like 1/1000?)
     pub scaling: Option<u32>,
     /// Total reward paid out each epoch. This will be split among all validators during the last
     /// epoch.
