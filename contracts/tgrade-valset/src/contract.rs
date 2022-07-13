@@ -639,7 +639,6 @@ fn privilege_change<Q: CustomQuery>(_deps: DepsMut<Q>, change: PrivilegeChangeMs
             Response::new().add_submessages(msgs)
         }
         PrivilegeChangeMsg::Demoted {} => {
-            // TODO: signal this is frozen?
             Response::new()
         }
     }
