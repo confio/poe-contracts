@@ -353,7 +353,6 @@ impl ValidatorMetadata {
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 pub struct OperatorInitInfo {
     pub operator: String,
-    /// TODO: better name to specify this is the Tendermint pubkey for consensus?
     pub validator_pubkey: Pubkey,
     pub metadata: ValidatorMetadata,
 }

@@ -91,7 +91,6 @@ pub struct EpochInfo {
 /// additions and updates.
 #[derive(Serialize, Deserialize, Clone, PartialEq, Eq, PartialOrd, Ord, JsonSchema, Debug)]
 pub struct ValidatorInfo {
-    /// TODO: better name to specify this is the Tendermint pubkey for consensus?
     pub validator_pubkey: Pubkey,
     pub operator: Addr,
     /// The voting power in Tendermint sdk
