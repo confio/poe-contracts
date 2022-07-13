@@ -638,9 +638,7 @@ fn privilege_change<Q: CustomQuery>(_deps: DepsMut<Q>, change: PrivilegeChangeMs
             ]);
             Response::new().add_submessages(msgs)
         }
-        PrivilegeChangeMsg::Demoted {} => {
-            Response::new()
-        }
+        PrivilegeChangeMsg::Demoted {} => Response::new(),
     }
 }
 
