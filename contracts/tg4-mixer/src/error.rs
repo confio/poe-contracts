@@ -19,10 +19,6 @@ pub enum ContractError {
     #[error("Unauthorized: {0}")]
     Unauthorized(String),
 
-    /// TODO: Remove this when we are ready to ensure we finished implementing everything
-    #[error("Unimplemented")]
-    Unimplemented {},
-
     #[error("Contract {0} doesn't fulfill the tg4 interface")]
     NotTg4(String),
 
