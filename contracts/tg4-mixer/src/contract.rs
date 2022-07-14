@@ -66,7 +66,6 @@ pub fn instantiate(
     })?;
 
     // add hooks to listen for all changes
-    // TODO: what events to return here?
     let res = Response::new()
         .add_submessage(groups.left.add_hook(&env.contract.address)?)
         .add_submessage(groups.right.add_hook(&env.contract.address)?)

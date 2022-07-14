@@ -20,7 +20,6 @@ pub struct InstantiateMsg {
     pub membership: String,
     /// Minimum points needed by an address in `membership` to be considered for the validator set.
     /// 0-point members are always filtered out.
-    /// TODO: if we allow sub-1 scaling factors, determine if this is pre-/post- scaling
     /// (use points for cw4, power for Tendermint)
     pub min_points: u64,
     /// The maximum number of validators that can be included in the Tendermint validator set.
@@ -45,7 +44,6 @@ pub struct InstantiateMsg {
     pub initial_keys: Vec<OperatorInitInfo>,
 
     /// A scaling factor to multiply cw4-group points to produce the Tendermint validator power
-    /// (TODO: should we allow this to reduce points? Like 1/1000?)
     pub scaling: Option<u32>,
 
     /// Percentage of total accumulated fees that is subtracted from tokens minted as rewards.
@@ -355,7 +353,6 @@ impl ValidatorMetadata {
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 pub struct OperatorInitInfo {
     pub operator: String,
-    /// TODO: better name to specify this is the Tendermint pubkey for consensus?
     pub validator_pubkey: Pubkey,
     pub metadata: ValidatorMetadata,
 }

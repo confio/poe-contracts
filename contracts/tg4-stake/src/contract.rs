@@ -475,7 +475,7 @@ pub fn execute_claim<Q: CustomQuery>(
     Ok(res)
 }
 
-// TODO: put in cosmwasm-std
+// TODO: put in cosmwasm-std (https://github.com/CosmWasm/cosmwasm/issues/1359)
 fn coins_to_string(coins: &[Coin]) -> String {
     let strings: Vec<_> = coins
         .iter()
