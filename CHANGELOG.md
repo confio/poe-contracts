@@ -2,7 +2,21 @@
 
 ## [Unreleased](https://github.com/confio/poe-contracts/tree/HEAD)
 
-[Full Changelog](https://github.com/confio/poe-contracts/compare/v0.11.0...HEAD)
+[Full Changelog](https://github.com/confio/poe-contracts/compare/v0.12.0...HEAD)
+
+## [v0.12.0](https://github.com/confio/poe-contracts/tree/v0.12.0) (2022-07-14)
+
+[Full Changelog](https://github.com/confio/poe-contracts/compare/v0.11.0...v0.12.0)
+
+**Closed issues:**
+
+- Review TODOs / FIXMEs [\#138](https://github.com/confio/poe-contracts/issues/138)
+
+**Merged pull requests:**
+
+- TODO / FIXME review [\#160](https://github.com/confio/poe-contracts/pull/160) ([maurolacy](https://github.com/maurolacy))
+- Tgrade gov change params 2 [\#159](https://github.com/confio/poe-contracts/pull/159) ([maurolacy](https://github.com/maurolacy))
+- Implement the ChangeParams proposal [\#157](https://github.com/confio/poe-contracts/pull/157) ([maurolacy](https://github.com/maurolacy))
 
 ## [v0.11.0](https://github.com/confio/poe-contracts/tree/v0.11.0) (2022-06-10)
 
