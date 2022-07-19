@@ -26,7 +26,7 @@ pub type Response = cosmwasm_std::Response<TgradeMsg>;
 pub type SubMsg = cosmwasm_std::SubMsg<TgradeMsg>;
 
 // version info for migration info
-const CONTRACT_NAME: &str = "crates.io:tgrade_validator_voting_proposals";
+const CONTRACT_NAME: &str = "crates.io:tgrade_validator_voting";
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[cfg_attr(not(feature = "library"), entry_point)]
