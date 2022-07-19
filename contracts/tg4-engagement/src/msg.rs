@@ -49,7 +49,7 @@ pub enum ExecuteMsg {
     },
     /// Withdraws rewards which were previously distributed and assigned to sender.
     WithdrawRewards {
-        /// Account which rewards assigned too should be withdrawn, `sender` by default. `sender` has
+        /// Account from which assigned rewards would be withdrawn; `sender` by default. `sender` has
         /// to be eligible for withdrawal from `owner` address to perform this call (`owner` has to
         /// call `DelegateWithdrawal { delegated: sender }` before)
         owner: Option<String>,
