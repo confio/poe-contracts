@@ -1,8 +1,7 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    from_slice, to_binary, to_vec, Binary, ContractInfoResponse, ContractResult, CustomQuery, Deps,
-    DepsMut, Empty, Env, MessageInfo, QueryRequest, StdResult, SystemResult, WasmMsg, WasmQuery,
+    to_binary, Binary, CustomQuery, Deps, DepsMut, Empty, Env, MessageInfo, StdResult, WasmMsg,
 };
 
 use cw2::set_contract_version;
@@ -55,19 +54,7 @@ pub fn execute(
             description,
             proposal,
         } => {
-            // Migrate contract needs confirming that sender (proposing member) is an admin
-            // of target contract
-            if let ValidatorProposal::MigrateContract {
-                ref contract,
-                ref migrate_msg,
-                ..
-            } = proposal
-            {
-                confirm_admin_in_contract(deps.as_ref(), &env, contract.clone())?;
-                if migrate_msg.is_empty() {
-                    return Err(ContractError::MigrateMsgCannotBeEmptyString {});
-                }
-            };
+            proposal.validate(deps.as_ref(), &env, &title, &description)?;
             execute_propose(deps, env, info, title, description, proposal)
                 .map_err(ContractError::from)
         }
@@ -81,39 +68,6 @@ pub fn execute(
                 .map_err(ContractError::from)
         }
     }
-}
-
-fn confirm_admin_in_contract<Q: CustomQuery>(
-    deps: Deps<Q>,
-    env: &Env,
-    contract_addr: String,
-) -> Result<(), ContractError> {
-    use ContractError::*;
-
-    let contract_query = QueryRequest::<Empty>::Wasm(WasmQuery::ContractInfo { contract_addr });
-    let response = match deps.querier.raw_query(&to_vec(&contract_query)?) {
-        SystemResult::Err(system_err) => {
-            Err(System(format!("Querier system error: {}", system_err)))
-        }
-        SystemResult::Ok(ContractResult::Err(contract_err)) => Err(Contract(format!(
-            "Querier contract error: {}",
-            contract_err
-        ))),
-        SystemResult::Ok(ContractResult::Ok(value)) => Ok(value),
-    }?;
-
-    let response = from_slice::<Option<ContractInfoResponse>>(&response)?
-        .ok_or_else(|| Contract("Contract query provided no results!".to_owned()))?;
-
-    if let Some(admin) = response.admin {
-        if admin == env.contract.address {
-            return Ok(());
-        }
-    }
-
-    Err(Unauthorized(
-        "Validator Proposal contract is not an admin of contract proposed to migrate".to_owned(),
-    ))
 }
 
 pub fn execute_execute<Q: CustomQuery>(
@@ -303,6 +257,7 @@ pub fn migrate(deps: DepsMut, _env: Env, _msg: Empty) -> Result<Response, Contra
 #[cfg(test)]
 mod tests {
     use cosmwasm_std::{
+        from_slice,
         testing::{mock_env, mock_info},
         Addr, CosmosMsg, Decimal, SubMsg,
     };
