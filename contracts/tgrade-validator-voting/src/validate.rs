@@ -24,6 +24,9 @@ impl ValidatorProposal {
         }
         match self {
             ValidatorProposal::ChangeParams(params) => {
+                if params.is_empty() {
+                    return Err(ContractError::EmptyParams {});
+                }
                 for param in params.iter() {
                     if param.key.is_empty() {
                         return Err(ContractError::EmptyParamKey {});
@@ -38,22 +41,20 @@ impl ValidatorProposal {
                     return Err(ContractError::ZeroCodes {});
                 }
             }
-            ValidatorProposal::UpdateConsensusBlockParams { .. } => {}
-            ValidatorProposal::UpdateConsensusEvidenceParams { .. } => {}
             ValidatorProposal::MigrateContract {
                 contract,
                 code_id,
                 migrate_msg,
             } => {
-                // Migrate contract needs confirming that migration sender (validator voting contract) is an admin
-                // of target contract
-                confirm_admin_in_contract(deps, env, contract.clone())?;
                 if code_id == &0 {
                     return Err(ContractError::ZeroCodes {});
                 }
                 if migrate_msg.is_empty() {
                     return Err(ContractError::MigrateMsgCannotBeEmptyString {});
                 };
+                // Migrate contract needs confirming that migration sender (validator voting contract) is an admin
+                // of target contract
+                confirm_admin_in_contract(deps, env, contract.clone())?;
             }
             ValidatorProposal::RegisterUpgrade {
                 name,
@@ -67,8 +68,22 @@ impl ValidatorProposal {
                     return Err(ContractError::InvalidUpgradeHeight(*height));
                 }
             }
-            ValidatorProposal::CancelUpgrade {} => {}
-            ValidatorProposal::Text {} => {}
+            ValidatorProposal::UpdateConsensusBlockParams { max_bytes, max_gas } => {
+                if max_bytes.is_none() && max_gas.is_none() {
+                    return Err(ContractError::InvalidConsensusParams {});
+                }
+            }
+            ValidatorProposal::UpdateConsensusEvidenceParams {
+                max_age_num_blocks,
+                max_age_duration,
+                max_bytes,
+            } => {
+                if max_age_num_blocks.is_none() && max_age_duration.is_none() && max_bytes.is_none()
+                {
+                    return Err(ContractError::InvalidConsensusParams {});
+                }
+            }
+            ValidatorProposal::CancelUpgrade {} | ValidatorProposal::Text {} => {}
         }
         Ok(())
     }
@@ -110,10 +125,16 @@ fn confirm_admin_in_contract<Q: CustomQuery>(
 #[cfg(test)]
 mod tests {
     use cosmwasm_std::testing::mock_env;
+    use cosmwasm_std::{to_binary, Binary};
+    use tg_bindings::ParamChange;
 
+    use crate::ContractError;
     use tg_bindings_test::mock_deps_tgrade;
 
     use crate::msg::ValidatorProposal;
+
+    #[derive(serde::Serialize)]
+    struct DummyMigrateMsg {}
 
     #[test]
     fn validate_main_fields_works() {
@@ -124,13 +145,302 @@ mod tests {
 
         // Empty title
         let res = proposal.validate(deps.as_ref(), &env, "", "description");
-        assert!(res.is_err());
+        assert_eq!(res.unwrap_err(), ContractError::EmptyTitle {});
 
         // Empty description
         let res = proposal.validate(deps.as_ref(), &env, "title", "");
-        assert!(res.is_err());
+        assert_eq!(res.unwrap_err(), ContractError::EmptyDescription {});
 
         // Non empty title and description
+        let _res = proposal
+            .validate(deps.as_ref(), &env, "title", "description")
+            .unwrap();
+    }
+
+    #[test]
+    fn validate_change_params_works() {
+        let deps = mock_deps_tgrade();
+        let env = mock_env();
+
+        // Empty params
+        let proposal = ValidatorProposal::ChangeParams(vec![]);
+
+        let res = proposal.validate(deps.as_ref(), &env, "title", "description");
+        assert_eq!(res.unwrap_err(), ContractError::EmptyParams {});
+
+        // Empty param key
+        let proposal = ValidatorProposal::ChangeParams(vec![ParamChange {
+            subspace: "".to_string(),
+            key: "".to_string(),
+            value: "".to_string(),
+        }]);
+
+        let res = proposal.validate(deps.as_ref(), &env, "title", "description");
+        assert_eq!(res.unwrap_err(), ContractError::EmptyParamKey {});
+
+        // Non-empty param key
+        let proposal = ValidatorProposal::ChangeParams(vec![ParamChange {
+            subspace: "".to_string(),
+            key: "key".to_string(),
+            value: "".to_string(),
+        }]);
+
+        let _res = proposal
+            .validate(deps.as_ref(), &env, "title", "description")
+            .unwrap();
+    }
+
+    #[test]
+    fn validate_pin_codes_works() {
+        let deps = mock_deps_tgrade();
+        let env = mock_env();
+
+        // Empty codes
+        let proposal = ValidatorProposal::PinCodes(vec![]);
+
+        let res = proposal.validate(deps.as_ref(), &env, "title", "description");
+        assert_eq!(res.unwrap_err(), ContractError::EmptyCodes {});
+
+        // Zero codes
+        let proposal = ValidatorProposal::PinCodes(vec![9, 8, 0, 7]);
+
+        let res = proposal.validate(deps.as_ref(), &env, "title", "description");
+        assert_eq!(res.unwrap_err(), ContractError::ZeroCodes {});
+
+        // Non-zero codes
+        let proposal = ValidatorProposal::PinCodes(vec![9, 8, 1, 7]);
+
+        let _res = proposal
+            .validate(deps.as_ref(), &env, "title", "description")
+            .unwrap();
+    }
+
+    #[test]
+    fn validate_unpin_codes_works() {
+        let deps = mock_deps_tgrade();
+        let env = mock_env();
+
+        // Empty codes
+        let proposal = ValidatorProposal::UnpinCodes(vec![]);
+
+        let res = proposal.validate(deps.as_ref(), &env, "title", "description");
+        assert_eq!(res.unwrap_err(), ContractError::EmptyCodes {});
+
+        // Zero codes
+        let proposal = ValidatorProposal::UnpinCodes(vec![9, 8, 0, 7]);
+
+        let res = proposal.validate(deps.as_ref(), &env, "title", "description");
+        assert_eq!(res.unwrap_err(), ContractError::ZeroCodes {});
+
+        // Non-zero codes
+        let proposal = ValidatorProposal::UnpinCodes(vec![9, 8, 1, 7]);
+
+        let _res = proposal
+            .validate(deps.as_ref(), &env, "title", "description")
+            .unwrap();
+    }
+
+    #[test]
+    fn validate_migrate_contract_works() {
+        let deps = mock_deps_tgrade();
+        let env = mock_env();
+
+        // Zero code id
+        let proposal = ValidatorProposal::MigrateContract {
+            contract: "target_contract".to_owned(),
+            code_id: 0,
+            migrate_msg: to_binary(&DummyMigrateMsg {}).unwrap(),
+        };
+
+        let res = proposal.validate(deps.as_ref(), &env, "title", "description");
+        assert_eq!(res.unwrap_err(), ContractError::ZeroCodes {});
+
+        // Empty migrate msg
+        let proposal = ValidatorProposal::MigrateContract {
+            contract: "target_contract".to_owned(),
+            code_id: 1,
+            migrate_msg: Binary(vec![]),
+        };
+
+        let res = proposal.validate(deps.as_ref(), &env, "title", "description");
+        assert_eq!(
+            res.unwrap_err(),
+            ContractError::MigrateMsgCannotBeEmptyString {}
+        );
+
+        // Valid
+        let proposal = ValidatorProposal::MigrateContract {
+            contract: "target_contract".to_owned(),
+            code_id: 1,
+            migrate_msg: to_binary(&DummyMigrateMsg {}).unwrap(),
+        };
+        let res = proposal.validate(deps.as_ref(), &env, "title", "description");
+        // FIXME: Requires custom querier / multi-tests
+        assert_eq!(
+            res.unwrap_err(),
+            ContractError::System("Querier system error: No such contract: target_contract".into())
+        );
+    }
+
+    #[test]
+    fn validate_register_upgrade_works() {
+        let deps = mock_deps_tgrade();
+        let env = mock_env();
+
+        // Empty name
+        let proposal = ValidatorProposal::RegisterUpgrade {
+            name: "".to_string(),
+            height: 1234,
+            info: "info".to_string(),
+        };
+
+        let res = proposal.validate(deps.as_ref(), &env, "title", "description");
+        assert_eq!(res.unwrap_err(), ContractError::EmptyUpgradeName {});
+
+        // Invalid height
+        let proposal = ValidatorProposal::RegisterUpgrade {
+            name: "name".to_string(),
+            height: env.block.height - 1,
+            info: "info".to_string(),
+        };
+
+        let res = proposal.validate(deps.as_ref(), &env, "title", "description");
+        assert_eq!(
+            res.unwrap_err(),
+            ContractError::InvalidUpgradeHeight(env.block.height - 1)
+        );
+
+        // Valid
+        let proposal = ValidatorProposal::RegisterUpgrade {
+            name: "name".to_string(),
+            height: env.block.height + 1,
+            info: "info".to_string(),
+        };
+
+        let _res = proposal
+            .validate(deps.as_ref(), &env, "title", "description")
+            .unwrap();
+    }
+
+    #[test]
+    fn validate_cancel_upgrade_works() {
+        let deps = mock_deps_tgrade();
+        let env = mock_env();
+
+        // Valid
+        let proposal = ValidatorProposal::CancelUpgrade {};
+
+        let _res = proposal
+            .validate(deps.as_ref(), &env, "title", "description")
+            .unwrap();
+    }
+
+    #[test]
+    fn validate_update_consensus_block_params_works() {
+        let deps = mock_deps_tgrade();
+        let env = mock_env();
+
+        // Invalid: both none
+        let proposal = ValidatorProposal::UpdateConsensusBlockParams {
+            max_bytes: None,
+            max_gas: None,
+        };
+
+        let res = proposal.validate(deps.as_ref(), &env, "title", "description");
+        assert_eq!(res.unwrap_err(), ContractError::InvalidConsensusParams {});
+
+        // Valid: max_bytes set
+        let proposal = ValidatorProposal::UpdateConsensusBlockParams {
+            max_bytes: Some(1234),
+            max_gas: None,
+        };
+        let _res = proposal
+            .validate(deps.as_ref(), &env, "title", "description")
+            .unwrap();
+
+        // Valid: max_gas set
+        let proposal = ValidatorProposal::UpdateConsensusBlockParams {
+            max_bytes: None,
+            max_gas: Some(3290),
+        };
+        let _res = proposal
+            .validate(deps.as_ref(), &env, "title", "description")
+            .unwrap();
+
+        // Valid: both max_bytes and max_gas set
+        let proposal = ValidatorProposal::UpdateConsensusBlockParams {
+            max_bytes: Some(1),
+            max_gas: Some(2),
+        };
+        let _res = proposal
+            .validate(deps.as_ref(), &env, "title", "description")
+            .unwrap();
+    }
+
+    #[test]
+    fn validate_update_consensus_evidence_params_works() {
+        let deps = mock_deps_tgrade();
+        let env = mock_env();
+
+        // Invalid: all none
+        let proposal = ValidatorProposal::UpdateConsensusEvidenceParams {
+            max_age_num_blocks: None,
+            max_age_duration: None,
+            max_bytes: None,
+        };
+
+        let res = proposal.validate(deps.as_ref(), &env, "title", "description");
+        assert_eq!(res.unwrap_err(), ContractError::InvalidConsensusParams {});
+
+        // Valid: max_bytes set
+        let proposal = ValidatorProposal::UpdateConsensusEvidenceParams {
+            max_age_num_blocks: None,
+            max_age_duration: None,
+            max_bytes: Some(1234),
+        };
+        let _res = proposal
+            .validate(deps.as_ref(), &env, "title", "description")
+            .unwrap();
+
+        // Valid: max_age_duration set
+        let proposal = ValidatorProposal::UpdateConsensusEvidenceParams {
+            max_age_num_blocks: None,
+            max_age_duration: Some(0),
+            max_bytes: None,
+        };
+        let _res = proposal
+            .validate(deps.as_ref(), &env, "title", "description")
+            .unwrap();
+
+        // Valid: max_age_num_blocks set
+        let proposal = ValidatorProposal::UpdateConsensusEvidenceParams {
+            max_age_num_blocks: Some(1),
+            max_age_duration: None,
+            max_bytes: None,
+        };
+        let _res = proposal
+            .validate(deps.as_ref(), &env, "title", "description")
+            .unwrap();
+
+        // Valid: all set
+        let proposal = ValidatorProposal::UpdateConsensusEvidenceParams {
+            max_age_num_blocks: Some(1),
+            max_age_duration: Some(2),
+            max_bytes: Some(3),
+        };
+        let _res = proposal
+            .validate(deps.as_ref(), &env, "title", "description")
+            .unwrap();
+    }
+
+    #[test]
+    fn validate_text_works() {
+        let deps = mock_deps_tgrade();
+        let env = mock_env();
+
+        // Valid
+        let proposal = ValidatorProposal::Text {};
+
         let _res = proposal
             .validate(deps.as_ref(), &env, "title", "description")
             .unwrap();

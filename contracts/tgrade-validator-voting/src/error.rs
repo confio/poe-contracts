@@ -30,6 +30,9 @@ pub enum ContractError {
     #[error("Empty proposal description")]
     EmptyDescription {},
 
+    #[error("Empty parameters list")]
+    EmptyParams {},
+
     #[error("Empty parameter key")]
     EmptyParamKey {},
 
@@ -44,6 +47,9 @@ pub enum ContractError {
 
     #[error("Invalid upgrade height: {0}")]
     InvalidUpgradeHeight(u64),
+
+    #[error("Invalid consensus params: All cannot be none")]
+    InvalidConsensusParams {},
 }
 
 impl From<tg_voting_contract::ContractError> for ContractError {
