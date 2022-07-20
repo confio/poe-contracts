@@ -23,6 +23,33 @@ pub enum ContractError {
 
     #[error("Migrate message cannot be an empty string")]
     MigrateMsgCannotBeEmptyString {},
+
+    #[error("Empty proposal title")]
+    EmptyTitle {},
+
+    #[error("Empty proposal description")]
+    EmptyDescription {},
+
+    #[error("Empty parameters list")]
+    EmptyParams {},
+
+    #[error("Empty parameter key")]
+    EmptyParamKey {},
+
+    #[error("Empty codes list")]
+    EmptyCodes {},
+
+    #[error("One or more code ids are zero")]
+    ZeroCodes {},
+
+    #[error("Empty upgrade name")]
+    EmptyUpgradeName {},
+
+    #[error("Invalid upgrade height: {0}")]
+    InvalidUpgradeHeight(u64),
+
+    #[error("Invalid consensus params: All cannot be none")]
+    InvalidConsensusParams {},
 }
 
 impl From<tg_voting_contract::ContractError> for ContractError {
