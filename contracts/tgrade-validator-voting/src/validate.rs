@@ -124,9 +124,14 @@ fn confirm_admin_in_contract<Q: CustomQuery>(
 
 #[cfg(test)]
 mod tests {
-    use cosmwasm_std::testing::mock_env;
-    use cosmwasm_std::{to_binary, Binary};
-    use tg_bindings::ParamChange;
+    use cosmwasm_std::testing::{mock_env, MockApi, MockStorage, MOCK_CONTRACT_ADDR};
+    use cosmwasm_std::{
+        from_slice, to_binary, Addr, Binary, ContractInfoResponse, ContractResult, Empty,
+        OwnedDeps, Querier, QuerierResult, QueryRequest, Storage, SystemError, SystemResult,
+        WasmQuery,
+    };
+    use std::marker::PhantomData;
+    use tg_bindings::{ParamChange, TgradeQuery};
 
     use crate::ContractError;
     use tg_bindings_test::mock_deps_tgrade;
@@ -135,6 +140,103 @@ mod tests {
 
     #[derive(serde::Serialize)]
     struct DummyMigrateMsg {}
+
+    const MIGRATE_CONTRACT: &str = "target_contract";
+
+    // For `MigrateContract` validation
+    struct CustomMockQuerier {
+        contract: String,
+        contract_admin: Option<String>,
+        storage: MockStorage,
+    }
+
+    impl CustomMockQuerier {
+        pub fn new(contract: &Addr, admin: Option<Addr>) -> Self {
+            let storage = MockStorage::new();
+
+            CustomMockQuerier {
+                contract: contract.to_string(),
+                contract_admin: admin.map(|a| a.to_string()),
+                storage,
+            }
+        }
+
+        fn handle_query(&self, request: QueryRequest<Empty>) -> QuerierResult {
+            match request {
+                QueryRequest::Wasm(WasmQuery::Raw { contract_addr, key }) => {
+                    self.query_wasm(contract_addr, key)
+                }
+                QueryRequest::Wasm(WasmQuery::Smart { .. }) => {
+                    SystemResult::Err(SystemError::UnsupportedRequest {
+                        kind: "WasmQuery::Smart".to_string(),
+                    })
+                }
+                QueryRequest::Wasm(WasmQuery::ContractInfo { contract_addr }) => {
+                    self.query_contract_info(contract_addr)
+                }
+                _ => SystemResult::Err(SystemError::UnsupportedRequest {
+                    kind: "not wasm".to_string(),
+                }),
+            }
+        }
+
+        // TODO: we should be able to add a custom wasm handler to MockQuerier from cosmwasm_std::mock
+        fn query_wasm(&self, contract_addr: String, key: Binary) -> QuerierResult {
+            if contract_addr != self.contract {
+                SystemResult::Err(SystemError::NoSuchContract {
+                    addr: contract_addr,
+                })
+            } else {
+                let bin = self.storage.get(&key).unwrap_or_default();
+                SystemResult::Ok(ContractResult::Ok(bin.into()))
+            }
+        }
+
+        fn query_contract_info(&self, contract_addr: String) -> QuerierResult {
+            if contract_addr != self.contract {
+                SystemResult::Err(SystemError::NoSuchContract {
+                    addr: contract_addr,
+                })
+            } else {
+                let mut res = ContractInfoResponse::new(1, "dummy_creator");
+                res.admin = self.contract_admin.clone();
+                let bin = to_binary(&res).unwrap();
+                SystemResult::Ok(ContractResult::Ok(bin))
+            }
+        }
+    }
+
+    impl Querier for CustomMockQuerier {
+        fn raw_query(&self, bin_request: &[u8]) -> QuerierResult {
+            let request: QueryRequest<Empty> = match from_slice(bin_request) {
+                Ok(v) => v,
+                Err(e) => {
+                    return SystemResult::Err(SystemError::InvalidRequest {
+                        error: format!("Parsing query request: {:?}", e),
+                        request: bin_request.into(),
+                    })
+                }
+            };
+            self.handle_query(request)
+        }
+    }
+
+    fn custom_mock_deps_tgrade(
+        contract_addr: &str,
+        contract_admin: Option<&str>,
+    ) -> OwnedDeps<MockStorage, MockApi, CustomMockQuerier, TgradeQuery> {
+        let querier = CustomMockQuerier::new(
+            &Addr::unchecked(contract_addr),
+            contract_admin.map(Addr::unchecked),
+        );
+
+        OwnedDeps {
+            storage: MockStorage::default(),
+            api: MockApi::default(),
+            querier,
+            custom_query_type: PhantomData,
+        }
+    }
 
     #[test]
     fn validate_main_fields_works() {
@@ -242,12 +344,13 @@ mod tests {
 
     #[test]
     fn validate_migrate_contract_works() {
-        let deps = mock_deps_tgrade();
+        // No migration admin address set by default
+        let deps = custom_mock_deps_tgrade(MIGRATE_CONTRACT, None);
         let env = mock_env();
 
         // Zero code id
         let proposal = ValidatorProposal::MigrateContract {
-            contract: "target_contract".to_owned(),
+            contract: MIGRATE_CONTRACT.to_owned(),
             code_id: 0,
             migrate_msg: to_binary(&DummyMigrateMsg {}).unwrap(),
         };
@@ -257,7 +360,7 @@ mod tests {
 
         // Empty migrate msg
         let proposal = ValidatorProposal::MigrateContract {
-            contract: "target_contract".to_owned(),
+            contract: MIGRATE_CONTRACT.to_owned(),
             code_id: 1,
             migrate_msg: Binary(vec![]),
         };
@@ -268,18 +371,28 @@ mod tests {
             ContractError::MigrateMsgCannotBeEmptyString {}
         );
 
-        // Valid
+        // Valid (but no migration admin)
         let proposal = ValidatorProposal::MigrateContract {
-            contract: "target_contract".to_owned(),
+            contract: MIGRATE_CONTRACT.to_owned(),
             code_id: 1,
             migrate_msg: to_binary(&DummyMigrateMsg {}).unwrap(),
         };
         let res = proposal.validate(deps.as_ref(), &env, "title", "description");
-        // FIXME: Requires custom querier / multi-tests
-        assert_eq!(
-            res.unwrap_err(),
-            ContractError::System("Querier system error: No such contract: target_contract".into())
-        );
+        assert!(matches!(res.unwrap_err(), ContractError::Unauthorized(_)));
+
+        // Valid (but migration admin is some other contract)
+        // Sets other contract as migration admin of the contract to migrate
+        let deps = custom_mock_deps_tgrade(MIGRATE_CONTRACT, Some("other_contract"));
+        let res = proposal.validate(deps.as_ref(), &env, "title", "description");
+        // Also fails
+        assert!(matches!(res.unwrap_err(), ContractError::Unauthorized(_)));
+
+        // Valid (and migration admin is this contract)
+        let deps = custom_mock_deps_tgrade(MIGRATE_CONTRACT, Some(MOCK_CONTRACT_ADDR));
+        // Now it works
+        let _res = proposal
+            .validate(deps.as_ref(), &env, "title", "description")
+            .unwrap();
     }
 
     #[test]
