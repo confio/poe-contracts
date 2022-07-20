@@ -106,3 +106,33 @@ fn confirm_admin_in_contract<Q: CustomQuery>(
         "Validator Proposal contract is not an admin of contract proposed to migrate".to_owned(),
     ))
 }
+
+#[cfg(test)]
+mod tests {
+    use cosmwasm_std::testing::mock_env;
+
+    use tg_bindings_test::mock_deps_tgrade;
+
+    use crate::msg::ValidatorProposal;
+
+    #[test]
+    fn validate_main_fields_works() {
+        let deps = mock_deps_tgrade();
+        let env = mock_env();
+
+        let proposal = ValidatorProposal::Text {};
+
+        // Empty title
+        let res = proposal.validate(deps.as_ref(), &env, "", "description");
+        assert!(res.is_err());
+
+        // Empty description
+        let res = proposal.validate(deps.as_ref(), &env, "title", "");
+        assert!(res.is_err());
+
+        // Non empty title and description
+        let _res = proposal
+            .validate(deps.as_ref(), &env, "title", "description")
+            .unwrap();
+    }
+}
