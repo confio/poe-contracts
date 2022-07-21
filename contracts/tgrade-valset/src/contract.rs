@@ -9,12 +9,11 @@ use cosmwasm_std::{
     Order, QueryRequest, Reply, StdError, StdResult, Timestamp, WasmMsg,
 };
 
-use cw2::{get_contract_version, set_contract_version};
+use cw2::set_contract_version;
 use cw_controllers::AdminError;
 use cw_storage_plus::Bound;
 use cw_utils::{maybe_addr, parse_reply_instantiate_data};
 
-use semver::Version;
 use tg4::{Member, Tg4Contract};
 use tg_bindings::{
     request_privileges, Ed25519Pubkey, Evidence, EvidenceType, Privilege, PrivilegeChangeMsg,
@@ -939,7 +938,8 @@ pub fn migrate(
     _env: Env,
     msg: MigrateMsg,
 ) -> Result<Response, ContractError> {
-    ensure_from_older_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
+    let original_version =
+        ensure_from_older_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
 
     CONFIG.update::<_, StdError>(deps.storage, |mut cfg| {
         if let Some(min_points) = msg.min_points {
@@ -951,11 +951,7 @@ pub fn migrate(
         Ok(cfg)
     })?;
 
-    let stored_version = get_contract_version(deps.storage)?;
-    // Unwrapping as version check before would fail if stored version is invalid
-    let stored_version: Version = stored_version.version.parse().unwrap();
-
-    migrate_jailing_period(deps.branch(), &stored_version)?;
+    migrate_jailing_period(deps.branch(), &original_version)?;
 
     Ok(Response::new())
 }
