@@ -1,12 +1,12 @@
 use std::cmp::{max, min};
 use std::collections::BTreeSet;
-use std::convert::TryInto;
+use std::convert::{TryFrom, TryInto};
 
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    from_binary, to_binary, Addr, Binary, BlockInfo, CustomQuery, Decimal, Deps, DepsMut, Env,
-    MessageInfo, Order, QueryRequest, Reply, StdError, StdResult, Timestamp, WasmMsg,
+    to_binary, Addr, Binary, BlockInfo, CustomQuery, Decimal, Deps, DepsMut, Env, MessageInfo,
+    Order, QueryRequest, Reply, StdError, StdResult, Timestamp, WasmMsg,
 };
 
 use cw2::set_contract_version;
@@ -42,6 +42,9 @@ pub(crate) const CONTRACT_NAME: &str = "crates.io:tgrade-valset";
 pub(crate) const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 const REWARDS_INIT_REPLY_ID: u64 = 1;
+
+/// Number of missed blocks a validator can be jailed for.
+const MISSED_BLOCKS: u64 = 1000;
 
 /// We use this custom message everywhere
 pub type Response = cosmwasm_std::Response<TgradeMsg>;
@@ -660,9 +663,9 @@ fn end_block(deps: DepsMut<TgradeQuery>, env: Env) -> Result<Response, ContractE
             .votes;
         let height = env.block.height;
         for vote in votes {
-            let addr = Addr::unchecked(from_binary::<String>(&vote.address)?);
             if vote.voted {
-                BLOCK_SIGNERS.save(deps.storage, &addr, &height)?;
+                let pubkey = vote.address.as_slice();
+                BLOCK_SIGNERS.save(deps.storage, &pubkey, &height)?;
             }
         }
     }
@@ -686,25 +689,34 @@ fn end_block(deps: DepsMut<TgradeQuery>, env: Env) -> Result<Response, ContractE
     EPOCH.save(deps.storage, &epoch)?;
 
     if cfg.verify_validators {
-        if let Some(pending) = PENDING_VALIDATORS.may_load(deps.storage)? {
-            let votes = deps
-                .querier
-                .query::<ValidatorVoteResponse>(&QueryRequest::Custom(
-                    TgradeQuery::ValidatorVotes {},
-                ))?
-                .votes;
+        let expiration = JailingPeriod::from_duration(
+            JailingDuration::Duration(cfg.offline_jail_duration),
+            &env.block,
+        );
 
-            let expiration = JailingPeriod::from_duration(
-                JailingDuration::Duration(cfg.offline_jail_duration),
-                &env.block,
-            );
-
-            for val in pending {
-                let vote = votes
-                    .iter()
-                    .find(|vote| vote.address.as_slice() == val.1.to_address());
-                if vote.is_none() || !vote.unwrap().voted {
-                    JAIL.save(deps.storage, &val.0, &expiration)?;
+        for validator in VALIDATORS.load(deps.storage)? {
+            let operator_addr = validator.operator;
+            let ed25519_pubkey = match Ed25519Pubkey::try_from(validator.validator_pubkey) {
+                Ok(pubkey) => pubkey,
+                Err(_) => {
+                    // Silently ignore wrong / different type pubkeys
+                    continue;
+                }
+            };
+            let validator_addr = ed25519_pubkey.to_address();
+            let mut height = BLOCK_SIGNERS.may_load(deps.storage, &validator_addr)?;
+            if height.is_none() {
+                // Not a block signer yet, check their validator start height instead
+                height = VALIDATOR_START_HEIGHT.may_load(deps.storage, &operator_addr)?;
+            }
+            match height {
+                Some(h) if h > env.block.height - MISSED_BLOCKS => {
+                    // Validator is still active or recent, no need to jail
+                    continue;
+                }
+                _ => {
+                    // validator is inactive for more than MISSED_BLOCKS, jail!
+                    JAIL.save(deps.storage, &operator_addr, &expiration)?;
                 }
             }
         }
@@ -1172,12 +1184,12 @@ mod test {
             vec![
                 ValidatorUpdate {
                     pubkey: Pubkey::Ed25519(b"pubkey1".into()),
-                    power: 1
+                    power: 1,
                 },
                 ValidatorUpdate {
                     pubkey: Pubkey::Ed25519(b"pubkey2".into()),
-                    power: 2
-                }
+                    power: 2,
+                },
             ],
             diff.diffs
         );
@@ -1190,12 +1202,12 @@ mod test {
             vec![
                 ValidatorUpdate {
                     pubkey: Pubkey::Ed25519(b"pubkey1".into()),
-                    power: 0
+                    power: 0,
                 },
                 ValidatorUpdate {
                     pubkey: Pubkey::Ed25519(b"pubkey2".into()),
-                    power: 0
-                }
+                    power: 0,
+                },
             ],
             diff.diffs
         );
@@ -1215,7 +1227,7 @@ mod test {
         assert_eq!(
             vec![ValidatorUpdate {
                 pubkey: Pubkey::Ed25519(b"pubkey3".into()),
-                power: 3
+                power: 3,
             },],
             diff.diffs
         );
@@ -1230,7 +1242,7 @@ mod test {
         assert_eq!(
             vec![ValidatorUpdate {
                 pubkey: Pubkey::Ed25519(b"pubkey1".into()),
-                power: 1
+                power: 1,
             },],
             diff.diffs
         );
@@ -1244,7 +1256,7 @@ mod test {
         assert_eq!(
             vec![ValidatorUpdate {
                 pubkey: Pubkey::Ed25519(b"pubkey2".into()),
-                power: 0
+                power: 0,
             },],
             diff.diffs
         );
@@ -1258,7 +1270,7 @@ mod test {
         assert_eq!(
             vec![ValidatorUpdate {
                 pubkey: Pubkey::Ed25519(b"pubkey1".into()),
-                power: 0
+                power: 0,
             },],
             diff.diffs
         );
@@ -1286,7 +1298,7 @@ mod test {
                     .iter()
                     .map(|vi| ValidatorUpdate {
                         pubkey: vi.validator_pubkey.clone(),
-                        power: vi.power
+                        power: vi.power,
                     })
                     .collect()
             },
@@ -1310,7 +1322,7 @@ mod test {
                     .iter()
                     .map(|vi| ValidatorUpdate {
                         pubkey: vi.validator_pubkey.clone(),
-                        power: 0
+                        power: 0,
                     })
                     .collect()
             },
@@ -1333,7 +1345,7 @@ mod test {
             ValidatorDiff {
                 diffs: vec![ValidatorUpdate {
                     pubkey: cur.last().as_ref().unwrap().validator_pubkey.clone(),
-                    power: (VALIDATORS + 1) as u64
+                    power: (VALIDATORS + 1) as u64,
                 }]
             },
             diff
@@ -1359,7 +1371,7 @@ mod test {
                     .take(VALIDATORS - 1)
                     .map(|vi| ValidatorUpdate {
                         pubkey: vi.validator_pubkey.clone(),
-                        power: vi.power
+                        power: vi.power,
                     })
                     .collect()
             },
@@ -1403,7 +1415,7 @@ mod test {
                     .take(VALIDATORS - 1)
                     .map(|vi| ValidatorUpdate {
                         pubkey: vi.validator_pubkey.clone(),
-                        power: 0
+                        power: 0,
                     })
                     .collect()
             },
