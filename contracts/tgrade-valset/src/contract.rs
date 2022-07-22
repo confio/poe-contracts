@@ -5,8 +5,8 @@ use std::convert::TryInto;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    to_binary, Addr, Binary, BlockInfo, CustomQuery, Decimal, Deps, DepsMut, Env, MessageInfo,
-    Order, QueryRequest, Reply, StdError, StdResult, Timestamp, WasmMsg,
+    from_binary, to_binary, Addr, Binary, BlockInfo, CustomQuery, Decimal, Deps, DepsMut, Env,
+    MessageInfo, Order, QueryRequest, Reply, StdError, StdResult, Timestamp, WasmMsg,
 };
 
 use cw2::set_contract_version;
@@ -33,8 +33,8 @@ use crate::msg::{
 use crate::rewards::pay_block_rewards;
 use crate::state::{
     export, import, operators, Config, EpochInfo, OperatorInfo, ValidatorInfo, ValidatorSlashing,
-    ValsetState, CONFIG, EPOCH, JAIL, PENDING_VALIDATORS, VALIDATORS, VALIDATOR_SLASHING,
-    VALIDATOR_START_HEIGHT,
+    ValsetState, BLOCK_SIGNERS, CONFIG, EPOCH, JAIL, PENDING_VALIDATORS, VALIDATORS,
+    VALIDATOR_SLASHING, VALIDATOR_START_HEIGHT,
 };
 
 // version info for migration info
@@ -651,6 +651,21 @@ fn is_genesis_block(block: &BlockInfo) -> bool {
 
 fn end_block(deps: DepsMut<TgradeQuery>, env: Env) -> Result<Response, ContractError> {
     let cfg = CONFIG.load(deps.storage)?;
+
+    // At each block, update the block signers map
+    if cfg.verify_validators {
+        let votes = deps
+            .querier
+            .query::<ValidatorVoteResponse>(&QueryRequest::Custom(TgradeQuery::ValidatorVotes {}))?
+            .votes;
+        let height = env.block.height;
+        for vote in votes {
+            let addr = Addr::unchecked(from_binary::<String>(&vote.address)?);
+            if vote.voted {
+                BLOCK_SIGNERS.save(deps.storage, &addr, &height)?;
+            }
+        }
+    }
 
     // check if needed and quit early if we didn't hit epoch boundary
     let mut epoch = EPOCH.load(deps.storage)?;

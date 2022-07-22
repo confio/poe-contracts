@@ -108,6 +108,10 @@ pub const VALIDATORS: Item<Vec<ValidatorInfo>> = Item::new("validators");
 /// to verify they're online.
 pub const PENDING_VALIDATORS: Item<Vec<(Addr, Ed25519Pubkey)>> = Item::new("pending");
 
+/// A map of validators to block heights they had last signed a block.
+/// To verify they're online / active.
+pub const BLOCK_SIGNERS: Map<&Addr, u64> = Map::new("block_signers");
+
 /// Map of operator addr to block height it initially became a validator. If operator doesn't
 /// appear in this map, he was never in the validator set.
 pub const VALIDATOR_START_HEIGHT: Map<&Addr, u64> = Map::new("start_height");
