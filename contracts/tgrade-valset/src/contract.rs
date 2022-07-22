@@ -33,8 +33,8 @@ use crate::msg::{
 use crate::rewards::pay_block_rewards;
 use crate::state::{
     export, import, operators, Config, EpochInfo, OperatorInfo, ValidatorInfo, ValidatorSlashing,
-    ValsetState, BLOCK_SIGNERS, CONFIG, EPOCH, JAIL, PENDING_VALIDATORS, VALIDATORS,
-    VALIDATOR_SLASHING, VALIDATOR_START_HEIGHT,
+    ValsetState, BLOCK_SIGNERS, CONFIG, EPOCH, JAIL, VALIDATORS, VALIDATOR_SLASHING,
+    VALIDATOR_START_HEIGHT,
 };
 
 // version info for migration info
@@ -664,8 +664,7 @@ fn end_block(deps: DepsMut<TgradeQuery>, env: Env) -> Result<Response, ContractE
         let height = env.block.height;
         for vote in votes {
             if vote.voted {
-                let pubkey = vote.address.as_slice();
-                BLOCK_SIGNERS.save(deps.storage, &pubkey, &height)?;
+                BLOCK_SIGNERS.save(deps.storage, vote.address.as_slice(), &height)?;
             }
         }
     }
@@ -723,7 +722,7 @@ fn end_block(deps: DepsMut<TgradeQuery>, env: Env) -> Result<Response, ContractE
     }
 
     // calculate and store new validator set
-    let (mut validators, auto_unjail) = calculate_validators(deps.as_ref(), &env)?;
+    let (validators, auto_unjail) = calculate_validators(deps.as_ref(), &env)?;
 
     // auto unjailing
     for addr in &auto_unjail {
@@ -738,32 +737,6 @@ fn end_block(deps: DepsMut<TgradeQuery>, env: Env) -> Result<Response, ContractE
         add: add.clone(),
         remove: remove.clone(),
     };
-
-    if cfg.verify_validators {
-        // pending validators are validators who have just been added and have yet to verify they're online
-        // and signing blocks (or at least signing the first one)
-        let pending: Vec<_> = add
-            .iter()
-            .filter_map(|m| {
-                let addr = Addr::unchecked(&m.addr);
-                if let Ok(op) = operators().load(deps.storage, &addr) {
-                    if !op.active_validator {
-                        Some((addr, op.pubkey))
-                    } else {
-                        None
-                    }
-                } else {
-                    None
-                }
-            })
-            .collect();
-        PENDING_VALIDATORS.save(deps.storage, &pending)?;
-        for v in &mut validators {
-            if pending.iter().any(|(addr, _)| *addr == v.operator) {
-                v.power = cfg.min_points;
-            }
-        }
-    }
 
     VALIDATORS.save(deps.storage, &validators)?;
 

@@ -104,10 +104,6 @@ pub const EPOCH: Item<EpochInfo> = Item::new("epoch");
 /// This will be empty only on the first run.
 pub const VALIDATORS: Item<Vec<ValidatorInfo>> = Item::new("validators");
 
-/// A list of validators who have just became active and have yet to sign a block
-/// to verify they're online.
-pub const PENDING_VALIDATORS: Item<Vec<(Addr, Ed25519Pubkey)>> = Item::new("pending");
-
 /// A map of validators to block heights they had last signed a block.
 /// To verify they're online / active.
 /// The key are the first 20 bytes of the SHA-256 hashed validator pubkey (from Cosmos SDK).
