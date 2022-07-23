@@ -43,8 +43,8 @@ pub(crate) const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 const REWARDS_INIT_REPLY_ID: u64 = 1;
 
-/// Number of missed blocks a validator can be jailed for.
-const MISSED_BLOCKS: u64 = 1000;
+/// Missed blocks interval a validator can be jailed for.
+pub const MISSED_BLOCKS: u64 = 1000;
 
 /// We use this custom message everywhere
 pub type Response = cosmwasm_std::Response<TgradeMsg>;
@@ -709,7 +709,7 @@ fn end_block(deps: DepsMut<TgradeQuery>, env: Env) -> Result<Response, ContractE
                 height = VALIDATOR_START_HEIGHT.may_load(deps.storage, &operator_addr)?;
             }
             match height {
-                Some(h) if h > env.block.height - MISSED_BLOCKS => {
+                Some(h) if h > env.block.height.saturating_sub(MISSED_BLOCKS) => {
                     // Validator is still active or recent, no need to jail
                     continue;
                 }
