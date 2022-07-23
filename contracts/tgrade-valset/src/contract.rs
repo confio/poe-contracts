@@ -655,18 +655,16 @@ fn is_genesis_block(block: &BlockInfo) -> bool {
 fn end_block(deps: DepsMut<TgradeQuery>, env: Env) -> Result<Response, ContractError> {
     let cfg = CONFIG.load(deps.storage)?;
 
-    // At each block, update the block signers map
     if cfg.verify_validators {
-        let votes = deps
-            .querier
+        // Update the block signers height at each block
+        deps.querier
             .query::<ValidatorVoteResponse>(&QueryRequest::Custom(TgradeQuery::ValidatorVotes {}))?
-            .votes;
-        let height = env.block.height;
-        for vote in votes {
-            if vote.voted {
-                BLOCK_SIGNERS.save(deps.storage, vote.address.as_slice(), &height)?;
-            }
-        }
+            .votes
+            .iter()
+            .filter(|&v| v.voted)
+            .try_for_each(|v| {
+                BLOCK_SIGNERS.save(deps.storage, v.address.as_slice(), &env.block.height)
+            })?;
     }
 
     // check if needed and quit early if we didn't hit epoch boundary
