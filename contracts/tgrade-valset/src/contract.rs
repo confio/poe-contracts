@@ -691,32 +691,29 @@ fn end_block(deps: DepsMut<TgradeQuery>, env: Env) -> Result<Response, ContractE
             &env.block,
         );
 
-        for validator in VALIDATORS.load(deps.storage)? {
-            let operator_addr = validator.operator;
-            let ed25519_pubkey = match Ed25519Pubkey::try_from(validator.validator_pubkey) {
-                Ok(pubkey) => pubkey,
-                Err(_) => {
-                    // Silently ignore wrong / different type pubkeys
-                    continue;
+        VALIDATORS
+            .load(deps.storage)?
+            .iter()
+            .flat_map(|v| match Ed25519Pubkey::try_from(&v.validator_pubkey) {
+                Ok(pubkey) => Some((v, pubkey)),
+                _ => None, // Silently ignore wrong / different type pubkeys
+            })
+            .try_for_each(|(v, ed25519_pubkey)| {
+                let operator_addr = &v.operator;
+                let validator_addr = ed25519_pubkey.to_address();
+                let mut height = BLOCK_SIGNERS.may_load(deps.storage, &validator_addr)?;
+                if height.is_none() {
+                    // Not a block signer yet, check their validator start height instead
+                    height = VALIDATOR_START_HEIGHT.may_load(deps.storage, operator_addr)?;
                 }
-            };
-            let validator_addr = ed25519_pubkey.to_address();
-            let mut height = BLOCK_SIGNERS.may_load(deps.storage, &validator_addr)?;
-            if height.is_none() {
-                // Not a block signer yet, check their validator start height instead
-                height = VALIDATOR_START_HEIGHT.may_load(deps.storage, &operator_addr)?;
-            }
-            match height {
-                Some(h) if h > env.block.height.saturating_sub(MISSED_BLOCKS) => {
-                    // Validator is still active or recent, no need to jail
-                    continue;
+                match height {
+                    Some(h) if h > env.block.height.saturating_sub(MISSED_BLOCKS) => Ok(()),
+                    _ => {
+                        // validator is inactive for at least MISSED_BLOCKS, jail!
+                        JAIL.save(deps.storage, operator_addr, &expiration)
+                    }
                 }
-                _ => {
-                    // validator is inactive for more than MISSED_BLOCKS, jail!
-                    JAIL.save(deps.storage, &operator_addr, &expiration)?;
-                }
-            }
-        }
+            })?;
     }
 
     // calculate and store new validator set
