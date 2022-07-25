@@ -19,8 +19,10 @@ const DEFAULT_LIMIT: u32 = 30;
 pub struct Claim {
     /// Address owning the claim
     pub addr: Addr,
-    /// Amount of tokens in claim
+    /// Liquid amount of tokens in claim
     pub amount: Uint128,
+    /// Vesting amount of tokens in claim
+    pub vesting_amount: Uint128,
     /// Release time of the claim. Originally in `cw_controllers` it is an `Expiration` type, but
     /// here we need to query for claims via release time, and expiration is impossible to be
     /// properly sorted, as it is impossible to properly compare expiration by height and
@@ -43,10 +45,17 @@ impl<'a> IndexList<Claim> for ClaimIndexes<'a> {
 }
 
 impl Claim {
-    pub fn new(addr: Addr, amount: u128, released: Expiration, creation_height: u64) -> Self {
+    pub fn new(
+        addr: Addr,
+        amount: u128,
+        vesting_amount: u128,
+        released: Expiration,
+        creation_height: u64,
+    ) -> Self {
         Claim {
             addr,
             amount: amount.into(),
+            vesting_amount: vesting_amount.into(),
             release_at: released,
             creation_height,
         }
@@ -80,6 +89,7 @@ impl<'a> Claims<'a> {
         storage: &mut dyn Storage,
         addr: Addr,
         amount: Uint128,
+        vesting_amount: Uint128,
         release_at: Expiration,
         creation_height: u64,
     ) -> StdResult<()> {
@@ -92,11 +102,13 @@ impl<'a> Claims<'a> {
                 match claim {
                     Some(mut claim) => {
                         claim.amount += amount;
+                        claim.vesting_amount += vesting_amount;
                         Ok(claim)
                     }
                     None => Ok(Claim {
                         addr: addr.clone(),
                         amount,
+                        vesting_amount,
                         release_at,
                         creation_height,
                     }),
@@ -115,7 +127,7 @@ impl<'a> Claims<'a> {
         addr: &Addr,
         block: &BlockInfo,
         limit: impl Into<Option<u64>>,
-    ) -> StdResult<Uint128> {
+    ) -> StdResult<(Uint128, Uint128)> {
         let claims = self
             .claims
             .prefix(addr)
@@ -129,10 +141,11 @@ impl<'a> Claims<'a> {
 
         let claims = self.collect_claims(claims, limit.into())?;
         let amount = claims.iter().map(|claim| claim.amount).sum();
+        let vesting_amount = claims.iter().map(|claim| claim.vesting_amount).sum();
 
         self.release_claims(storage, claims)?;
 
-        Ok(amount)
+        Ok((amount, vesting_amount))
     }
 
     /// This iterates over all mature claims of any addresses, and removes them. Up to `limit`
