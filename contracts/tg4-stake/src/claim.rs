@@ -224,7 +224,7 @@ impl<'a> Claims<'a> {
         storage: &mut dyn Storage,
         address: Addr,
         portion: Decimal,
-    ) -> StdResult<Uint128> {
+    ) -> StdResult<(Uint128, Uint128)> {
         let claims: StdResult<Vec<_>> = self
             .claims
             .prefix(&address)
@@ -233,21 +233,25 @@ impl<'a> Claims<'a> {
         let claims = claims?;
 
         let mut total_slashed = Uint128::zero();
+        let mut total_vesting_slashed = Uint128::zero();
 
         for (release_at, claim) in claims {
             let key = (&address, release_at);
 
             let slashed = claim.amount * portion;
+            let vesting_slashed = claim.vesting_amount * portion;
             let mut new_claim = claim.clone();
             new_claim.amount -= slashed;
+            new_claim.vesting_amount -= vesting_slashed;
 
             self.claims
                 .replace(storage, key, Some(&new_claim), Some(&claim))?;
 
             total_slashed += slashed;
+            total_vesting_slashed += vesting_slashed;
         }
 
-        Ok(total_slashed)
+        Ok((total_slashed, total_vesting_slashed))
     }
 
     pub fn query_claims<Q: CustomQuery>(
