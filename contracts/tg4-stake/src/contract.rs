@@ -1851,8 +1851,9 @@ mod tests {
 
             // create some data
             bond_liquid(deps.as_mut(), 12_000, 7_500, 4_000, 1);
+            bond_vesting(deps.as_mut(), 1_000, 750, 40, 1);
             let height_delta = 2;
-            unbond(deps.as_mut(), 12_000, 2_600, 0, height_delta, 0);
+            unbond(deps.as_mut(), 13_000, 2_600, 0, height_delta, 0);
             let mut env = mock_env();
             env.block.height += height_delta;
 
@@ -1863,7 +1864,7 @@ mod tests {
                 vec![Claim::new(
                     Addr::unchecked(USER1),
                     12_000,
-                    0,
+                    1_000,
                     expires,
                     env.block.height,
                 )]
@@ -1876,12 +1877,12 @@ mod tests {
                 vec![Claim::new(
                     Addr::unchecked(USER1),
                     9_600,
-                    0,
+                    800,
                     expires,
                     env.block.height,
                 )]
             );
-            assert_burned(res, &coins(2_400, &cfg.denom), &[]);
+            assert_burned(res, &coins(2_400, &cfg.denom), &coins(200, &cfg.denom));
         }
 
         #[test]
