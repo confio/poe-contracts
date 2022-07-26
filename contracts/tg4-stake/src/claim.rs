@@ -22,7 +22,7 @@ pub struct Claim {
     /// Liquid amount of tokens in claim
     pub amount: Uint128,
     /// Vesting amount of tokens in claim
-    pub vesting_amount: Uint128,
+    pub vesting_amount: Option<Uint128>,
     /// Release time of the claim. Originally in `cw_controllers` it is an `Expiration` type, but
     /// here we need to query for claims via release time, and expiration is impossible to be
     /// properly sorted, as it is impossible to properly compare expiration by height and
@@ -55,7 +55,7 @@ impl Claim {
         Claim {
             addr,
             amount: amount.into(),
-            vesting_amount: vesting_amount.into(),
+            vesting_amount: Some(vesting_amount.into()),
             release_at: released,
             creation_height,
         }
@@ -102,13 +102,14 @@ impl<'a> Claims<'a> {
                 match claim {
                     Some(mut claim) => {
                         claim.amount += amount;
-                        claim.vesting_amount += vesting_amount;
+                        claim.vesting_amount =
+                            Some(claim.vesting_amount.unwrap_or_default() + vesting_amount);
                         Ok(claim)
                     }
                     None => Ok(Claim {
                         addr: addr.clone(),
                         amount,
-                        vesting_amount,
+                        vesting_amount: Some(vesting_amount),
                         release_at,
                         creation_height,
                     }),
@@ -141,7 +142,10 @@ impl<'a> Claims<'a> {
 
         let claims = self.collect_claims(claims, limit.into())?;
         let amount = claims.iter().map(|claim| claim.amount).sum();
-        let vesting_amount = claims.iter().map(|claim| claim.vesting_amount).sum();
+        let vesting_amount = claims
+            .iter()
+            .map(|claim| claim.vesting_amount.unwrap_or_default())
+            .sum();
 
         self.release_claims(storage, claims)?;
 
@@ -239,10 +243,11 @@ impl<'a> Claims<'a> {
             let key = (&address, release_at);
 
             let slashed = claim.amount * portion;
-            let vesting_slashed = claim.vesting_amount * portion;
+            let vesting_slashed = claim.vesting_amount.unwrap_or_default() * portion;
             let mut new_claim = claim.clone();
             new_claim.amount -= slashed;
-            new_claim.vesting_amount -= vesting_slashed;
+            new_claim.vesting_amount =
+                Some(claim.vesting_amount.unwrap_or_default() - vesting_slashed);
 
             self.claims
                 .replace(storage, key, Some(&new_claim), Some(&claim))?;
