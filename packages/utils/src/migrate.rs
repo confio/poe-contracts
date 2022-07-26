@@ -2,11 +2,14 @@ use cosmwasm_std::{StdError, StdResult, Storage};
 use cw2::{get_contract_version, set_contract_version};
 use semver::Version;
 
+/// This function not only validates that the right contract and version can be migrated, but also
+/// updates the contract version from the original (stored) version to the new version.
+/// It returns the original version for the convenience of doing external checks.
 pub fn ensure_from_older_version(
     storage: &mut dyn Storage,
     name: &str,
     new_version: &str,
-) -> StdResult<()> {
+) -> StdResult<Version> {
     let version: Version = new_version.parse().map_err(from_semver)?;
     let stored = get_contract_version(storage)?;
     let storage_version: Version = stored.version.parse().map_err(from_semver)?;
@@ -28,7 +31,7 @@ pub fn ensure_from_older_version(
         set_contract_version(storage, name, new_version)?;
     }
 
-    Ok(())
+    Ok(storage_version)
 }
 
 fn from_semver(err: semver::Error) -> StdError {
@@ -53,7 +56,10 @@ mod tests {
         let mut storage = MockStorage::new();
         set_contract_version(&mut storage, "demo", "0.4.0").unwrap();
         // ensure this matches
-        ensure_from_older_version(&mut storage, "demo", "0.4.2").unwrap();
+        let original_version = ensure_from_older_version(&mut storage, "demo", "0.4.2").unwrap();
+
+        // check the original version is returned
+        assert_eq!(original_version.to_string(), "0.4.0".to_string());
 
         // check the version is updated
         let stored = get_contract_version(&storage).unwrap();
