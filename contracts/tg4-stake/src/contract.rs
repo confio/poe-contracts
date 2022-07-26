@@ -233,23 +233,14 @@ pub fn execute_unbond<Q: CustomQuery>(
         STAKE_VESTING.update(deps.storage, &info.sender, |stake| -> StdResult<_> {
             Ok(stake.unwrap_or_default().checked_sub(vesting_amount)?)
         })?;
-    // Undelegate (unstake from contract) to sender's vesting account
-    if vesting_amount > Uint128::zero() {
-        let msg = TgradeMsg::Undelegate {
-            funds: coin(vesting_amount.into(), cfg.denom.clone()),
-            recipient: info.sender.to_string(),
-        };
-        res = res
-            .add_message(msg)
-            .add_attribute("vesting_amount", vesting_amount);
-    }
 
-    // Create claim for unbonded liquid amount
+    // Create claim for unbonded liquid and vesting amounts
     let completion = cfg.unbonding_period.after(&env.block);
     claims().create_claim(
         deps.storage,
         info.sender.clone(),
         min(stake, amount),
+        vesting_amount,
         completion,
         env.block.height,
     )?;
@@ -346,39 +337,44 @@ pub fn execute_slash<Q: CustomQuery>(
 
     // slash the liquid stake, if any
     let mut new_liquid_stake = Uint128::zero();
+    let mut liquid_slashed = Uint128::zero();
     if let Some(liquid_stake) = liquid_stake {
-        let mut liquid_slashed = liquid_stake * portion;
+        liquid_slashed = liquid_stake * portion;
         new_liquid_stake = STAKE.update(deps.storage, &addr, |stake| -> StdResult<_> {
             Ok(stake.unwrap_or_default().sub(liquid_slashed))
         })?;
-
-        // slash the claims
-        liquid_slashed += claims().slash_claims_for_addr(deps.storage, addr.clone(), portion)?;
-
-        // burn the liquid slashed tokens
-        if liquid_slashed > Uint128::zero() {
-            let burn_liquid_msg = BankMsg::Burn {
-                amount: coins(liquid_slashed.u128(), &cfg.denom),
-            };
-            res = res.add_message(burn_liquid_msg);
-        }
     }
 
     // slash the vesting stake, if any
     let mut new_vesting_stake = Uint128::zero();
+    let mut vesting_slashed = Uint128::zero();
     if let Some(vesting_stake) = vesting_stake {
-        let vesting_slashed = vesting_stake * portion;
+        vesting_slashed = vesting_stake * portion;
         new_vesting_stake = STAKE_VESTING.update(deps.storage, &addr, |stake| -> StdResult<_> {
             Ok(stake.unwrap_or_default().sub(vesting_slashed))
         })?;
+    }
 
-        // burn the vesting slashed tokens
-        if vesting_slashed > Uint128::zero() {
-            let burn_vesting_msg = BankMsg::Burn {
-                amount: coins(vesting_slashed.u128(), &cfg.denom),
-            };
-            res = res.add_message(burn_vesting_msg);
-        }
+    // slash the liquid and vesting claims
+    let (liquid_claims_slashed, vesting_claims_slashed) =
+        claims().slash_claims_for_addr(deps.storage, addr.clone(), portion)?;
+    liquid_slashed += liquid_claims_slashed;
+    vesting_slashed += vesting_claims_slashed;
+
+    // burn the liquid slashed tokens
+    if liquid_slashed > Uint128::zero() {
+        let burn_liquid_msg = BankMsg::Burn {
+            amount: coins(liquid_slashed.u128(), &cfg.denom),
+        };
+        res = res.add_message(burn_liquid_msg);
+    }
+
+    // burn the vesting slashed tokens
+    if vesting_slashed > Uint128::zero() {
+        let burn_vesting_msg = BankMsg::Burn {
+            amount: coins(vesting_slashed.u128(), &cfg.denom),
+        };
+        res = res.add_message(burn_vesting_msg);
     }
 
     res.messages.extend(update_membership(
@@ -455,22 +451,38 @@ pub fn execute_claim<Q: CustomQuery>(
     env: Env,
     info: MessageInfo,
 ) -> Result<Response, ContractError> {
-    let release = claims().claim_addr(deps.storage, &info.sender, &env.block, None)?;
-    if release.is_zero() {
+    let (release, vesting_release) =
+        claims().claim_addr(deps.storage, &info.sender, &env.block, None)?;
+    if release.is_zero() && vesting_release.is_zero() {
         return Err(ContractError::NothingToClaim {});
     }
 
     let config = CONFIG.load(deps.storage)?;
-    let amount = coins(release.into(), config.denom);
 
-    let res = Response::new()
+    let mut res = Response::new()
         .add_attribute("action", "claim")
-        .add_attribute("tokens", coins_to_string(&amount))
-        .add_attribute("sender", &info.sender)
-        .add_message(BankMsg::Send {
-            to_address: info.sender.into(),
-            amount,
-        });
+        .add_attribute("sender", &info.sender);
+
+    if !release.is_zero() {
+        let amount = coins(release.into(), config.denom.clone());
+        res = res
+            .add_attribute("liquid_tokens", coins_to_string(&amount))
+            .add_message(BankMsg::Send {
+                to_address: info.sender.clone().into(),
+                amount,
+            });
+    }
+
+    if !vesting_release.is_zero() {
+        let vesting_amount = coin(vesting_release.into(), config.denom);
+        // Undelegate (unstake from contract) to sender's vesting account
+        res = res
+            .add_attribute("vesting_tokens", coins_to_string(&[vesting_amount.clone()]))
+            .add_message(TgradeMsg::Undelegate {
+                funds: vesting_amount,
+                recipient: info.sender.to_string(),
+            });
+    }
 
     Ok(res)
 }
@@ -1058,12 +1070,12 @@ mod tests {
                 Member {
                     addr: USER1.into(),
                     points: 12,
-                    start_height: None
+                    start_height: None,
                 },
                 Member {
                     addr: USER2.into(),
                     points: 7,
-                    start_height: None
+                    start_height: None,
                 },
             ]
         );
@@ -1077,7 +1089,7 @@ mod tests {
             vec![Member {
                 addr: USER1.into(),
                 points: 12,
-                start_height: None
+                start_height: None,
             },]
         );
 
@@ -1093,7 +1105,7 @@ mod tests {
             vec![Member {
                 addr: USER2.into(),
                 points: 7,
-                start_height: None
+                start_height: None,
             },]
         );
 
@@ -1123,18 +1135,18 @@ mod tests {
                 Member {
                     addr: USER1.into(),
                     points: 11,
-                    start_height: None
+                    start_height: None,
                 },
                 Member {
                     addr: USER2.into(),
                     points: 6,
-                    start_height: None
+                    start_height: None,
                 },
                 Member {
                     addr: USER3.into(),
                     points: 5,
-                    start_height: None
-                }
+                    start_height: None,
+                },
             ]
         );
 
@@ -1149,7 +1161,7 @@ mod tests {
             vec![Member {
                 addr: USER1.into(),
                 points: 11,
-                start_height: None
+                start_height: None,
             },]
         );
 
@@ -1167,13 +1179,13 @@ mod tests {
                 Member {
                     addr: USER2.into(),
                     points: 6,
-                    start_height: None
+                    start_height: None,
                 },
                 Member {
                     addr: USER3.into(),
                     points: 5,
-                    start_height: None
-                }
+                    start_height: None,
+                },
             ]
         );
 
@@ -1230,7 +1242,7 @@ mod tests {
             ContractError::Std(StdError::overflow(OverflowError::new(
                 OverflowOperation::Sub,
                 4900,
-                5000
+                5000,
             )))
         );
     }
@@ -1278,7 +1290,7 @@ mod tests {
         // create some data
         bond(deps.as_mut(), (4_000, 7_500), (7_500, 0), (3_000, 1_000), 1);
         let height_delta = 2;
-        // Only 4_000 (liquid) will be claimed for USER1
+        // 4_000 (liquid) and 500 (vesting) will be claimed for USER1
         unbond(deps.as_mut(), 4_500, 2_600, 0, height_delta, 0);
         let mut env = mock_env();
         env.block.height += height_delta;
@@ -1290,8 +1302,9 @@ mod tests {
             vec![Claim::new(
                 Addr::unchecked(USER1),
                 4_000,
+                500,
                 expires,
-                env.block.height
+                env.block.height,
             )]
         );
         assert_eq!(
@@ -1299,8 +1312,9 @@ mod tests {
             vec![Claim::new(
                 Addr::unchecked(USER2),
                 2_600,
+                0,
                 expires,
-                env.block.height
+                env.block.height,
             )]
         );
         assert_eq!(
@@ -1323,15 +1337,22 @@ mod tests {
             vec![Claim::new(
                 Addr::unchecked(USER1),
                 4_000,
+                500,
                 expires,
-                env.block.height
+                env.block.height,
             )]
         );
         assert_eq!(
             get_claims(deps.as_ref(), Addr::unchecked(USER2), None, None),
             vec![
-                Claim::new(Addr::unchecked(USER2), 2_600, expires, env.block.height),
-                Claim::new(Addr::unchecked(USER2), 1_345, expires2, env2.block.height)
+                Claim::new(Addr::unchecked(USER2), 2_600, 0, expires, env.block.height),
+                Claim::new(
+                    Addr::unchecked(USER2),
+                    1_345,
+                    0,
+                    expires2,
+                    env2.block.height,
+                ),
             ]
         );
         assert_eq!(
@@ -1339,8 +1360,9 @@ mod tests {
             vec![Claim::new(
                 Addr::unchecked(USER3),
                 1_500,
+                0,
                 expires2,
-                env2.block.height
+                env2.block.height,
             )]
         );
 
@@ -1367,10 +1389,16 @@ mod tests {
         .unwrap();
         assert_eq!(
             res.messages,
-            vec![SubMsg::new(BankMsg::Send {
-                to_address: USER1.into(),
-                amount: coins(4_000, DENOM),
-            })]
+            vec![
+                SubMsg::new(BankMsg::Send {
+                    to_address: USER1.into(),
+                    amount: coins(4_000, DENOM),
+                }),
+                SubMsg::new(TgradeMsg::Undelegate {
+                    funds: coin(500, DENOM),
+                    recipient: USER1.into(),
+                })
+            ]
         );
 
         // second releases partially
@@ -1409,8 +1437,9 @@ mod tests {
             vec![Claim::new(
                 Addr::unchecked(USER2),
                 1_345,
+                0,
                 expires2,
-                env2.block.height
+                env2.block.height,
             )]
         );
         assert_eq!(
@@ -1418,8 +1447,9 @@ mod tests {
             vec![Claim::new(
                 Addr::unchecked(USER3),
                 1_500,
+                0,
                 expires2,
-                env2.block.height
+                env2.block.height,
             )]
         );
 
@@ -1821,8 +1851,9 @@ mod tests {
 
             // create some data
             bond_liquid(deps.as_mut(), 12_000, 7_500, 4_000, 1);
+            bond_vesting(deps.as_mut(), 1_000, 750, 40, 1);
             let height_delta = 2;
-            unbond(deps.as_mut(), 12_000, 2_600, 0, height_delta, 0);
+            unbond(deps.as_mut(), 13_000, 2_600, 0, height_delta, 0);
             let mut env = mock_env();
             env.block.height += height_delta;
 
@@ -1833,8 +1864,9 @@ mod tests {
                 vec![Claim::new(
                     Addr::unchecked(USER1),
                     12_000,
+                    1_000,
                     expires,
-                    env.block.height
+                    env.block.height,
                 )]
             );
 
@@ -1845,11 +1877,12 @@ mod tests {
                 vec![Claim::new(
                     Addr::unchecked(USER1),
                     9_600,
+                    800,
                     expires,
-                    env.block.height
+                    env.block.height,
                 )]
             );
-            assert_burned(res, &coins(2_400, &cfg.denom), &[]);
+            assert_burned(res, &coins(2_400, &cfg.denom), &coins(200, &cfg.denom));
         }
 
         #[test]

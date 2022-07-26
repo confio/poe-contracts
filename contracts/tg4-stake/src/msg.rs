@@ -45,7 +45,7 @@ pub enum ExecuteMsg {
     /// Tokens will be unbonded from the liquid stake first, and then from the vesting stake
     /// if available.
     Unbond { tokens: Coin },
-    /// Claim is used to claim your native tokens that you previously "unbonded"
+    /// Claim is used to claim your native and vesting tokens that you previously "unbonded"
     /// after the contract-defined waiting period (eg. 1 week)
     Claim {},
 

@@ -19,8 +19,10 @@ const DEFAULT_LIMIT: u32 = 30;
 pub struct Claim {
     /// Address owning the claim
     pub addr: Addr,
-    /// Amount of tokens in claim
+    /// Liquid amount of tokens in claim
     pub amount: Uint128,
+    /// Vesting amount of tokens in claim
+    pub vesting_amount: Option<Uint128>,
     /// Release time of the claim. Originally in `cw_controllers` it is an `Expiration` type, but
     /// here we need to query for claims via release time, and expiration is impossible to be
     /// properly sorted, as it is impossible to properly compare expiration by height and
@@ -43,10 +45,17 @@ impl<'a> IndexList<Claim> for ClaimIndexes<'a> {
 }
 
 impl Claim {
-    pub fn new(addr: Addr, amount: u128, released: Expiration, creation_height: u64) -> Self {
+    pub fn new(
+        addr: Addr,
+        amount: u128,
+        vesting_amount: u128,
+        released: Expiration,
+        creation_height: u64,
+    ) -> Self {
         Claim {
             addr,
             amount: amount.into(),
+            vesting_amount: Some(vesting_amount.into()),
             release_at: released,
             creation_height,
         }
@@ -80,6 +89,7 @@ impl<'a> Claims<'a> {
         storage: &mut dyn Storage,
         addr: Addr,
         amount: Uint128,
+        vesting_amount: Uint128,
         release_at: Expiration,
         creation_height: u64,
     ) -> StdResult<()> {
@@ -92,11 +102,14 @@ impl<'a> Claims<'a> {
                 match claim {
                     Some(mut claim) => {
                         claim.amount += amount;
+                        claim.vesting_amount =
+                            Some(claim.vesting_amount.unwrap_or_default() + vesting_amount);
                         Ok(claim)
                     }
                     None => Ok(Claim {
                         addr: addr.clone(),
                         amount,
+                        vesting_amount: Some(vesting_amount),
                         release_at,
                         creation_height,
                     }),
@@ -115,7 +128,7 @@ impl<'a> Claims<'a> {
         addr: &Addr,
         block: &BlockInfo,
         limit: impl Into<Option<u64>>,
-    ) -> StdResult<Uint128> {
+    ) -> StdResult<(Uint128, Uint128)> {
         let claims = self
             .claims
             .prefix(addr)
@@ -129,10 +142,14 @@ impl<'a> Claims<'a> {
 
         let claims = self.collect_claims(claims, limit.into())?;
         let amount = claims.iter().map(|claim| claim.amount).sum();
+        let vesting_amount = claims
+            .iter()
+            .map(|claim| claim.vesting_amount.unwrap_or_default())
+            .sum();
 
         self.release_claims(storage, claims)?;
 
-        Ok(amount)
+        Ok((amount, vesting_amount))
     }
 
     /// This iterates over all mature claims of any addresses, and removes them. Up to `limit`
@@ -211,7 +228,7 @@ impl<'a> Claims<'a> {
         storage: &mut dyn Storage,
         address: Addr,
         portion: Decimal,
-    ) -> StdResult<Uint128> {
+    ) -> StdResult<(Uint128, Uint128)> {
         let claims: StdResult<Vec<_>> = self
             .claims
             .prefix(&address)
@@ -220,21 +237,26 @@ impl<'a> Claims<'a> {
         let claims = claims?;
 
         let mut total_slashed = Uint128::zero();
+        let mut total_vesting_slashed = Uint128::zero();
 
         for (release_at, claim) in claims {
             let key = (&address, release_at);
 
             let slashed = claim.amount * portion;
+            let vesting_slashed = claim.vesting_amount.unwrap_or_default() * portion;
             let mut new_claim = claim.clone();
             new_claim.amount -= slashed;
+            new_claim.vesting_amount =
+                Some(claim.vesting_amount.unwrap_or_default() - vesting_slashed);
 
             self.claims
                 .replace(storage, key, Some(&new_claim), Some(&claim))?;
 
             total_slashed += slashed;
+            total_vesting_slashed += vesting_slashed;
         }
 
-        Ok(total_slashed)
+        Ok((total_slashed, total_vesting_slashed))
     }
 
     pub fn query_claims<Q: CustomQuery>(
