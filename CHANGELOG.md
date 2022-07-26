@@ -2,7 +2,21 @@
 
 ## [Unreleased](https://github.com/confio/poe-contracts/tree/HEAD)
 
-[Full Changelog](https://github.com/confio/poe-contracts/compare/v0.12.0...HEAD)
+[Full Changelog](https://github.com/confio/poe-contracts/compare/v0.13.0...HEAD)
+
+## [v0.13.0](https://github.com/confio/poe-contracts/tree/v0.13.0) (2022-07-26)
+
+[Full Changelog](https://github.com/confio/poe-contracts/compare/v0.12.0...v0.13.0)
+
+**Closed issues:**
+
+- bug when defining the jailing start time [\#162](https://github.com/confio/poe-contracts/issues/162)
+- \[tgrade-validator-voting\] Add proposal validation during creation [\#156](https://github.com/confio/poe-contracts/issues/156)
+
+**Merged pull requests:**
+
+- Older version migration helper [\#164](https://github.com/confio/poe-contracts/pull/164) ([maurolacy](https://github.com/maurolacy))
+- Validate proposal during creation [\#163](https://github.com/confio/poe-contracts/pull/163) ([maurolacy](https://github.com/maurolacy))
 
 ## [v0.12.0](https://github.com/confio/poe-contracts/tree/v0.12.0) (2022-07-14)
 
