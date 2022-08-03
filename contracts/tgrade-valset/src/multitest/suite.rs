@@ -494,6 +494,13 @@ impl Suite {
         Ok(diff)
     }
 
+    pub fn advance_blocks(&mut self, blocks: u64) -> AnyResult<Option<ValidatorDiff>> {
+        self.app.advance_blocks(blocks);
+        let (_, diff) = self.app.end_block()?;
+        self.app.begin_block(vec![])?;
+        Ok(diff)
+    }
+
     /// Timestamp of current block
     pub fn timestamp(&self) -> Timestamp {
         self.app.block_info().time

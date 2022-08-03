@@ -19,6 +19,7 @@ fn migration_can_alter_cfg() {
             &MigrateMsg {
                 min_points: Some(5),
                 max_validators: Some(10),
+                verify_validators: Some(true),
             },
         )
         .unwrap();

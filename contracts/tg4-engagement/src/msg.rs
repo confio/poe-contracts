@@ -98,27 +98,27 @@ pub enum QueryMsg {
     Hooks {},
     /// Return the current number of preauths. Returns PreauthResponse.
     Preauths {},
-    /// Return how much rewards are assigned for withdrawal to given address. Returns
+    /// Return how many rewards are assigned for withdrawal from the given address. Returns
     /// `RewardsResponse`.
     WithdrawableRewards { owner: String },
-    /// Return how much rewards were distributed in total by this contract. Returns
+    /// Return how many rewards were distributed in total by this contract. Returns
     /// `RewardsResponse`.
     DistributedRewards {},
-    /// Return how much funds were send to this contract since last `ExecuteMsg::DistribtueFunds`,
-    /// and wait for distribution. Returns `RewardsResponse`.
+    /// Return how many funds were sent to this contract since last `ExecuteMsg::DistributeFunds`,
+    /// and await for distribution. Returns `RewardsResponse`.
     UndistributedRewards {},
-    /// Returns address allowed for withdrawal funds assigned to owner. Returns `DelegateResponse`
+    /// Return address allowed for withdrawal of the funds assigned to owner. Returns `DelegateResponse`
     Delegated { owner: String },
-    /// Returns information about the halflife, including the duration in seconds, the last
-    /// and the next occurence.
+    /// Returns information about the half-life, including the duration in seconds, the last
+    /// and the next occurrence.
     Halflife {},
-    /// Returns information (bool) whether given address is an active slasher
+    /// Returns information (bool) about whether the given address is an active slasher
     IsSlasher { addr: String },
-    /// Returns all active slashers as vector of addresses
+    /// Returns all active slashers as a vector of addresses
     ListSlashers {},
     /// Returns rewards distribution data
     DistributionData {},
-    /// Returns withdraw adjustment
+    /// Returns withdraw adjustment data
     WithdrawAdjustmentData { addr: String },
 }
 

@@ -508,6 +508,7 @@ pub struct InstantiateResponse {
 pub struct MigrateMsg {
     pub min_points: Option<u64>,
     pub max_validators: Option<u32>,
+    pub verify_validators: Option<bool>,
 }
 
 #[cfg(test)]
