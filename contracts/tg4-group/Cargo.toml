@@ -1,6 +1,6 @@
 [package]
 name = "tg4-group"
-version = "0.13.0"
+version = "0.14.0"
 authors = ["Mauro Lacy <mauro@confio.gmbh>"]
 edition = "2018"
 description = "Simple tg4 implementation of group membership controlled by admin"
@@ -34,7 +34,7 @@ cw-controllers = "0.14.0"
 cw-storage-plus = "0.14.0"
 schemars = "0.8.1"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
-tg4 = { version = "0.13.0", path = "../../packages/tg4" }
+tg4 = { version = "0.14.0", path = "../../packages/tg4" }
 thiserror = { version = "1.0.23" }
 
 [dev-dependencies]
