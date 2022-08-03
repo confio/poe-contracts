@@ -23,7 +23,7 @@ use tg_bindings::{
 use tg_utils::{ensure_from_older_version, JailingDuration, SlashMsg, ADMIN};
 
 use crate::error::ContractError;
-use crate::migration::migrate_jailing_period;
+use crate::migration::{migrate_jailing_period, migrate_verify_validators};
 use crate::msg::{
     EpochResponse, ExecuteMsg, InstantiateMsg, InstantiateResponse, JailingEnd, JailingPeriod,
     ListActiveValidatorsResponse, ListValidatorResponse, ListValidatorSlashingResponse, MigrateMsg,
@@ -947,6 +947,8 @@ pub fn migrate(
     })?;
 
     migrate_jailing_period(deps.branch(), &original_version)?;
+
+    migrate_verify_validators(deps.branch(), &original_version)?;
 
     Ok(Response::new())
 }

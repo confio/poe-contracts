@@ -7,7 +7,7 @@ use tg_utils::Expiration;
 
 use crate::error::ContractError;
 use crate::msg::{JailingEnd, JailingPeriod};
-use crate::state::JAIL;
+use crate::state::{CONFIG, JAIL};
 
 /// `crate::msg::JailingPeriod` version from v0.6.2 and before
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
@@ -46,6 +46,21 @@ pub fn migrate_jailing_period<Q: CustomQuery>(
     for (addr, jailing_period) in jailings {
         JAIL.save(deps.storage, &addr, &jailing_period)?;
     }
+
+    Ok(())
+}
+
+pub fn migrate_verify_validators<Q: CustomQuery>(
+    deps: DepsMut<Q>,
+    version: &Version,
+) -> Result<(), ContractError> {
+    let mut config = if *version <= "0.14.0".parse::<Version>().unwrap() {
+        CONFIG.load(deps.storage)?
+    } else {
+        return Ok(());
+    };
+    config.verify_validators = true;
+    CONFIG.save(deps.storage, &config)?;
 
     Ok(())
 }
