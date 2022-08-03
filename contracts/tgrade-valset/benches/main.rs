@@ -42,8 +42,10 @@ fn main() {
 
     let mut deps = mock_instance_on_tgrade(WASM);
 
+    // No cache
     let to_address_msg = ExecuteMsg::PubkeyToAddress {
         pubkey: ed25519_pubkey.clone(),
+        cache: false,
     };
     let gas_before = deps.get_gas_left();
     let res: Response = execute(
@@ -58,7 +60,54 @@ fn main() {
     let sdk_gas = gas_used / GAS_MULTIPLIER;
 
     println!(
-        "{} = {} ({} SDK gas)",
+        "{} = {} (not cached) ({} SDK gas)",
+        [ed25519_pubkey.to_base64(), ".to_address()".to_string()].concat(),
+        address,
+        sdk_gas
+    );
+
+    // Cache
+    let to_address_msg = ExecuteMsg::PubkeyToAddress {
+        pubkey: ed25519_pubkey.clone(),
+        cache: true,
+    };
+    let gas_before = deps.get_gas_left();
+    let res: Response = execute(
+        &mut deps,
+        mock_env(),
+        mock_info("sender", &[]),
+        to_address_msg,
+    )
+    .unwrap();
+    let gas_used = gas_before - deps.get_gas_left();
+    let address = res.data.unwrap();
+    let sdk_gas = gas_used / GAS_MULTIPLIER;
+
+    println!(
+        "{} = {} (cached) ({} SDK gas)",
+        [ed25519_pubkey.to_base64(), ".to_address()".to_string()].concat(),
+        address,
+        sdk_gas
+    );
+
+    // Cache hit
+    let read_address_msg = ExecuteMsg::ReadPubkeyAddress {
+        pubkey: ed25519_pubkey.clone(),
+    };
+    let gas_before = deps.get_gas_left();
+    let res: Response = execute(
+        &mut deps,
+        mock_env(),
+        mock_info("sender", &[]),
+        read_address_msg,
+    )
+    .unwrap();
+    let gas_used = gas_before - deps.get_gas_left();
+    let address = res.data.unwrap();
+    let sdk_gas = gas_used / GAS_MULTIPLIER;
+
+    println!(
+        "{} = {} (cache hit) ({} SDK gas)",
         [ed25519_pubkey.to_base64(), ".to_address()".to_string()].concat(),
         address,
         sdk_gas

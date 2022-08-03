@@ -33,7 +33,7 @@ use crate::msg::{
 use crate::rewards::pay_block_rewards;
 use crate::state::{
     export, import, operators, Config, EpochInfo, OperatorInfo, ValidatorInfo, ValidatorSlashing,
-    ValsetState, BLOCK_SIGNERS, CONFIG, EPOCH, JAIL, VALIDATORS, VALIDATOR_SLASHING,
+    ValsetState, ADDRESS_CACHE, BLOCK_SIGNERS, CONFIG, EPOCH, JAIL, VALIDATORS, VALIDATOR_SLASHING,
     VALIDATOR_START_HEIGHT,
 };
 
@@ -179,7 +179,10 @@ pub fn execute(
         ExecuteMsg::SimulateValidatorSet { validators } => {
             execute_simulate_validators(deps, info, validators)
         }
-        ExecuteMsg::PubkeyToAddress { pubkey } => execute_pubkey_to_address(deps, info, pubkey),
+        ExecuteMsg::PubkeyToAddress { pubkey, cache } => {
+            execute_pubkey_to_address(deps, info, pubkey, cache)
+        }
+        ExecuteMsg::ReadPubkeyAddress { pubkey } => execute_read_pubkey_address(deps, info, pubkey),
     }
 }
 
@@ -405,11 +408,24 @@ fn execute_simulate_validators<Q: CustomQuery>(
 }
 
 fn execute_pubkey_to_address<Q: CustomQuery>(
-    _deps: DepsMut<Q>,
+    deps: DepsMut<Q>,
+    _info: MessageInfo,
+    pubkey: Ed25519Pubkey,
+    cache: bool,
+) -> Result<Response, ContractError> {
+    let address = pubkey.to_address();
+    if cache {
+        ADDRESS_CACHE.save(deps.storage, &pubkey.to_vec(), &address)?;
+    }
+    Ok(Response::new().set_data(address))
+}
+
+fn execute_read_pubkey_address<Q: CustomQuery>(
+    deps: DepsMut<Q>,
     _info: MessageInfo,
     pubkey: Ed25519Pubkey,
 ) -> Result<Response, ContractError> {
-    Ok(Response::new().set_data(pubkey.to_address()))
+    Ok(Response::new().set_data(ADDRESS_CACHE.load(deps.storage, &pubkey.to_vec())?))
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
