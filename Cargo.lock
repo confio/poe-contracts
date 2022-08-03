@@ -1796,6 +1796,7 @@ dependencies = [
  "cw-utils",
  "cw2",
  "derivative",
+ "hex-literal",
  "schemars",
  "semver",
  "serde",
