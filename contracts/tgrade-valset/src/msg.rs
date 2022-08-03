@@ -174,6 +174,12 @@ pub enum ExecuteMsg {
     SimulateValidatorSet {
         validators: Vec<ValidatorInfo>,
     },
+
+    /// This will compute an address from a Ed25519 public key. Used for benchmarking.
+    /// Returns AddressResponse.
+    PubkeyToAddress {
+        pubkey: Ed25519Pubkey,
+    },
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]

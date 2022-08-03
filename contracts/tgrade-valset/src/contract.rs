@@ -179,6 +179,7 @@ pub fn execute(
         ExecuteMsg::SimulateValidatorSet { validators } => {
             execute_simulate_validators(deps, info, validators)
         }
+        ExecuteMsg::PubkeyToAddress { pubkey } => execute_pubkey_to_address(deps, info, pubkey),
     }
 }
 
@@ -401,6 +402,14 @@ fn execute_simulate_validators<Q: CustomQuery>(
     VALIDATORS.save(deps.storage, &validators)?;
 
     Ok(Response::new())
+}
+
+fn execute_pubkey_to_address<Q: CustomQuery>(
+    _deps: DepsMut<Q>,
+    _info: MessageInfo,
+    pubkey: Ed25519Pubkey,
+) -> Result<Response, ContractError> {
+    Ok(Response::new().set_data(pubkey.to_address()))
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
