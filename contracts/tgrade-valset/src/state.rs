@@ -57,11 +57,8 @@ pub struct Config {
     /// Address of contract for validator group voting.
     pub validator_group: Addr,
 
-    /// When a validator joins the valset, verify they sign the first block since joining
-    /// or jail them for a period otherwise.
-    ///
-    /// The verification happens every time the validator becomes an active validator,
-    /// including when they are unjailed or when they just gain enough power to participate.
+    /// If this is enabled, signed blocks are watched for, and if a validator fails to sign any blocks
+    /// in a string of a number of blocks (typically 1000 blocks), they are jailed.
     pub verify_validators: bool,
 
     /// The duration to jail a validator for in case they don't sign their first epoch
