@@ -2,6 +2,7 @@
 //! It depends on a Wasm build being available, which you can create with `cargo wasm`.
 //! Then running `cargo bench` will validate we can properly call into that generated Wasm.
 //!
+use cosmwasm_std::ContractResult;
 use hex_literal::hex;
 use std::convert::TryFrom;
 
@@ -63,6 +64,27 @@ fn main() {
         "{} = {} (not cached) ({} SDK gas)",
         [ed25519_pubkey.to_base64(), ".to_address()".to_string()].concat(),
         address,
+        sdk_gas
+    );
+
+    // Cache miss
+    let read_address_msg = ExecuteMsg::ReadPubkeyAddress {
+        pubkey: ed25519_pubkey.clone(),
+    };
+    let gas_before = deps.get_gas_left();
+    let res: ContractResult<Response> = execute(
+        &mut deps,
+        mock_env(),
+        mock_info("sender", &[]),
+        read_address_msg,
+    );
+    assert!(res.is_err());
+    let gas_used = gas_before - deps.get_gas_left();
+    let sdk_gas = gas_used / GAS_MULTIPLIER;
+
+    println!(
+        "{} = N/A (cache miss) ({} SDK gas)",
+        [ed25519_pubkey.to_base64(), ".to_address()".to_string()].concat(),
         sdk_gas
     );
 
