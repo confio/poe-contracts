@@ -943,6 +943,9 @@ pub fn migrate(
         if let Some(max_validators) = msg.max_validators {
             cfg.max_validators = max_validators;
         }
+        if let Some(verify_validators) = msg.verify_validators {
+            cfg.verify_validators = verify_validators;
+        }
         Ok(cfg)
     })?;
 
