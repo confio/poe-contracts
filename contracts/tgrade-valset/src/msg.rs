@@ -174,6 +174,17 @@ pub enum ExecuteMsg {
     SimulateValidatorSet {
         validators: Vec<ValidatorInfo>,
     },
+
+    /// This will compute an address from a Ed25519 public key. Used for benchmarking.
+    /// If cache is true, the address will be cached in the state.
+    PubkeyToAddress {
+        pubkey: Ed25519Pubkey,
+        cache: bool,
+    },
+    /// This will read a stored address from a Ed25519 public key. Used for benchmarking.
+    ReadPubkeyAddress {
+        pubkey: Ed25519Pubkey,
+    },
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]

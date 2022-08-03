@@ -117,6 +117,9 @@ pub const VALIDATOR_SLASHING: Map<&Addr, Vec<ValidatorSlashing>> = Map::new("val
 /// is not jailed
 pub const JAIL: Map<&Addr, JailingPeriod> = Map::new("jail");
 
+/// Map of Ed25519 pubkeys to their addresses.
+pub const ADDRESS_CACHE: Map<&[u8], [u8; 20]> = Map::new("address_cache");
+
 /// This stores the info for an operator. Both their Tendermint key as well as
 /// their metadata.
 #[derive(Serialize, Deserialize, Clone, JsonSchema, Debug, PartialEq)]

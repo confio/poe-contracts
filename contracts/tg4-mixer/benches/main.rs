@@ -48,12 +48,12 @@ fn main() {
 
     println!();
     for (poe_fn_name, poe_fn, result, gas) in [
-        ("GeometricMean", GeometricMean {}, 22360, 5900100000),
+        ("GeometricMean", GeometricMean {}, 22360, 5721600000),
         (
             "Sigmoid",
             Sigmoid { max_points, p, s },
             MAX_POINTS,
-            89959950000,
+            89547900000,
         ),
         (
             "SigmoidSqrt",
@@ -62,7 +62,7 @@ fn main() {
                 s: s_sqrt,
             },
             997,
-            20597550000,
+            20303550000,
         ),
         (
             "AlgebraicSigmoid",
@@ -73,7 +73,7 @@ fn main() {
                 s,
             },
             996,
-            85284750000,
+            84871200000,
         ),
     ] {
         let benchmark_msg = QueryMsg::MixerFunction {
