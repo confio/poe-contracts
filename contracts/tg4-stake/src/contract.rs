@@ -464,12 +464,12 @@ pub fn execute_claim<Q: CustomQuery>(
         .add_attribute("sender", &info.sender);
 
     if !release.is_zero() {
-        let amount = coins(release.into(), config.denom.clone());
+        let amount = coin(release.into(), config.denom.clone());
         res = res
-            .add_attribute("liquid_tokens", coins_to_string(&amount))
+            .add_attribute("liquid_tokens", amount.to_string())
             .add_message(BankMsg::Send {
                 to_address: info.sender.clone().into(),
-                amount,
+                amount: vec![amount],
             });
     }
 
@@ -477,7 +477,7 @@ pub fn execute_claim<Q: CustomQuery>(
         let vesting_amount = coin(vesting_release.into(), config.denom);
         // Undelegate (unstake from contract) to sender's vesting account
         res = res
-            .add_attribute("vesting_tokens", coins_to_string(&[vesting_amount.clone()]))
+            .add_attribute("vesting_tokens", vesting_amount.to_string())
             .add_message(TgradeMsg::Undelegate {
                 funds: vesting_amount,
                 recipient: info.sender.to_string(),
@@ -485,15 +485,6 @@ pub fn execute_claim<Q: CustomQuery>(
     }
 
     Ok(res)
-}
-
-// TODO: put in cosmwasm-std (https://github.com/CosmWasm/cosmwasm/issues/1359)
-fn coins_to_string(coins: &[Coin]) -> String {
-    let strings: Vec<_> = coins
-        .iter()
-        .map(|c| format!("{}{}", c.amount, c.denom))
-        .collect();
-    strings.join(",")
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
