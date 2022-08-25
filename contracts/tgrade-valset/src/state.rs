@@ -57,11 +57,8 @@ pub struct Config {
     /// Address of contract for validator group voting.
     pub validator_group: Addr,
 
-    /// When a validator joins the valset, verify they sign the first block since joining
-    /// or jail them for a period otherwise.
-    ///
-    /// The verification happens every time the validator becomes an active validator,
-    /// including when they are unjailed or when they just gain enough power to participate.
+    /// If this is enabled, signed blocks are watched for, and if a validator fails to sign any blocks
+    /// in a string of a number of blocks (typically 1000 blocks), they are jailed.
     pub verify_validators: bool,
 
     /// The duration to jail a validator for in case they don't sign their first epoch
@@ -104,9 +101,10 @@ pub const EPOCH: Item<EpochInfo> = Item::new("epoch");
 /// This will be empty only on the first run.
 pub const VALIDATORS: Item<Vec<ValidatorInfo>> = Item::new("validators");
 
-/// A list of validators who have just became active and have yet to sign a block
-/// to verify they're online.
-pub const PENDING_VALIDATORS: Item<Vec<(Addr, Ed25519Pubkey)>> = Item::new("pending");
+/// A map of validators to block heights they had last signed a block.
+/// To verify they're online / active.
+/// The key are the first 20 bytes of the SHA-256 hashed validator pubkey (from Cosmos SDK).
+pub const BLOCK_SIGNERS: Map<&[u8], u64> = Map::new("block_signers");
 
 /// Map of operator addr to block height it initially became a validator. If operator doesn't
 /// appear in this map, he was never in the validator set.
