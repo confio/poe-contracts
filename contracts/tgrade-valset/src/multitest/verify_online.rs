@@ -123,7 +123,7 @@ fn verify_validators_jailing() {
 }
 
 #[test]
-fn validator_needs_to_verify_if_unjailed_1() {
+fn validator_needs_to_verify_if_unjailed() {
     let members = vec![
         "member1member1member1member1memb",
         "member2member2member2member2memb",
