@@ -118,8 +118,13 @@ where
     // ensure proposal exists and can be voted on
     let mut prop = proposals().load(deps.storage, proposal_id)?;
 
-    if prop.current_status(&env.block) != Status::Open {
+    if ![Status::Open, Status::Passed, Status::Rejected].contains(&prop.status) {
         return Err(ContractError::NotOpen {});
+    }
+
+    // if they are not expired
+    if prop.expires.is_expired(&env.block) {
+        return Err(ContractError::Expired {});
     }
 
     // use a snapshot of "start of proposal"
@@ -157,10 +162,11 @@ where
     P: Serialize + DeserializeOwned,
 {
     let mut proposal = proposals::<P>().load(storage, proposal_id)?;
-
+    // Update Status
+    proposal.update_status(&env.block);
     // We allow execution even after the proposal "expiration" as long as all votes come in before
     // that point. If it was approved on time, it can be executed any time.
-    if proposal.current_status(&env.block) != Status::Passed {
+    if proposal.status != Status::Passed {
         return Err(ContractError::WrongExecuteStatus {});
     }
 
