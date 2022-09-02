@@ -101,8 +101,7 @@ impl SuiteBuilder {
                         denom: denom.clone(),
                         amount,
                         recipient: owner.to_string(),
-                    })
-                    .into(),
+                    }),
                 )?;
                 Ok(())
             })
@@ -176,8 +175,7 @@ impl Suite {
                         denom,
                         amount: Uint128::new(amount),
                         recipient: owner,
-                    })
-                    .into(),
+                    }),
                 )?;
                 Ok(())
             })

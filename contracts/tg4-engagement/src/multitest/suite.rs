@@ -98,8 +98,7 @@ impl SuiteBuilder {
                         denom: denom.clone(),
                         amount: amount.into(),
                         recipient: addr.to_string(),
-                    })
-                    .into(),
+                    }),
                 )?;
             }
 
@@ -267,7 +266,7 @@ impl Suite {
         )
     }
 
-    pub fn is_slasher(&mut self, addr: &str) -> Result<bool, ContractError> {
+    pub fn is_slasher(&self, addr: &str) -> Result<bool, ContractError> {
         let is_slasher: bool = self.app.wrap().query_wasm_smart(
             self.contract.clone(),
             &QueryMsg::IsSlasher {

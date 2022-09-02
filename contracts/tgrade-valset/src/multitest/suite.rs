@@ -388,8 +388,7 @@ impl SuiteBuilder {
                             denom: coin.denom,
                             amount: coin.amount,
                             recipient: addr,
-                        })
-                        .into(),
+                        }),
                     )
                 })
                 .unwrap();
@@ -669,8 +668,7 @@ impl Suite {
                     denom,
                     amount: amount.into(),
                     recipient,
-                })
-                .into(),
+                }),
             )
         })
     }
