@@ -11,8 +11,8 @@ license = "Apache-2.0"
 [dependencies]
 anyhow = "1"
 cosmwasm-std = "1.0.0"
-cw-multi-test = "0.13.4"
-cw-storage-plus = "0.13.4"
+cw-multi-test = "0.14.0"
+cw-storage-plus = "0.14.0"
 schemars = "0.8"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
 tg-bindings = { version = "0.13.0", path = "../bindings" }
