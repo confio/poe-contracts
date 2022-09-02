@@ -7,12 +7,11 @@ use cosmwasm_std::{
 
 use cw2::set_contract_version;
 use cw_storage_plus::Bound;
-use cw_utils::maybe_addr;
+use cw_utils::{ensure_from_older_version, maybe_addr};
 
 use tg_bindings::{TgradeMsg, TgradeQuery};
 use tg_utils::{
-    ensure_from_older_version, validate_portion, SlashMsg, HOOKS, PREAUTH_HOOKS, PREAUTH_SLASHING,
-    SLASHERS, TOTAL,
+    validate_portion, SlashMsg, HOOKS, PREAUTH_HOOKS, PREAUTH_SLASHING, SLASHERS, TOTAL,
 };
 
 use tg4::{

@@ -9,7 +9,7 @@ use std::ops::Sub;
 
 use cw2::set_contract_version;
 use cw_storage_plus::Bound;
-use cw_utils::maybe_addr;
+use cw_utils::{ensure_from_older_version, maybe_addr};
 use tg4::{
     HooksResponse, Member, MemberChangedHookMsg, MemberDiff, MemberInfo, MemberListResponse,
     MemberResponse, TotalPointsResponse,
@@ -18,8 +18,8 @@ use tg_bindings::{
     request_privileges, Privilege, PrivilegeChangeMsg, TgradeMsg, TgradeQuery, TgradeSudoMsg,
 };
 use tg_utils::{
-    ensure_from_older_version, members, validate_portion, Duration, ADMIN, HOOKS, PREAUTH_HOOKS,
-    PREAUTH_SLASHING, SLASHERS, TOTAL,
+    members, validate_portion, Duration, ADMIN, HOOKS, PREAUTH_HOOKS, PREAUTH_SLASHING, SLASHERS,
+    TOTAL,
 };
 
 use crate::error::ContractError;

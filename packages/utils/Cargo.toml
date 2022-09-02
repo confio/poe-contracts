@@ -12,10 +12,10 @@ license = "Apache-2.0"
 
 [dependencies]
 cosmwasm-std = "1.0.0"
-cw-utils = "0.13.4"
-cw-controllers = "0.13.4"
-cw-storage-plus = "0.13.4"
-cw2 = "0.13.4"
+cw-utils = "0.14.0"
+cw-controllers = "0.14.0"
+cw-storage-plus = "0.14.0"
+cw2 = "0.14.0"
 schemars = "0.8.1"
 semver = "1"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
