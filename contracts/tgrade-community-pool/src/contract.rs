@@ -6,8 +6,8 @@ use cosmwasm_std::{
 };
 
 use cw2::set_contract_version;
+use cw_utils::ensure_from_older_version;
 use tg_bindings::{TgradeMsg, TgradeQuery};
-use tg_utils::ensure_from_older_version;
 
 use crate::msg::{ExecuteMsg, InstantiateMsg, Proposal, QueryMsg};
 use crate::ContractError;

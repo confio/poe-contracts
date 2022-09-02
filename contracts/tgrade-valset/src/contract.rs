@@ -12,7 +12,7 @@ use cosmwasm_std::{
 use cw2::set_contract_version;
 use cw_controllers::AdminError;
 use cw_storage_plus::Bound;
-use cw_utils::{maybe_addr, parse_reply_instantiate_data};
+use cw_utils::{ensure_from_older_version, maybe_addr, parse_reply_instantiate_data};
 
 use tg4::{Member, Tg4Contract};
 use tg_bindings::{
@@ -20,7 +20,7 @@ use tg_bindings::{
     Pubkey, TgradeMsg, TgradeQuery, TgradeSudoMsg, ToAddress, ValidatorDiff, ValidatorUpdate,
     ValidatorVoteResponse,
 };
-use tg_utils::{ensure_from_older_version, JailingDuration, SlashMsg, ADMIN};
+use tg_utils::{JailingDuration, SlashMsg, ADMIN};
 
 use crate::error::ContractError;
 use crate::migration::migrate_jailing_period;
