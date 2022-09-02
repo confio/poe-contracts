@@ -368,5 +368,60 @@ fn expired_proposals_cannot_be_voted_on() {
     // Bob can't vote on the expired proposal
     let err = suite.vote("bob", proposal_id, Vote::Yes).unwrap_err();
     // proposal that is open and expired is rejected
-    assert_eq!(ContractError::NotOpen {}, err.downcast().unwrap());
+    assert_eq!(ContractError::Expired {}, err.downcast().unwrap());
+}
+
+#[test]
+fn proposal_pass_on_expiration() {
+    let rules = RulesBuilder::new()
+        .with_threshold(Decimal::percent(51))
+        .with_quorum(Decimal::percent(35))
+        .build();
+
+    let mut suite = SuiteBuilder::new()
+        .with_member("alice", 1)
+        .with_member("bob", 2)
+        .with_rules(rules.clone())
+        .build();
+
+    // Create proposal with 1 voting power
+    let response = suite.propose("alice", "cool proposal", "proposal").unwrap();
+    let proposal_id: u64 = get_proposal_id(&response).unwrap();
+
+    // Bob can vote on the proposal
+    let _ = suite.vote("bob", proposal_id, Vote::Yes).unwrap();
+
+    // Move time forward so voting ends
+    suite.app.advance_seconds(rules.voting_period_secs());
+
+    // Verify proposal is now passed
+    let prop = suite.query_proposal(proposal_id).unwrap();
+    assert_eq!(prop.status, Status::Passed);
+
+    // Alice can't vote on the proposal
+    let err = suite.vote("alice", proposal_id, Vote::Yes).unwrap_err();
+
+    // proposal that is open and expired is rejected
+    assert_eq!(ContractError::Expired {}, err.downcast().unwrap());
+
+    // Move time forward more so proposal expires
+    suite.app.advance_seconds(prop.expires.time().seconds());
+
+    // But she can execute the proposal
+    let _ = suite.execute_proposal("alice", proposal_id).unwrap();
+
+    // Verify proposal is now 'executed'
+    let prop = suite.query_proposal(proposal_id).unwrap();
+    assert_eq!(prop.status, Status::Executed);
+
+    // Closing should NOT be possible
+    let err = suite
+    .close(
+        "bob",
+        proposal_id
+    )
+    .unwrap_err();
+    assert_eq!(ContractError::WrongCloseStatus {}, err.downcast().unwrap());
+
+    
 }
