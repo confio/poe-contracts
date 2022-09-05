@@ -415,13 +415,6 @@ fn proposal_pass_on_expiration() {
     assert_eq!(prop.status, Status::Executed);
 
     // Closing should NOT be possible
-    let err = suite
-    .close(
-        "bob",
-        proposal_id
-    )
-    .unwrap_err();
+    let err = suite.close("bob", proposal_id).unwrap_err();
     assert_eq!(ContractError::WrongCloseStatus {}, err.downcast().unwrap());
-
-    
 }
