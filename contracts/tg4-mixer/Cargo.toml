@@ -23,10 +23,10 @@ library = []
 
 [dependencies]
 cosmwasm-std = "1.0.0"
-cw-utils = "0.13.4"
-cw2 = "0.13.4"
-cw20 = "0.13.4"
-cw-storage-plus = "0.13.4"
+cw-utils = "0.14.0"
+cw2 = "0.14.0"
+cw20 = "0.14.0"
+cw-storage-plus = "0.14.0"
 integer-sqrt = "0.1.5"
 rust_decimal = { version = "1.16", default-features = false, features = ["maths"] }
 rust_decimal_macros = { version = "1.16", default-features = false }
@@ -41,7 +41,7 @@ tg-bindings = { path = "../../packages/bindings", version = "0.13.0" }
 cosmwasm-schema = "1.0.0"
 # bench dependencies
 cosmwasm-vm = { version = "1.0.0" }
-cw-multi-test = "0.13.4"
+cw-multi-test = "0.14.0"
 tg4-engagement = { path = "../tg4-engagement", version = "0.13.0", features = ["library"] }
 tg4-stake = { path = "../tg4-stake", version = "0.13.0", features = ["library"] }
 

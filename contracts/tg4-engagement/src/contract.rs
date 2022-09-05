@@ -6,7 +6,7 @@ use cosmwasm_std::{
 };
 use cw2::set_contract_version;
 use cw_storage_plus::Bound;
-use cw_utils::maybe_addr;
+use cw_utils::{ensure_from_older_version, maybe_addr};
 use tg4::{
     HooksResponse, Member, MemberChangedHookMsg, MemberDiff, MemberInfo, MemberListResponse,
     MemberResponse, TotalPointsResponse,
@@ -22,10 +22,7 @@ use crate::state::{
     SHARES_SHIFT, SLASHERS, WITHDRAW_ADJUSTMENT,
 };
 use tg_bindings::{request_privileges, Privilege, PrivilegeChangeMsg, TgradeMsg, TgradeQuery};
-use tg_utils::{
-    ensure_from_older_version, members, validate_portion, Duration, ADMIN, HOOKS, PREAUTH_HOOKS,
-    TOTAL,
-};
+use tg_utils::{members, validate_portion, Duration, ADMIN, HOOKS, PREAUTH_HOOKS, TOTAL};
 
 pub type Response = cosmwasm_std::Response<TgradeMsg>;
 pub type SubMsg = cosmwasm_std::SubMsg<TgradeMsg>;

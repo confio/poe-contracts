@@ -194,8 +194,7 @@ impl Suite {
                         denom,
                         amount: amount.into(),
                         recipient: owner.to_string(),
-                    })
-                    .into(),
+                    }),
                 )?;
 
                 Ok(())
@@ -227,8 +226,7 @@ impl Suite {
                         denom,
                         amount: amount.into(),
                         recipient: owner.to_string(),
-                    })
-                    .into(),
+                    }),
                 )?;
 
                 Ok(())

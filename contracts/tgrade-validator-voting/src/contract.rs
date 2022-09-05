@@ -5,11 +5,11 @@ use cosmwasm_std::{
 };
 
 use cw2::set_contract_version;
+use cw_utils::ensure_from_older_version;
 use tg_bindings::{
     request_privileges, BlockParams, ConsensusParams, EvidenceParams, GovProposal, Privilege,
     PrivilegeChangeMsg, TgradeMsg, TgradeQuery, TgradeSudoMsg,
 };
-use tg_utils::ensure_from_older_version;
 
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg, ValidatorProposal};
 use crate::ContractError;
