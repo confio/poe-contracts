@@ -389,7 +389,7 @@ fn proposal_pass_on_expiration() {
     let proposal_id: u64 = get_proposal_id(&response).unwrap();
 
     // Bob can vote on the proposal
-    let _ = suite.vote("bob", proposal_id, Vote::Yes).unwrap();
+    suite.vote("bob", proposal_id, Vote::Yes).unwrap();
 
     // Move time forward so voting ends
     suite.app.advance_seconds(rules.voting_period_secs());
@@ -401,14 +401,11 @@ fn proposal_pass_on_expiration() {
     // Alice can't vote on the proposal
     let err = suite.vote("alice", proposal_id, Vote::Yes).unwrap_err();
 
-    // proposal that is open and expired is rejected
+    // cannot vote on proposal as it has expired
     assert_eq!(ContractError::Expired {}, err.downcast().unwrap());
 
-    // Move time forward more so proposal expires
-    suite.app.advance_seconds(prop.expires.time().seconds());
-
     // But she can execute the proposal
-    let _ = suite.execute_proposal("alice", proposal_id).unwrap();
+    suite.execute_proposal("alice", proposal_id).unwrap();
 
     // Verify proposal is now 'executed'
     let prop = suite.query_proposal(proposal_id).unwrap();

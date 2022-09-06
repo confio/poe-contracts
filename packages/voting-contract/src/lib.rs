@@ -166,7 +166,7 @@ where
     proposal.update_status(&env.block);
     // We allow execution even after the proposal "expiration" as long as all votes come in before
     // that point. If it was approved on time, it can be executed any time.
-    if proposal.status != Status::Passed {
+    if proposal.current_status(&env.block) != Status::Passed {
         return Err(ContractError::WrongExecuteStatus {});
     }
 
