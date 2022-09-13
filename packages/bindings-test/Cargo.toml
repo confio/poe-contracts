@@ -1,6 +1,6 @@
 [package]
 name = "tg-bindings-test"
-version = "0.13.0"
+version = "0.14.0"
 authors = ["Ethan Frey <ethanfrey@users.noreply.github.com>"]
 edition = "2018"
 description = "Multitest (and other test helpers) support for Tgrade-specific contracts"
@@ -15,5 +15,5 @@ cw-multi-test = "0.14.0"
 cw-storage-plus = "0.14.0"
 schemars = "0.8"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
-tg-bindings = { version = "0.13.0", path = "../bindings" }
+tg-bindings = { version = "0.14.0", path = "../bindings" }
 thiserror = "1.0.21"

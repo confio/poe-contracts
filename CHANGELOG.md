@@ -2,7 +2,33 @@
 
 ## [Unreleased](https://github.com/confio/poe-contracts/tree/HEAD)
 
-[Full Changelog](https://github.com/confio/poe-contracts/compare/v0.13.0...HEAD)
+[Full Changelog](https://github.com/confio/poe-contracts/compare/v0.14.0...HEAD)
+
+## [v0.14.0](https://github.com/confio/poe-contracts/tree/v0.14.0) (2022-09-13)
+
+[Full Changelog](https://github.com/confio/poe-contracts/compare/v0.13.0...v0.14.0)
+
+**Fixed bugs:**
+
+- Zero amount claims during release [\#180](https://github.com/confio/poe-contracts/issues/180)
+
+**Closed issues:**
+
+- Backport multisig fixes to voting contracts [\#176](https://github.com/confio/poe-contracts/issues/176)
+- Benchmark `Ed25519Pubkey::to_address` [\#172](https://github.com/confio/poe-contracts/issues/172)
+- \[tg4-stake\] Contract migration to integrate unbonding of vesting tokens [\#170](https://github.com/confio/poe-contracts/issues/170)
+- Deprecate `ensure_from_older_version` [\#165](https://github.com/confio/poe-contracts/issues/165)
+- Validator proposal creation should fail when description is empty [\#155](https://github.com/confio/poe-contracts/issues/155)
+- valset: do not jail validators on first missed vote with "VerifyValidators" enabled [\#149](https://github.com/confio/poe-contracts/issues/149)
+
+**Merged pull requests:**
+
+- Fix zero amounts during unbound and release [\#179](https://github.com/confio/poe-contracts/pull/179) ([maurolacy](https://github.com/maurolacy))
+- Backport multisig fixes to voting contracts [\#178](https://github.com/confio/poe-contracts/pull/178) ([0xFable](https://github.com/0xFable))
+- Deprecate `ensure_from_older_version` [\#177](https://github.com/confio/poe-contracts/pull/177) ([ueco-jb](https://github.com/ueco-jb))
+- Update mixer benchmark gas values [\#175](https://github.com/confio/poe-contracts/pull/175) ([maurolacy](https://github.com/maurolacy))
+- Remove / replace coins\_to\_string helper [\#174](https://github.com/confio/poe-contracts/pull/174) ([maurolacy](https://github.com/maurolacy))
+- Verify validators revisited [\#167](https://github.com/confio/poe-contracts/pull/167) ([maurolacy](https://github.com/maurolacy))
 
 ## [v0.13.0](https://github.com/confio/poe-contracts/tree/v0.13.0) (2022-07-26)
 
