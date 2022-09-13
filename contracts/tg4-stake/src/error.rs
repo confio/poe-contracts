@@ -33,8 +33,11 @@ pub enum ContractError {
     #[error("Sent unsupported denoms, must send '{0}' to stake")]
     ExtraDenoms(String),
 
-    #[error("Must send valid address to stake")]
-    InvalidDenom(String),
+    #[error("Must send valid amount to unbond")]
+    ZeroAmount {},
+
+    #[error("Must send valid denom to unbond")]
+    InvalidDenom {},
 
     #[error("Missed address or denom")]
     MixedNativeAndCw20(String),

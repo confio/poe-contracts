@@ -205,11 +205,15 @@ pub fn execute_unbond<Q: CustomQuery>(
     amount: Uint128,
     denom: String,
 ) -> Result<Response, ContractError> {
+    if amount.is_zero() {
+        return Err(ContractError::ZeroAmount {});
+    }
+
     // provide them a claim
     let cfg = CONFIG.load(deps.storage)?;
 
     if cfg.denom != denom {
-        return Err(ContractError::InvalidDenom(denom));
+        return Err(ContractError::InvalidDenom {});
     }
 
     // Load stake first for comparison
@@ -1187,6 +1191,30 @@ mod tests {
             .unwrap()
             .members;
         assert_eq!(members.len(), 0);
+    }
+
+    #[test]
+    fn unbond_validations() {
+        let mut deps = mock_deps_tgrade();
+        default_instantiate(deps.as_mut());
+
+        // Zero amount unbonds are rejected
+        let msg = ExecuteMsg::Unbond {
+            tokens: coin(0, DENOM),
+        };
+        let env = mock_env();
+        let info = mock_info(USER1, &[]);
+        let err = execute(deps.as_mut(), env, info, msg).unwrap_err();
+        assert_eq!(ContractError::ZeroAmount {}, err);
+
+        // Invalid denom unbonds are rejected
+        let msg = ExecuteMsg::Unbond {
+            tokens: coin(1234, "INV"),
+        };
+        let env = mock_env();
+        let info = mock_info(USER1, &[]);
+        let err = execute(deps.as_mut(), env, info, msg).unwrap_err();
+        assert_eq!(ContractError::InvalidDenom {}, err);
     }
 
     #[test]
@@ -2384,7 +2412,7 @@ mod tests {
             let info = mock_info(USER1, &[]);
             let err = execute(deps.as_mut(), env, info, msg).unwrap_err();
 
-            assert_eq!(ContractError::InvalidDenom("invalid".to_owned()), err);
+            assert_eq!(ContractError::InvalidDenom {}, err);
         }
     }
 }
