@@ -1,7 +1,7 @@
 :
 
 U="cosmwasm"
-V="0.12.6"
+V="0.12.7"
 
 M=$(uname -m)
 A="linux/${M/x86_64/amd64}"
