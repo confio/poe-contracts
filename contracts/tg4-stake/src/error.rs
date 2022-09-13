@@ -39,15 +39,9 @@ pub enum ContractError {
     #[error("Must send valid denom to unbond")]
     InvalidDenom {},
 
-    #[error("Missed address or denom")]
-    MixedNativeAndCw20(String),
-
     #[error("No funds sent")]
     NoFunds {},
 
     #[error("Unrecognized sudo message")]
     UnknownSudoMsg {},
-
-    #[error("Cw20 coins release functionality is in progress")]
-    Cw20CoinsRelease {},
 }
