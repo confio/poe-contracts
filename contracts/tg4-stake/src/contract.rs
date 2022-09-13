@@ -539,6 +539,7 @@ fn release_expired_claims<Q: CustomQuery>(
 
     releases
         .into_iter()
+        .filter(|(_, amount)| !amount.is_zero())
         .map(|(addr, amount)| {
             let amount = coins(amount.into(), config.denom.clone());
             Ok(SubMsg::new(BankMsg::Send {
