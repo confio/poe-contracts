@@ -34,8 +34,11 @@ fn migration_can_alter_cfg() {
     assert_eq!(cfg.max_validators, 10);
     assert_eq!(cfg.min_points, 5);
     assert!(cfg.verify_validators);
-    assert_eq!(cfg.distribution_contracts, vec![DistributionContract {
-        contract: Addr::unchecked("engagement1".to_string()),
-        ratio: Decimal::percent(50),
-    }]);
+    assert_eq!(
+        cfg.distribution_contracts,
+        vec![DistributionContract {
+            contract: Addr::unchecked("engagement1".to_string()),
+            ratio: Decimal::percent(50),
+        }]
+    );
 }
