@@ -48,7 +48,7 @@ fn main() {
 
     println!();
     for (poe_fn_name, poe_fn, result, gas) in [
-        ("GeometricMean", GeometricMean {}, 22360, 5729550000),
+        ("GeometricMean", GeometricMean {}, 22360, 5729550000i64),
         (
             "Sigmoid",
             Sigmoid { max_points, p, s },
@@ -99,6 +99,10 @@ fn main() {
             "{} result",
             poe_fn_name
         );
-        assert_eq!(gas, gas_used, "{} gas", poe_fn_name);
+        assert!(
+            (gas - gas_used as i64).abs() < gas / 10,
+            "{} gas",
+            poe_fn_name
+        );
     }
 }
