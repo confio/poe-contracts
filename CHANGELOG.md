@@ -2,7 +2,20 @@
 
 ## [Unreleased](https://github.com/confio/poe-contracts/tree/HEAD)
 
-[Full Changelog](https://github.com/confio/poe-contracts/compare/v0.14.0...HEAD)
+[Full Changelog](https://github.com/confio/poe-contracts/compare/v0.15.0...HEAD)
+
+## [v0.15.0](https://github.com/confio/poe-contracts/tree/v0.15.0) (2022-09-19)
+
+[Full Changelog](https://github.com/confio/poe-contracts/compare/v0.14.0...v0.15.0)
+
+**Closed issues:**
+
+- tgrade-valset: Wrong automatic jailing logic [\#184](https://github.com/confio/poe-contracts/issues/184)
+
+**Merged pull requests:**
+
+- tgrade-valset migrate contract update [\#186](https://github.com/confio/poe-contracts/pull/186) ([maurolacy](https://github.com/maurolacy))
+- Update config extensions [\#185](https://github.com/confio/poe-contracts/pull/185) ([maurolacy](https://github.com/maurolacy))
 
 ## [v0.14.0](https://github.com/confio/poe-contracts/tree/v0.14.0) (2022-09-13)
 
