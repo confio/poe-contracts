@@ -997,6 +997,9 @@ pub fn migrate(
         if let Some(max_validators) = msg.max_validators {
             cfg.max_validators = max_validators;
         }
+        if let Some(distribution_contracts) = msg.distribution_contracts {
+            cfg.distribution_contracts = distribution_contracts;
+        }
         if let Some(verify_validators) = msg.verify_validators {
             cfg.verify_validators = verify_validators;
         }

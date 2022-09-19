@@ -547,6 +547,7 @@ pub struct InstantiateResponse {
 pub struct MigrateMsg {
     pub min_points: Option<u64>,
     pub max_validators: Option<u32>,
+    pub distribution_contracts: Option<Vec<DistributionContract>>,
     pub verify_validators: Option<bool>,
 }
 
