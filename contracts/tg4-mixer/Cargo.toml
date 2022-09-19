@@ -1,6 +1,6 @@
 [package]
 name = "tg4-mixer"
-version = "0.14.0"
+version = "0.15.0"
 authors = ["Ethan Frey <ethanfrey@users.noreply.github.com>"]
 edition = "2018"
 description = "TG4 implementation that combines two different groups with a merge function"
@@ -22,28 +22,28 @@ backtraces = ["cosmwasm-std/backtraces"]
 library = []
 
 [dependencies]
-cosmwasm-std = "1.0.0"
-cw-utils = "0.14.0"
-cw2 = "0.14.0"
-cw20 = "0.14.0"
-cw-storage-plus = "0.14.0"
+cosmwasm-std = "1.1.0"
+cw-utils = "0.15.0"
+cw2 = "0.15.0"
+cw20 = "0.15.0"
+cw-storage-plus = "0.15.0"
 integer-sqrt = "0.1.5"
 rust_decimal = { version = "1.16", default-features = false, features = ["maths"] }
 rust_decimal_macros = { version = "1.16", default-features = false }
 thiserror = "1.0.21"
 schemars = "0.8"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
-tg4 = { path = "../../packages/tg4", version = "0.14.0" }
-tg-utils = { path = "../../packages/utils", version = "0.14.0" }
-tg-bindings = { path = "../../packages/bindings", version = "0.14.0" }
+tg4 = { path = "../../packages/tg4", version = "0.15.0" }
+tg-utils = { path = "../../packages/utils", version = "0.15.0" }
+tg-bindings = { path = "../../packages/bindings", version = "0.15.0" }
 
 [dev-dependencies]
-cosmwasm-schema = "1.0.0"
+cosmwasm-schema = "1.1.0"
 # bench dependencies
-cosmwasm-vm = { version = "1.0.0" }
-cw-multi-test = "0.14.0"
-tg4-engagement = { path = "../tg4-engagement", version = "0.14.0", features = ["library"] }
-tg4-stake = { path = "../tg4-stake", version = "0.14.0", features = ["library"] }
+cosmwasm-vm = { version = "1.1.0" }
+cw-multi-test = "0.15.0"
+tg4-engagement = { path = "../tg4-engagement", version = "0.15.0", features = ["library"] }
+tg4-stake = { path = "../tg4-stake", version = "0.15.0", features = ["library"] }
 
 [[bench]]
 name = "main"

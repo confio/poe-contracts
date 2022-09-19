@@ -1,6 +1,6 @@
 [package]
 name = "tg4-engagement"
-version = "0.14.0"
+version = "0.15.0"
 authors = ["Ethan Frey <ethanfrey@users.noreply.github.com>"]
 edition = "2018"
 description = "Simple TG4 implementation of group membership controlled by an admin"
@@ -20,21 +20,21 @@ backtraces = ["cosmwasm-std/backtraces"]
 library = []
 
 [dependencies]
-cosmwasm-std = "1.0.0"
-cw-controllers = "0.14.0"
-cw-storage-plus = "0.14.0"
-cw-utils = "0.14.0"
-cw2 = "0.14.0"
-tg-utils = { version = "0.14.0", path = "../../packages/utils" }
-tg-bindings = { version = "0.14.0", path = "../../packages/bindings" }
-tg4 = { path = "../../packages/tg4", version = "0.14.0" }
+cosmwasm-std = "1.1.0"
+cw-controllers = "0.15.0"
+cw-storage-plus = "0.15.0"
+cw-utils = "0.15.0"
+cw2 = "0.15.0"
+tg-utils = { version = "0.15.0", path = "../../packages/utils" }
+tg-bindings = { version = "0.15.0", path = "../../packages/bindings" }
+tg4 = { path = "../../packages/tg4", version = "0.15.0" }
 schemars = "0.8"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
 thiserror = "1.0.21"
 
 [dev-dependencies]
 anyhow = "1"
-cosmwasm-schema = "1.0.0"
-cw-multi-test = "0.14.0"
+cosmwasm-schema = "1.1.0"
+cw-multi-test = "0.15.0"
 derivative = "2"
-tg-bindings-test = { version = "0.14.0", path = "../../packages/bindings-test" }
+tg-bindings-test = { version = "0.15.0", path = "../../packages/bindings-test" }

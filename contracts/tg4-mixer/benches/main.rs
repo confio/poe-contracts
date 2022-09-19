@@ -7,7 +7,7 @@ use cosmwasm_vm::testing::{
     mock_env, mock_instance_with_options, query, MockApi, MockInstanceOptions, MockQuerier,
     MockStorage,
 };
-use cosmwasm_vm::{features_from_csv, from_slice, Instance};
+use cosmwasm_vm::{capabilities_from_csv, from_slice, Instance};
 
 use tg4_mixer::msg::PoEFunctionType::{AlgebraicSigmoid, GeometricMean, Sigmoid, SigmoidSqrt};
 use tg4_mixer::msg::{MixerFunctionResponse, QueryMsg};
@@ -16,7 +16,7 @@ fn mock_instance_on_tgrade(wasm: &[u8]) -> Instance<MockApi, MockStorage, MockQu
     mock_instance_with_options(
         wasm,
         MockInstanceOptions {
-            supported_features: features_from_csv("iterator,tgrade"),
+            available_capabilities: capabilities_from_csv("iterator,tgrade"),
             gas_limit: 100_000_000_000_000,
             ..Default::default()
         },
@@ -48,12 +48,12 @@ fn main() {
 
     println!();
     for (poe_fn_name, poe_fn, result, gas) in [
-        ("GeometricMean", GeometricMean {}, 22360, 5721600000),
+        ("GeometricMean", GeometricMean {}, 22360, 5729550000i64),
         (
             "Sigmoid",
             Sigmoid { max_points, p, s },
             MAX_POINTS,
-            89547900000,
+            89533650000,
         ),
         (
             "SigmoidSqrt",
@@ -62,7 +62,7 @@ fn main() {
                 s: s_sqrt,
             },
             997,
-            20303550000,
+            20300700000,
         ),
         (
             "AlgebraicSigmoid",
@@ -73,7 +73,7 @@ fn main() {
                 s,
             },
             996,
-            84871200000,
+            84850050000,
         ),
     ] {
         let benchmark_msg = QueryMsg::MixerFunction {
@@ -99,6 +99,10 @@ fn main() {
             "{} result",
             poe_fn_name
         );
-        assert_eq!(gas, gas_used, "{} gas", poe_fn_name);
+        assert!(
+            (gas - gas_used as i64).abs() < gas / 10,
+            "{} gas",
+            poe_fn_name
+        );
     }
 }

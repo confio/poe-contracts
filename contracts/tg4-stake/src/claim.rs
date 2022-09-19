@@ -72,7 +72,7 @@ impl<'a> Claims<'a> {
     pub fn new(storage_key: &'a str, release_subkey: &'a str) -> Self {
         let indexes = ClaimIndexes {
             release_at: MultiIndex::new(
-                |claim| claim.release_at.as_key(),
+                |_, claim| claim.release_at.as_key(),
                 storage_key,
                 release_subkey,
             ),
