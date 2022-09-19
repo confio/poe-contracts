@@ -986,7 +986,7 @@ pub fn migrate(
     _env: Env,
     msg: MigrateMsg,
 ) -> Result<Response, ContractError> {
-    let _ = ensure_from_older_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
+    ensure_from_older_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
 
     CONFIG.update::<_, StdError>(deps.storage, |mut cfg| {
         if let Some(min_points) = msg.min_points {
