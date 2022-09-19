@@ -34,7 +34,11 @@ pub struct Ballots<'a> {
 impl<'a> Ballots<'a> {
     pub fn new(storage_key: &'a str, release_subkey: &'a str) -> Self {
         let indexes = BallotIndexes {
-            voter: MultiIndex::new(|ballot| ballot.voter.clone(), storage_key, release_subkey),
+            voter: MultiIndex::new(
+                |_, ballot| ballot.voter.clone(),
+                storage_key,
+                release_subkey,
+            ),
         };
         let ballots = IndexedMap::new(storage_key, indexes);
 

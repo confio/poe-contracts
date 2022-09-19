@@ -32,7 +32,7 @@ impl<'a> IndexList<MemberInfo> for MemberIndexes<'a> {
 /// The points index is not snapshotted; only the current points are indexed at any given time.
 pub fn members<'a>() -> IndexedSnapshotMap<'a, &'a Addr, MemberInfo, MemberIndexes<'a>> {
     let indexes = MemberIndexes {
-        points: MultiIndex::new(|mi| mi.points, tg4::MEMBERS_KEY, "members__points"),
+        points: MultiIndex::new(|_, mi| mi.points, tg4::MEMBERS_KEY, "members__points"),
     };
     IndexedSnapshotMap::new(
         tg4::MEMBERS_KEY,

@@ -32,7 +32,7 @@ impl<'a> IndexList<MemberInfo> for MemberIndexes<'a> {
 pub fn members<'a>() -> IndexedSnapshotMap<'a, &'a Addr, MemberInfo, MemberIndexes<'a>> {
     let indexes = MemberIndexes {
         points_tie_break: MultiIndex::new(
-            |mi| (mi.points, mi.start_height.map_or(i64::MIN, |h| -(h as i64))), // Works as long as `start_height <= i64::MAX + 1`
+            |_, mi| (mi.points, mi.start_height.map_or(i64::MIN, |h| -(h as i64))), // Works as long as `start_height <= i64::MAX + 1`
             tg4::MEMBERS_KEY,
             "members__points_tie_break",
         ),
