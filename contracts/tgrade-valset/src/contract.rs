@@ -700,17 +700,22 @@ fn end_block(deps: DepsMut<TgradeQuery>, env: Env) -> Result<Response, ContractE
             })
             .try_for_each(|(v, ed25519_pubkey)| {
                 let operator_addr = &v.operator;
-                let validator_addr = ed25519_pubkey.to_address();
-                let mut height = BLOCK_SIGNERS.may_load(deps.storage, &validator_addr)?;
-                if height.is_none() {
-                    // Not a block signer yet, check their validator start height instead
-                    height = VALIDATOR_START_HEIGHT.may_load(deps.storage, operator_addr)?;
-                }
-                match height {
-                    Some(h) if h > env.block.height.saturating_sub(MISSED_BLOCKS) => Ok(()),
-                    _ => {
-                        // validator is inactive for at least MISSED_BLOCKS, jail!
-                        JAIL.save(deps.storage, operator_addr, &expiration)
+                // Check not already jailed
+                if JAIL.may_load(deps.storage, operator_addr)?.is_some() {
+                    Ok(())
+                } else {
+                    let validator_addr = ed25519_pubkey.to_address();
+                    let mut height = BLOCK_SIGNERS.may_load(deps.storage, &validator_addr)?;
+                    if height.is_none() {
+                        // Not a block signer yet, check their validator start height instead
+                        height = VALIDATOR_START_HEIGHT.may_load(deps.storage, operator_addr)?;
+                    }
+                    match height {
+                        Some(h) if h > env.block.height.saturating_sub(MISSED_BLOCKS) => Ok(()),
+                        _ => {
+                            // validator is inactive for at least MISSED_BLOCKS, jail!
+                            JAIL.save(deps.storage, operator_addr, &expiration)
+                        }
                     }
                 }
             })?;
