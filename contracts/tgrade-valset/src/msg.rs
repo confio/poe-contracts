@@ -135,8 +135,47 @@ pub enum ExecuteMsg {
     },
     /// Alter config values
     UpdateConfig {
+        /// minimum points needed by an address in `membership` to be considered for the validator set.
+        /// 0-point members are always filtered out.
         min_points: Option<u64>,
+        /// The maximum number of validators that can be included in the Tendermint validator set.
+        /// If there are more validators than slots, we select the top N by membership points
+        /// descending.
         max_validators: Option<u32>,
+        /// A scaling factor to multiply tg4-engagement points to produce the tendermint validator power
+        scaling: Option<u32>,
+        /// Total reward paid out each epoch. This will be split among all validators during the last
+        /// epoch.
+        /// (epoch_reward.amount * 86_400 * 30 / epoch_length) is reward tokens to mint each month.
+        /// Ensure this is sensible in relation to the total token supply.
+        epoch_reward: Option<Coin>,
+        /// Percentage of total accumulated fees which is subtracted from tokens minted as a rewards.
+        /// 50% as default. To disable this feature just set it to 0 (which effectively means that fees
+        /// doesn't affect the per epoch reward).
+        fee_percentage: Option<Decimal>,
+        /// Flag determining if validators should be automatically unjailed after jailing period, false
+        /// by default.
+        auto_unjail: Option<bool>,
+
+        /// Validators who are caught double signing are jailed forever and their bonded tokens are
+        /// slashed based on this value.
+        double_sign_slash_ratio: Option<Decimal>,
+
+        /// Addresses where part of the reward for non-validators is sent for further distribution. These are
+        /// required to handle the `Distribute {}` message (eg. tg4-engagement contract) which would
+        /// distribute the funds sent with this message.
+        /// The sum of ratios here has to be in the [0, 1] range. The remainder is sent to validators via the
+        /// rewards contract.
+        distribution_contracts: Option<Vec<DistributionContract>>,
+
+        /// If this is enabled, signed blocks are watched for, and if a validator fails to sign any blocks
+        /// in a string of a number of blocks (typically 1000 blocks), they are jailed.
+        verify_validators: Option<bool>,
+
+        /// The duration to jail a validator for in case they don't sign any blocks for a period of time,
+        /// if `verify_validators` is enabled.
+        /// After the jailing period, they will be jailed again if not signing blocks, ad infinitum.
+        offline_jail_duration: Option<Duration>,
     },
     /// Links info.sender (operator) to this Tendermint consensus key.
     /// The operator cannot re-register another key.
