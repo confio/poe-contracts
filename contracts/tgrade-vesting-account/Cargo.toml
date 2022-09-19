@@ -17,9 +17,9 @@ library = []
 
 [dependencies]
 cosmwasm-std = "1.1.0"
-cw-utils = "0.14.0"
-cw2 = "0.14.0"
-cw-storage-plus = "0.14.0"
+cw-utils = "0.15.0"
+cw2 = "0.15.0"
+cw-storage-plus = "0.15.0"
 schemars = "0.8.1"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
 tg-bindings = { version = "0.14.0", path = "../../packages/bindings" }
@@ -31,5 +31,5 @@ anyhow = "1"
 assert_matches = "1"
 derivative = "2"
 cosmwasm-schema = "1.1.0"
-cw-multi-test = "0.14.0"
+cw-multi-test = "0.15.0"
 tg-bindings-test = { version = "0.14.0", path = "../../packages/bindings-test" }
