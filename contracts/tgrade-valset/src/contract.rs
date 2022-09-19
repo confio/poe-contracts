@@ -23,7 +23,6 @@ use tg_bindings::{
 use tg_utils::{Duration, JailingDuration, SlashMsg, ADMIN};
 
 use crate::error::ContractError;
-use crate::migration::{migrate_jailing_period, migrate_verify_validators};
 use crate::msg::{
     EpochResponse, ExecuteMsg, InstantiateMsg, InstantiateResponse, JailingEnd, JailingPeriod,
     ListActiveValidatorsResponse, ListValidatorResponse, ListValidatorSlashingResponse, MigrateMsg,
@@ -983,12 +982,11 @@ fn calculate_diff(
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn migrate(
-    mut deps: DepsMut<TgradeQuery>,
+    deps: DepsMut<TgradeQuery>,
     _env: Env,
     msg: MigrateMsg,
 ) -> Result<Response, ContractError> {
-    let original_version =
-        ensure_from_older_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
+    ensure_from_older_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
 
     CONFIG.update::<_, StdError>(deps.storage, |mut cfg| {
         if let Some(min_points) = msg.min_points {
@@ -997,15 +995,14 @@ pub fn migrate(
         if let Some(max_validators) = msg.max_validators {
             cfg.max_validators = max_validators;
         }
+        if let Some(distribution_contracts) = msg.distribution_contracts {
+            cfg.distribution_contracts = distribution_contracts;
+        }
         if let Some(verify_validators) = msg.verify_validators {
             cfg.verify_validators = verify_validators;
         }
         Ok(cfg)
     })?;
-
-    migrate_jailing_period(deps.branch(), &original_version)?;
-
-    migrate_verify_validators(deps.branch(), &original_version)?;
 
     Ok(Response::new())
 }
