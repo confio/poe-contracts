@@ -10,7 +10,7 @@ license = "Apache-2.0"
 
 [dependencies]
 anyhow = "1"
-cosmwasm-std = "1.0.0"
+cosmwasm-std = "1.1.0"
 cw-multi-test = "0.14.0"
 cw-storage-plus = "0.14.0"
 schemars = "0.8"

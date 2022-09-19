@@ -24,7 +24,7 @@ crate-type = ["cdylib", "rlib"]
 backtraces = ["cosmwasm-std/backtraces"]
 
 [dependencies]
-cosmwasm-std = "1.0.0"
+cosmwasm-std = "1.1.0"
 cw-storage-plus = "0.14.0"
 schemars = "0.8.1"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
@@ -32,4 +32,4 @@ tg-bindings = { version = "0.14.0", path = "../../packages/bindings" }
 thiserror = "1"
 
 [dev-dependencies]
-cosmwasm-schema = "1.0.0"
+cosmwasm-schema = "1.1.0"
