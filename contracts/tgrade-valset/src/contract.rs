@@ -5,8 +5,8 @@ use std::convert::{TryFrom, TryInto};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    to_binary, Addr, Binary, BlockInfo, CustomQuery, Decimal, Deps, DepsMut, Env, MessageInfo,
-    Order, QueryRequest, Reply, StdError, StdResult, Timestamp, WasmMsg,
+    to_binary, Addr, Binary, BlockInfo, Coin, CustomQuery, Decimal, Deps, DepsMut, Env,
+    MessageInfo, Order, QueryRequest, Reply, StdError, StdResult, Timestamp, WasmMsg,
 };
 
 use cw2::set_contract_version;
@@ -20,10 +20,9 @@ use tg_bindings::{
     Pubkey, TgradeMsg, TgradeQuery, TgradeSudoMsg, ToAddress, ValidatorDiff, ValidatorUpdate,
     ValidatorVoteResponse,
 };
-use tg_utils::{JailingDuration, SlashMsg, ADMIN};
+use tg_utils::{Duration, JailingDuration, SlashMsg, ADMIN};
 
 use crate::error::ContractError;
-use crate::migration::{migrate_jailing_period, migrate_verify_validators};
 use crate::msg::{
     EpochResponse, ExecuteMsg, InstantiateMsg, InstantiateResponse, JailingEnd, JailingPeriod,
     ListActiveValidatorsResponse, ListValidatorResponse, ListValidatorSlashingResponse, MigrateMsg,
@@ -32,9 +31,9 @@ use crate::msg::{
 };
 use crate::rewards::pay_block_rewards;
 use crate::state::{
-    export, import, operators, Config, EpochInfo, OperatorInfo, ValidatorInfo, ValidatorSlashing,
-    ValsetState, BLOCK_SIGNERS, CONFIG, EPOCH, JAIL, VALIDATORS, VALIDATOR_SLASHING,
-    VALIDATOR_START_HEIGHT,
+    export, import, operators, Config, DistributionContract, EpochInfo, OperatorInfo,
+    ValidatorInfo, ValidatorSlashing, ValsetState, BLOCK_SIGNERS, CONFIG, EPOCH, JAIL, VALIDATORS,
+    VALIDATOR_SLASHING, VALIDATOR_START_HEIGHT,
 };
 
 // version info for migration info
@@ -164,7 +163,28 @@ pub fn execute(
         ExecuteMsg::UpdateConfig {
             min_points,
             max_validators,
-        } => execute_update_config(deps, info, min_points, max_validators),
+            scaling,
+            epoch_reward,
+            fee_percentage,
+            auto_unjail,
+            double_sign_slash_ratio,
+            distribution_contracts,
+            verify_validators,
+            offline_jail_duration,
+        } => execute_update_config(
+            deps,
+            info,
+            min_points,
+            max_validators,
+            scaling,
+            epoch_reward,
+            fee_percentage,
+            auto_unjail,
+            double_sign_slash_ratio,
+            distribution_contracts,
+            verify_validators,
+            offline_jail_duration,
+        ),
 
         ExecuteMsg::RegisterValidatorKey { pubkey, metadata } => {
             execute_register_validator_key(deps, env, info, pubkey, metadata)
@@ -182,11 +202,20 @@ pub fn execute(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn execute_update_config<Q: CustomQuery>(
     deps: DepsMut<Q>,
     info: MessageInfo,
     min_points: Option<u64>,
     max_validators: Option<u32>,
+    scaling: Option<u32>,
+    epoch_reward: Option<Coin>,
+    fee_percentage: Option<Decimal>,
+    auto_unjail: Option<bool>,
+    double_sign_slash_ratio: Option<Decimal>,
+    distribution_contracts: Option<Vec<DistributionContract>>,
+    verify_validators: Option<bool>,
+    offline_jail_duration: Option<Duration>,
 ) -> Result<Response, ContractError> {
     ADMIN.assert_admin(deps.as_ref(), &info.sender)?;
 
@@ -196,6 +225,30 @@ fn execute_update_config<Q: CustomQuery>(
         }
         if let Some(max_validators) = max_validators {
             cfg.max_validators = max_validators;
+        }
+        if let Some(scaling) = scaling {
+            cfg.scaling = Option::from(scaling);
+        }
+        if let Some(epoch_reward) = epoch_reward {
+            cfg.epoch_reward = epoch_reward;
+        }
+        if let Some(fee_percentage) = fee_percentage {
+            cfg.fee_percentage = fee_percentage;
+        }
+        if let Some(auto_unjail) = auto_unjail {
+            cfg.auto_unjail = auto_unjail;
+        }
+        if let Some(double_sign_slash_ratio) = double_sign_slash_ratio {
+            cfg.double_sign_slash_ratio = double_sign_slash_ratio;
+        }
+        if let Some(distribution_contracts) = distribution_contracts {
+            cfg.distribution_contracts = distribution_contracts;
+        }
+        if let Some(verify_validators) = verify_validators {
+            cfg.verify_validators = verify_validators;
+        }
+        if let Some(offline_jail_duration) = offline_jail_duration {
+            cfg.offline_jail_duration = offline_jail_duration;
         }
         Ok(cfg)
     })?;
@@ -929,12 +982,11 @@ fn calculate_diff(
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn migrate(
-    mut deps: DepsMut<TgradeQuery>,
+    deps: DepsMut<TgradeQuery>,
     _env: Env,
     msg: MigrateMsg,
 ) -> Result<Response, ContractError> {
-    let original_version =
-        ensure_from_older_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
+    ensure_from_older_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
 
     CONFIG.update::<_, StdError>(deps.storage, |mut cfg| {
         if let Some(min_points) = msg.min_points {
@@ -943,15 +995,14 @@ pub fn migrate(
         if let Some(max_validators) = msg.max_validators {
             cfg.max_validators = max_validators;
         }
+        if let Some(distribution_contracts) = msg.distribution_contracts {
+            cfg.distribution_contracts = distribution_contracts;
+        }
         if let Some(verify_validators) = msg.verify_validators {
             cfg.verify_validators = verify_validators;
         }
         Ok(cfg)
     })?;
-
-    migrate_jailing_period(deps.branch(), &original_version)?;
-
-    migrate_verify_validators(deps.branch(), &original_version)?;
 
     Ok(Response::new())
 }

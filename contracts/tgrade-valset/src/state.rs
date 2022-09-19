@@ -23,8 +23,7 @@ pub struct Config {
     pub min_points: u64,
     /// The maximum number of validators that can be included in the Tendermint validator set.
     /// If there are more validators than slots, we select the top N by membership points
-    /// descending. (In case of ties at the last slot, select by "first" tendermint pubkey
-    /// lexicographically sorted).
+    /// descending. In case of ties at the last slot, the first (oldest) validator wins.
     pub max_validators: u32,
     /// A scaling factor to multiply tg4-engagement points to produce the tendermint validator power
     pub scaling: Option<u32>,
@@ -61,8 +60,8 @@ pub struct Config {
     /// in a string of a number of blocks (typically 1000 blocks), they are jailed.
     pub verify_validators: bool,
 
-    /// The duration to jail a validator for in case they don't sign their first epoch
-    /// boundary block. After the period, they have to pass verification again, ad infinitum.
+    /// The duration to jail a validator for in case they don't sign any blocks for a period of time.
+    /// After the jailing period, they will be jailed again if not signing, ad infinitum.
     pub offline_jail_duration: Duration,
 }
 

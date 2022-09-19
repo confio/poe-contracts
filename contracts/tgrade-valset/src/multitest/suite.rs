@@ -1,5 +1,5 @@
 use super::helpers::addr_to_pubkey;
-use crate::state::{Config, ValsetState};
+use crate::state::{Config, DistributionContract, ValsetState};
 use crate::test_helpers::{mock_metadata, mock_pubkey};
 use crate::{msg::*, state::ValidatorInfo};
 use anyhow::{bail, Result as AnyResult};
@@ -589,6 +589,7 @@ impl Suite {
         executor: &str,
         min_points: impl Into<Option<u64>>,
         max_validators: impl Into<Option<u32>>,
+        distribution_contracts: impl Into<Option<Vec<DistributionContract>>>,
     ) -> AnyResult<AppResponse> {
         self.app.execute_contract(
             Addr::unchecked(executor),
@@ -596,6 +597,14 @@ impl Suite {
             &ExecuteMsg::UpdateConfig {
                 min_points: min_points.into(),
                 max_validators: max_validators.into(),
+                scaling: None,
+                epoch_reward: None,
+                fee_percentage: None,
+                auto_unjail: None,
+                double_sign_slash_ratio: None,
+                distribution_contracts: distribution_contracts.into(),
+                verify_validators: None,
+                offline_jail_duration: None,
             },
             &[],
         )
