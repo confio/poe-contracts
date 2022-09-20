@@ -83,7 +83,10 @@ impl ValidatorProposal {
                     return Err(ContractError::InvalidConsensusParams {});
                 }
             }
-            ValidatorProposal::CancelUpgrade {} | ValidatorProposal::Text {} => {}
+            ValidatorProposal::PromoteToPrivilegedContract { .. }
+            | ValidatorProposal::DemotePrivilegedContract { .. }
+            | ValidatorProposal::CancelUpgrade {}
+            | ValidatorProposal::Text {} => {}
         }
         Ok(())
     }

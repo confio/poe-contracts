@@ -83,6 +83,14 @@ pub enum ValidatorProposal {
     Text {},
     /// Defines a proposal to change one or more parameters.
     ChangeParams(Vec<ParamChange>),
+    PromoteToPrivilegedContract {
+        /// The contract address to be promoted
+        contract: String,
+    },
+    DemotePrivilegedContract {
+        /// The contract address to be demoted
+        contract: String,
+    },
 }
 
 // We can also add this as a tg3 extension
