@@ -91,6 +91,16 @@ pub enum ValidatorProposal {
         /// The contract address to be demoted
         contract: String,
     },
+    SetContractAdmin {
+        /// The contract address to be updated
+        contract: String,
+        /// The account address to become migrate admin of this contract
+        new_admin: String,
+    },
+    ClearContractAdmin {
+        /// The contract address to be cleared
+        contract: String,
+    },
 }
 
 // We can also add this as a tg3 extension

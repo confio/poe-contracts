@@ -83,7 +83,16 @@ impl ValidatorProposal {
                     return Err(ContractError::InvalidConsensusParams {});
                 }
             }
-            ValidatorProposal::PromoteToPrivilegedContract { .. }
+            ValidatorProposal::SetContractAdmin {
+                contract: _contract,
+                new_admin,
+            } => {
+                if new_admin.is_empty() {
+                    return Err(ContractError::EmptyAdmin {});
+                }
+            }
+            ValidatorProposal::ClearContractAdmin { .. }
+            | ValidatorProposal::PromoteToPrivilegedContract { .. }
             | ValidatorProposal::DemotePrivilegedContract { .. }
             | ValidatorProposal::CancelUpgrade {}
             | ValidatorProposal::Text {} => {}

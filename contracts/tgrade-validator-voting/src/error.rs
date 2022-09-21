@@ -50,6 +50,9 @@ pub enum ContractError {
 
     #[error("Invalid consensus params: All cannot be none")]
     InvalidConsensusParams {},
+
+    #[error("Empty new admin")]
+    EmptyAdmin {},
 }
 
 impl From<tg_voting_contract::ContractError> for ContractError {
