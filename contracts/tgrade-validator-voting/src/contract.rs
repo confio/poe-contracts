@@ -150,6 +150,40 @@ pub fn execute_execute<Q: CustomQuery>(
                 proposal: GovProposal::ChangeParams(params),
             })
         }
+        PromoteToPrivilegedContract { contract } => {
+            res = res.add_message(TgradeMsg::ExecuteGovProposal {
+                title: proposal.title,
+                description: proposal.description,
+                proposal: GovProposal::PromoteToPrivilegedContract { contract },
+            })
+        }
+        DemotePrivilegedContract { contract } => {
+            res = res.add_message(TgradeMsg::ExecuteGovProposal {
+                title: proposal.title,
+                description: proposal.description,
+                proposal: GovProposal::DemotePrivilegedContract { contract },
+            })
+        }
+        SetContractAdmin {
+            contract,
+            new_admin,
+        } => {
+            res = res.add_message(TgradeMsg::ExecuteGovProposal {
+                title: proposal.title,
+                description: proposal.description,
+                proposal: GovProposal::SetContractAdmin {
+                    contract,
+                    new_admin,
+                },
+            })
+        }
+        ClearContractAdmin { contract } => {
+            res = res.add_message(TgradeMsg::ExecuteGovProposal {
+                title: proposal.title,
+                description: proposal.description,
+                proposal: GovProposal::ClearContractAdmin { contract },
+            })
+        }
     };
 
     Ok(res
