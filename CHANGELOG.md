@@ -2,7 +2,16 @@
 
 ## [Unreleased](https://github.com/confio/poe-contracts/tree/HEAD)
 
-[Full Changelog](https://github.com/confio/poe-contracts/compare/v0.15.0...HEAD)
+[Full Changelog](https://github.com/confio/poe-contracts/compare/v0.15.1...HEAD)
+
+## [v0.15.1](https://github.com/confio/poe-contracts/tree/v0.15.1) (2022-09-22)
+
+[Full Changelog](https://github.com/confio/poe-contracts/compare/v0.15.0...v0.15.1)
+
+**Merged pull requests:**
+
+- Fix/contract name [\#189](https://github.com/confio/poe-contracts/pull/189) ([maurolacy](https://github.com/maurolacy))
+- Add promote / demote contract to privileged gov proposal [\#188](https://github.com/confio/poe-contracts/pull/188) ([maurolacy](https://github.com/maurolacy))
 
 ## [v0.15.0](https://github.com/confio/poe-contracts/tree/v0.15.0) (2022-09-19)
 
