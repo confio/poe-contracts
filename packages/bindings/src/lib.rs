@@ -5,7 +5,7 @@ mod query;
 mod sudo;
 mod validator;
 
-pub use gov::{GovProposal, ParamChange, ProtoAny};
+pub use gov::{GovProposal, ParamChange, ProtoAny, UpgradePlan};
 pub use hooks::{request_privileges, Privilege, PrivilegeMsg};
 pub use msg::{BlockParams, ConsensusParams, EvidenceParams, TgradeMsg};
 pub use query::{ListPrivilegedResponse, TgradeQuery, ValidatorVoteResponse};

@@ -3,7 +3,7 @@ use cosmwasm_std::{
     QueryRequest, SystemResult, WasmQuery,
 };
 
-use tg_bindings::TgradeQuery;
+use tg_bindings::{TgradeQuery, UpgradePlan};
 
 use crate::msg::ValidatorProposal;
 use crate::ContractError;
@@ -91,10 +91,23 @@ impl ValidatorProposal {
                     return Err(ContractError::EmptyAdmin {});
                 }
             }
+            ValidatorProposal::Upgrade {
+                plan: UpgradePlan { name, height, .. },
+                ..
+            } => {
+                if name.is_empty() {
+                    return Err(ContractError::EmptyUpgradeName {});
+                }
+
+                if height < &env.block.height {
+                    return Err(ContractError::InvalidUpgradeHeight(*height));
+                }
+            }
             ValidatorProposal::ClearContractAdmin { .. }
             | ValidatorProposal::PromoteToPrivilegedContract { .. }
             | ValidatorProposal::DemotePrivilegedContract { .. }
             | ValidatorProposal::CancelUpgrade {}
+            | ValidatorProposal::ClientUpdate { .. }
             | ValidatorProposal::Text {} => {}
         }
         Ok(())
