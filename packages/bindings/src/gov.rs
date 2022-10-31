@@ -28,10 +28,6 @@ pub enum GovProposal {
     /// Defines a proposal to change one or more parameters.
     /// See https://github.com/cosmos/cosmos-sdk/blob/v0.42.3/proto/cosmos/params/v1beta1/params.proto#L9-L27
     ChangeParams(Vec<ParamChange>),
-    /// Updates the matching client to set a new trusted header.
-    /// This can be used by governance to restore a client that has timed out or forked or otherwise broken.
-    /// See https://github.com/cosmos/cosmos-sdk/blob/v0.42.3/proto/ibc/core/client/v1/client.proto#L36-L49
-    IbcClientUpdate { client_id: String, header: ProtoAny },
     /// See https://github.com/confio/tgrade/blob/privileged_contracts_5/proto/confio/twasm/v1beta1/proposal.proto
     PromoteToPrivilegedContract { contract: String },
     /// See https://github.com/confio/tgrade/blob/privileged_contracts_5/proto/confio/twasm/v1beta1/proposal.proto
@@ -91,7 +87,7 @@ pub enum GovProposal {
     /// chain parameters (with exception to latest height, frozen height, and chain-id).
     ///
     /// See https://github.com/cosmos/ibc-go/blob/main/proto/ibc/core/client/v1/client.proto#L44-L56
-    ClientUpdate {
+    IbcClientUpdate {
         /// the client identifier for the client to be updated if the proposal passes
         subject_client_id: String,
         /// the substitute client identifier for the client standing in for the subject
@@ -100,7 +96,7 @@ pub enum GovProposal {
     },
     // UpgradeProposal is a gov Content type for initiating an IBC breaking
     // upgrade.
-    Upgrade {
+    IbcUpgrade {
         plan: UpgradePlan,
         // An UpgradedClientState must be provided to perform an IBC breaking upgrade.
         // This will make the chain commit to the correct upgraded (self) client state

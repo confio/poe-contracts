@@ -191,7 +191,7 @@ pub fn execute_execute<Q: CustomQuery>(
             res = res.add_message(TgradeMsg::ExecuteGovProposal {
                 title: proposal.title,
                 description: proposal.description,
-                proposal: GovProposal::ClientUpdate {
+                proposal: GovProposal::IbcClientUpdate {
                     subject_client_id,
                     substitute_client_id,
                 },
@@ -204,7 +204,7 @@ pub fn execute_execute<Q: CustomQuery>(
             res = res.add_message(TgradeMsg::ExecuteGovProposal {
                 title: proposal.title,
                 description: proposal.description,
-                proposal: GovProposal::Upgrade {
+                proposal: GovProposal::IbcUpgrade {
                     plan,
                     upgraded_client_state,
                 },
