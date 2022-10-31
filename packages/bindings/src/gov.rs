@@ -85,15 +85,17 @@ pub enum GovProposal {
         /// all code ideas that should be removed from cache to free space
         code_ids: Vec<u64>,
     },
-    // ClientUpdateProposal is a governance proposal. If it passes, the substitute
-    // client's latest consensus state is copied over to the subject client. The proposal
-    // handler may fail if the subject and the substitute do not match in client and
-    // chain parameters (with exception to latest height, frozen height, and chain-id).
+    /// ClientUpdateProposal is a governance proposal. If it passes, the substitute
+    /// client's latest consensus state is copied over to the subject client. The proposal
+    /// handler may fail if the subject and the substitute do not match in client and
+    /// chain parameters (with exception to latest height, frozen height, and chain-id).
+    ///
+    /// See https://github.com/cosmos/ibc-go/blob/main/proto/ibc/core/client/v1/client.proto#L44-L56
     ClientUpdate {
-        // the client identifier for the client to be updated if the proposal passes
+        /// the client identifier for the client to be updated if the proposal passes
         subject_client_id: String,
-        // the substitute client identifier for the client standing in for the subject
-        // client
+        /// the substitute client identifier for the client standing in for the subject
+        /// client
         substitute_client_id: String,
     },
     // UpgradeProposal is a gov Content type for initiating an IBC breaking
@@ -111,6 +113,8 @@ pub enum GovProposal {
 }
 
 // Plan specifies information about a planned upgrade and when it should occur.
+//
+// See https://github.com/cosmos/cosmos-sdk/blob/main/proto/cosmos/upgrade/v1beta1/upgrade.proto#L13-L43
 #[derive(Serialize, Deserialize, Clone, PartialEq, Eq, PartialOrd, Ord, JsonSchema, Debug)]
 pub struct UpgradePlan {
     // Sets the name for the upgrade. This name will be used by the upgraded
@@ -122,7 +126,6 @@ pub struct UpgradePlan {
     // reached and the software will exit.
     pub name: String,
     // The height at which the upgrade must be performed.
-    // Only used if Time is not set.
     pub height: u64,
     // Any application specific upgrade info to be included on-chain
     // such as a git commit that validators could automatically upgrade to
