@@ -184,6 +184,32 @@ pub fn execute_execute<Q: CustomQuery>(
                 proposal: GovProposal::ClearContractAdmin { contract },
             })
         }
+        ClientUpdate {
+            subject_client_id,
+            substitute_client_id,
+        } => {
+            res = res.add_message(TgradeMsg::ExecuteGovProposal {
+                title: proposal.title,
+                description: proposal.description,
+                proposal: GovProposal::IbcClientUpdate {
+                    subject_client_id,
+                    substitute_client_id,
+                },
+            })
+        }
+        Upgrade {
+            plan,
+            upgraded_client_state,
+        } => {
+            res = res.add_message(TgradeMsg::ExecuteGovProposal {
+                title: proposal.title,
+                description: proposal.description,
+                proposal: GovProposal::IbcUpgrade {
+                    plan,
+                    upgraded_client_state,
+                },
+            })
+        }
     };
 
     Ok(res

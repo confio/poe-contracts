@@ -3,8 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use cosmwasm_std::Binary;
 use tg3::Vote;
-use tg_bindings::ParamChange;
-
+use tg_bindings::{ParamChange, ProtoAny, UpgradePlan};
 use tg_voting_contract::state::VotingRules;
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
@@ -100,6 +99,16 @@ pub enum ValidatorProposal {
     ClearContractAdmin {
         /// The contract address to be cleared
         contract: String,
+    },
+    ClientUpdate {
+        /// The client identifier for the client to be updated if the proposal passes
+        subject_client_id: String,
+        /// The substitute client identifier for the client standing in for the subject client
+        substitute_client_id: String,
+    },
+    Upgrade {
+        plan: UpgradePlan,
+        upgraded_client_state: ProtoAny,
     },
 }
 
