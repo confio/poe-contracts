@@ -715,6 +715,11 @@ pub fn migrate(
 
     CONFIG.update::<_, StdError>(deps.storage, |mut cfg| {
         if let Some(tokens_per_point) = msg.tokens_per_point {
+            let tokens_per_point = if tokens_per_point == Uint128::zero() {
+                Uint128::new(1)
+            } else {
+                tokens_per_point
+            };
             cfg.tokens_per_point = tokens_per_point;
         }
         if let Some(min_bond) = msg.min_bond {
