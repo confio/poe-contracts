@@ -6,7 +6,7 @@ use cosmwasm_std::{Addr, CosmosMsg, Uint128};
 use crate::state::VestingPlan;
 use tg_bindings::TgradeMsg;
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
 pub struct InstantiateMsg {
     pub denom: String,
@@ -22,7 +22,7 @@ pub struct InstantiateMsg {
     pub vesting_plan: VestingPlan,
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
 pub enum ExecuteMsg {
     /// Execute regular messages allowing to use vesting account as fully
@@ -58,7 +58,7 @@ pub enum ExecuteMsg {
     HandOver {},
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum QueryMsg {
     /// Checks whether account has been handed over and if Sender is the Oversight
@@ -73,13 +73,13 @@ pub enum QueryMsg {
 }
 
 /// Response for CanExecute query
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, JsonSchema)]
 pub struct CanExecuteResponse {
     pub can_execute: bool,
 }
 
 /// Response for AccountInfo query
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, JsonSchema)]
 pub struct AccountInfoResponse {
     pub recipient: Addr,
     pub operator: Addr,
@@ -89,7 +89,7 @@ pub struct AccountInfoResponse {
 }
 
 /// Response for TokenInfo query
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, JsonSchema)]
 pub struct TokenInfoResponse {
     pub denom: String,
     /// Initial amount of vested tokens
@@ -103,7 +103,7 @@ pub struct TokenInfoResponse {
 }
 
 /// Response for IsLiberated query
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, JsonSchema)]
 pub struct IsHandedOverResponse {
     /// Does this account completed hand over procedure and thus achieved
     /// "liberated" status

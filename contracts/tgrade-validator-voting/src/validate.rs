@@ -266,7 +266,7 @@ mod tests {
         assert_eq!(res.unwrap_err(), ContractError::EmptyDescription {});
 
         // Non empty title and description
-        let _res = proposal
+        proposal
             .validate(deps.as_ref(), &env, "title", "description")
             .unwrap();
     }
@@ -299,7 +299,7 @@ mod tests {
             value: "".to_string(),
         }]);
 
-        let _res = proposal
+        proposal
             .validate(deps.as_ref(), &env, "title", "description")
             .unwrap();
     }
@@ -324,7 +324,7 @@ mod tests {
         // Non-zero codes
         let proposal = ValidatorProposal::PinCodes(vec![9, 8, 1, 7]);
 
-        let _res = proposal
+        proposal
             .validate(deps.as_ref(), &env, "title", "description")
             .unwrap();
     }
@@ -349,7 +349,7 @@ mod tests {
         // Non-zero codes
         let proposal = ValidatorProposal::UnpinCodes(vec![9, 8, 1, 7]);
 
-        let _res = proposal
+        proposal
             .validate(deps.as_ref(), &env, "title", "description")
             .unwrap();
     }
@@ -402,7 +402,7 @@ mod tests {
         // Valid (and migration admin is this contract)
         let deps = custom_mock_deps_tgrade(MIGRATE_CONTRACT, Some(MOCK_CONTRACT_ADDR));
         // Now it works
-        let _res = proposal
+        proposal
             .validate(deps.as_ref(), &env, "title", "description")
             .unwrap();
     }
@@ -442,7 +442,7 @@ mod tests {
             info: "info".to_string(),
         };
 
-        let _res = proposal
+        proposal
             .validate(deps.as_ref(), &env, "title", "description")
             .unwrap();
     }
@@ -455,7 +455,7 @@ mod tests {
         // Valid
         let proposal = ValidatorProposal::CancelUpgrade {};
 
-        let _res = proposal
+        proposal
             .validate(deps.as_ref(), &env, "title", "description")
             .unwrap();
     }
@@ -479,7 +479,7 @@ mod tests {
             max_bytes: Some(1234),
             max_gas: None,
         };
-        let _res = proposal
+        proposal
             .validate(deps.as_ref(), &env, "title", "description")
             .unwrap();
 
@@ -488,7 +488,7 @@ mod tests {
             max_bytes: None,
             max_gas: Some(3290),
         };
-        let _res = proposal
+        proposal
             .validate(deps.as_ref(), &env, "title", "description")
             .unwrap();
 
@@ -497,7 +497,7 @@ mod tests {
             max_bytes: Some(1),
             max_gas: Some(2),
         };
-        let _res = proposal
+        proposal
             .validate(deps.as_ref(), &env, "title", "description")
             .unwrap();
     }
@@ -523,7 +523,7 @@ mod tests {
             max_age_duration: None,
             max_bytes: Some(1234),
         };
-        let _res = proposal
+        proposal
             .validate(deps.as_ref(), &env, "title", "description")
             .unwrap();
 
@@ -533,7 +533,7 @@ mod tests {
             max_age_duration: Some(0),
             max_bytes: None,
         };
-        let _res = proposal
+        proposal
             .validate(deps.as_ref(), &env, "title", "description")
             .unwrap();
 
@@ -543,7 +543,7 @@ mod tests {
             max_age_duration: None,
             max_bytes: None,
         };
-        let _res = proposal
+        proposal
             .validate(deps.as_ref(), &env, "title", "description")
             .unwrap();
 
@@ -553,7 +553,7 @@ mod tests {
             max_age_duration: Some(2),
             max_bytes: Some(3),
         };
-        let _res = proposal
+        proposal
             .validate(deps.as_ref(), &env, "title", "description")
             .unwrap();
     }
@@ -566,7 +566,7 @@ mod tests {
         // Valid
         let proposal = ValidatorProposal::Text {};
 
-        let _res = proposal
+        proposal
             .validate(deps.as_ref(), &env, "title", "description")
             .unwrap();
     }

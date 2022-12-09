@@ -13,7 +13,7 @@ use crate::error::ContractError;
 use crate::msg::{default_fee_percentage, JailingPeriod, OperatorResponse, ValidatorMetadata};
 use tg_bindings::{Ed25519Pubkey, Pubkey, TgradeMsg, TgradeQuery};
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 pub struct Config {
     /// address of a tg4 contract with the raw membership used to feed the validator set
     pub membership: Tg4Contract,
@@ -65,13 +65,13 @@ pub struct Config {
     pub offline_jail_duration: Duration,
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 pub struct DistributionContract {
     pub contract: Addr,
     pub ratio: Decimal,
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 pub struct EpochInfo {
     /// Number of seconds in one epoch. We update the Tendermint validator set only once per epoch.
     pub epoch_length: u64,
@@ -118,7 +118,7 @@ pub const JAIL: Map<&Addr, JailingPeriod> = Map::new("jail");
 
 /// This stores the info for an operator. Both their Tendermint key as well as
 /// their metadata.
-#[derive(Serialize, Deserialize, Clone, JsonSchema, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Clone, JsonSchema, Debug, PartialEq, Eq)]
 pub struct OperatorInfo {
     pub pubkey: Ed25519Pubkey,
     pub metadata: ValidatorMetadata,
@@ -127,7 +127,7 @@ pub struct OperatorInfo {
 }
 
 /// This defines the stored and returned data for a slashing event.
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 pub struct ValidatorSlashing {
     /// Block height of slashing event
     pub slash_height: u64,
@@ -155,14 +155,14 @@ impl<'a> IndexList<OperatorInfo> for OperatorIndexes<'a> {
 }
 
 /// Ancillary struct for exporting validator start height
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 pub struct StartHeightResponse {
     pub validator: String,
     pub height: u64,
 }
 
 /// Ancillary struct for exporting validator slashing
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 pub struct SlashingResponse {
     pub validator: String,
     pub slashing: Vec<ValidatorSlashing>,

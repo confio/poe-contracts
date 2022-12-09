@@ -7,14 +7,14 @@ use tg_bindings::ParamChange;
 
 use tg_voting_contract::state::VotingRules;
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 pub struct InstantiateMsg {
     pub rules: VotingRules,
     // this is the group contract that contains the member list
     pub group_addr: String,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum ExecuteMsg {
     Propose {
@@ -34,7 +34,7 @@ pub enum ExecuteMsg {
     },
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum ValidatorProposal {
     RegisterUpgrade {
@@ -104,7 +104,7 @@ pub enum ValidatorProposal {
 }
 
 // We can also add this as a tg3 extension
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
 pub enum QueryMsg {
     /// Return VotingRules

@@ -14,14 +14,14 @@ use crate::ContractError;
 const PRECISION_FACTOR: u128 = 1_000_000_000;
 
 /// Contract configuration. Custom config is added to avoid double-fetching config on execution.
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 pub struct Config {
     pub rules: VotingRules,
     // Total points and voters are queried from this contract
     pub group_contract: Tg4Contract,
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 pub struct Proposal<P> {
     pub title: String,
     pub description: String,
@@ -102,7 +102,7 @@ impl<P> Proposal<P> {
 /// Note, if you are storing custom messages in the proposal,
 /// the querier needs to know what possible custom message types
 /// those are in order to parse the response
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 pub struct ProposalResponse<P> {
     pub id: u64,
     pub title: String,
@@ -116,17 +116,17 @@ pub struct ProposalResponse<P> {
     pub votes: Votes,
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 pub struct ProposalListResponse<P> {
     pub proposals: Vec<ProposalResponse<P>>,
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 pub struct TextProposalListResponse {
     pub proposals: Vec<ProposalInfo>,
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, Debug, JsonSchema)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Debug, JsonSchema)]
 pub struct VotingRules {
     /// Length of voting period in days.
     pub voting_period: u32,
@@ -211,7 +211,7 @@ impl Default for RulesBuilder {
 }
 
 // points of votes for each option
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 pub struct Votes {
     pub yes: u64,
     pub no: u64,
@@ -261,7 +261,7 @@ pub fn proposals<'m, P>() -> Map<'m, u64, Proposal<P>> {
     Map::new("proposals")
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 pub struct ProposalInfo {
     pub title: String,
     pub description: String,

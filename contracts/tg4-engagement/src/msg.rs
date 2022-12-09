@@ -6,7 +6,7 @@ use tg4::Member;
 use tg_bindings::{Evidence, PrivilegeChangeMsg};
 use tg_utils::Duration;
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
 pub struct InstantiateMsg {
     /// The admin is the only account that can update the group state.
@@ -22,7 +22,7 @@ pub struct InstantiateMsg {
     pub denom: String,
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
 pub enum ExecuteMsg {
     /// Change the admin
@@ -72,7 +72,7 @@ pub enum ExecuteMsg {
     Slash { addr: String, portion: Decimal },
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
 pub enum QueryMsg {
     /// Return AdminResponse
@@ -122,7 +122,7 @@ pub enum QueryMsg {
     WithdrawAdjustmentData { addr: String },
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
 pub enum SudoMsg {
     /// This will be delivered every block if the contract is currently registered for Begin Block
@@ -145,40 +145,40 @@ pub enum SudoMsg {
     UpdateMember(Member),
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 pub struct PreauthResponse {
     pub preauths: u64,
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 pub struct RewardsResponse {
     pub rewards: Coin,
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 pub struct DelegatedResponse {
     pub delegated: Addr,
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 pub struct HalflifeResponse {
     // `None` means the halflife functionality is disabled for this instance.
     pub halflife_info: Option<HalflifeInfo>,
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 pub struct HalflifeInfo {
     pub last_halflife: Timestamp,
     pub halflife: Duration,
     pub next_halflife: Timestamp,
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 pub struct SlasherResponse {
     pub is_slasher: bool,
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 pub struct ListSlashersResponse {
     pub slashers: Vec<String>,
 }

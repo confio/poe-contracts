@@ -11,7 +11,7 @@ use crate::msg::ExecuteMsg;
 /// for working with tg4-engagement contracts.
 ///
 /// It extends Tg4Contract to add the extra calls from tg4-engagement.
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, JsonSchema)]
 pub struct Tg4GroupContract(pub Tg4Contract);
 
 impl Deref for Tg4GroupContract {

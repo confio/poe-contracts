@@ -19,7 +19,7 @@ pub type SubMsg = cosmwasm_std::SubMsg<TgradeMsg>;
 /// Tg4Contract is a wrapper around Addr that provides a lot of helpers
 /// for working with tg4 contracts
 ///
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, JsonSchema)]
 pub struct Tg4Contract(pub Addr);
 
 impl Tg4Contract {

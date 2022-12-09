@@ -7,7 +7,7 @@ use tg4::{Member, MemberChangedHookMsg};
 use crate::error::ContractError;
 use crate::functions::{AlgebraicSigmoid, GeometricMean, PoEFunction, Sigmoid, SigmoidSqrt};
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 pub struct InstantiateMsg {
     /// One of the groups we feed to the mixer function
     pub left_group: String,
@@ -23,7 +23,7 @@ pub struct InstantiateMsg {
     pub function_type: PoEFunctionType,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum PoEFunctionType {
     /// GeometricMean returns the geometric mean of staked amount and engagement points
@@ -70,7 +70,7 @@ impl PoEFunctionType {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
 pub enum ExecuteMsg {
     /// This handles a callback from one of the linked groups
@@ -87,7 +87,7 @@ pub enum ExecuteMsg {
     Slash { addr: String, portion: StdDecimal },
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
 pub enum QueryMsg {
     /// Return TotalPointsResponse
@@ -127,18 +127,18 @@ pub enum QueryMsg {
 }
 
 /// Return the two groups we are listening to
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 pub struct GroupsResponse {
     pub left: String,
     pub right: String,
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 pub struct PreauthResponse {
     pub preauths_hooks: u64,
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 pub struct MixerFunctionResponse {
     pub points: u64,
 }

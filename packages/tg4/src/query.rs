@@ -1,7 +1,7 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
 pub enum Tg4QueryMsg {
     /// Return AdminResponse
@@ -28,12 +28,12 @@ pub enum Tg4QueryMsg {
     Hooks {},
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 pub struct AdminResponse {
     pub admin: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Default, Clone, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, Default, Clone, PartialEq, Eq, Debug)]
 pub struct MemberInfo {
     pub points: u64,
     pub start_height: Option<u64>,
@@ -58,19 +58,19 @@ impl MemberInfo {
 /// A group member has some points associated with them.
 /// This may all be equal, or may have meaning in the app that
 /// makes use of the group (eg. voting power)
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 pub struct Member {
     pub addr: String,
     pub points: u64,
     pub start_height: Option<u64>,
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 pub struct MemberListResponse {
     pub members: Vec<Member>,
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 pub struct MemberResponse {
     pub points: Option<u64>,
     pub start_height: Option<u64>,
@@ -91,12 +91,12 @@ impl From<Option<MemberInfo>> for MemberResponse {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 pub struct TotalPointsResponse {
     pub points: u64,
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 pub struct HooksResponse {
     pub hooks: Vec<String>,
 }

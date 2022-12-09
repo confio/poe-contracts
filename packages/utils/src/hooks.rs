@@ -10,7 +10,7 @@ type SubMsg = cosmwasm_std::SubMsg<TgradeMsg>;
 
 // this is copied from cw4
 // TODO: pull into cw_utils as common dep
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 pub struct HooksResponse {
     pub hooks: Vec<String>,
 }
