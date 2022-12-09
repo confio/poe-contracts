@@ -535,9 +535,10 @@ fn release_expired_claims<Q: CustomQuery>(
     env: Env,
     config: Config,
 ) -> Result<Vec<SubMsg>, ContractError> {
-    let releases = claims().claim_expired(deps.storage, &env.block, config.auto_return_limit)?;
+    let (liquid_releases, vesting_releases) =
+        claims().claim_expired(deps.storage, &env.block, config.auto_return_limit)?;
 
-    releases
+    let send_msgs = liquid_releases
         .into_iter()
         .filter(|(_, amount)| !amount.is_zero())
         .map(|(addr, amount)| {
@@ -547,7 +548,21 @@ fn release_expired_claims<Q: CustomQuery>(
                 amount,
             }))
         })
-        .collect()
+        .collect::<StdResult<Vec<_>>>()?;
+
+    let undelegate_msgs = vesting_releases
+        .into_iter()
+        .filter(|(_, amount)| !amount.is_zero())
+        .map(|(addr, amount)| {
+            let amount = coin(amount.into(), config.denom.clone());
+            Ok(SubMsg::new(TgradeMsg::Undelegate {
+                funds: amount,
+                recipient: addr.to_string(),
+            }))
+        })
+        .collect::<StdResult<Vec<_>>>()?;
+
+    Ok(send_msgs.into_iter().chain(undelegate_msgs).collect())
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
