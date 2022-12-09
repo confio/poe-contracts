@@ -2,7 +2,20 @@
 
 ## [Unreleased](https://github.com/confio/poe-contracts/tree/HEAD)
 
-[Full Changelog](https://github.com/confio/poe-contracts/compare/v0.15.1...HEAD)
+[Full Changelog](https://github.com/confio/poe-contracts/compare/v0.15.2...HEAD)
+
+## [v0.15.2](https://github.com/confio/poe-contracts/tree/v0.15.2) (2022-12-09)
+
+[Full Changelog](https://github.com/confio/poe-contracts/compare/v0.15.1...v0.15.2)
+
+**Closed issues:**
+
+- Update LICENSE to Apache [\#192](https://github.com/confio/poe-contracts/issues/192)
+
+**Merged pull requests:**
+
+- Add MigrateMsg with update config options [\#195](https://github.com/confio/poe-contracts/pull/195) ([maurolacy](https://github.com/maurolacy))
+- Replace closed source license with Apache 2.0 [\#193](https://github.com/confio/poe-contracts/pull/193) ([ethanfrey](https://github.com/ethanfrey))
 
 ## [v0.15.1](https://github.com/confio/poe-contracts/tree/v0.15.1) (2022-09-22)
 
