@@ -11,7 +11,7 @@ type CosmosMsg = cosmwasm_std::CosmosMsg<TgradeMsg>;
 /// old = None, new = Some -> Insert
 /// old = Some, new = Some -> Update
 /// old = Some, new = None -> Delete
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 pub struct MemberDiff {
     pub key: String,
     pub old: Option<u64>,
@@ -30,7 +30,7 @@ impl MemberDiff {
 
 /// MemberChangedHookMsg should be de/serialized under `MemberChangedHook()` variant in a ExecuteMsg.
 /// This contains a list of all diffs on the given transaction.
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
 pub struct MemberChangedHookMsg {
     pub diffs: Vec<MemberDiff>,

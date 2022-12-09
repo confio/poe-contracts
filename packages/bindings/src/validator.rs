@@ -10,7 +10,7 @@ use cosmwasm_std::Binary;
 
 /// This is returned by most queries from Tendermint
 /// See https://github.com/tendermint/tendermint/blob/v0.34.8/proto/tendermint/abci/types.proto#L336-L340
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 pub struct Validator {
     // The first 20 bytes of SHA256(public key)
     pub address: Binary,
@@ -19,7 +19,7 @@ pub struct Validator {
 
 /// This is used to update the validator set
 /// See https://github.com/tendermint/tendermint/blob/v0.34.8/proto/tendermint/abci/types.proto#L343-L346
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 pub struct ValidatorUpdate {
     /// This is the pubkey used in Tendermint consensus
     pub pubkey: Pubkey,
@@ -29,7 +29,7 @@ pub struct ValidatorUpdate {
 
 /// This is taken from BeginBlock.LastCommitInfo
 /// See https://github.com/tendermint/tendermint/blob/v0.34.8/proto/tendermint/abci/types.proto#L348-L352
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 pub struct ValidatorVote {
     // The first 20 bytes of SHA256(public key)
     pub address: Binary,
@@ -120,7 +120,7 @@ impl Ord for Pubkey {
 /// let address = ed25519_pubkey.to_address();
 /// assert_eq!(address, hex!("0CDA3F47EF3C4906693B170EF650EB968C5F4B2C"));
 /// ```
-#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, PartialEq)]
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, PartialEq, Eq)]
 pub struct Ed25519Pubkey([u8; 32]);
 
 impl Ed25519Pubkey {

@@ -6,7 +6,7 @@ use cosmwasm_std::{Binary, Coin, CosmosMsg, CustomMsg, Uint128};
 use crate::gov::GovProposal;
 use crate::hooks::PrivilegeMsg;
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
 /// A number of Custom messages that can be returned by 'privileged' contracts.
 /// Returning them from any other contract will return an error and abort the transaction.
@@ -48,13 +48,13 @@ pub enum TgradeMsg {
 /// If any of them are set to Some, then the blockchain will set those as new parameter for tendermint consensus.
 ///
 /// Note: we are not including ValidatorParams, which is used to change the allowed pubkey types for validators
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug, Default)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug, Default)]
 pub struct ConsensusParams {
     pub block: Option<BlockParams>,
     pub evidence: Option<EvidenceParams>,
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug, Default)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug, Default)]
 pub struct BlockParams {
     /// Maximum number of bytes (over all tx) to be included in a block
     pub max_bytes: Option<i64>,
@@ -64,7 +64,7 @@ pub struct BlockParams {
     pub max_gas: Option<i64>,
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug, Default)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug, Default)]
 pub struct EvidenceParams {
     /// Max age of evidence, in blocks.
     pub max_age_num_blocks: Option<i64>,

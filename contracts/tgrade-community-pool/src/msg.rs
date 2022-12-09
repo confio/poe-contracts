@@ -6,7 +6,7 @@ use tg3::Vote;
 
 use tg_voting_contract::state::VotingRules;
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
 pub struct InstantiateMsg {
     pub rules: VotingRules,
@@ -15,7 +15,7 @@ pub struct InstantiateMsg {
 }
 
 /// The type of proposal to vote on
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum Proposal {
     /// Proposal to send some tokens from community pool contract to given address
@@ -29,7 +29,7 @@ pub enum Proposal {
     Text {},
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum ExecuteMsg {
     Propose {
@@ -57,7 +57,7 @@ pub enum ExecuteMsg {
 }
 
 // We can also add this as a tg3 extension
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
 pub enum QueryMsg {
     /// Return VotingRules

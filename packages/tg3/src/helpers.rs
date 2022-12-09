@@ -9,7 +9,7 @@ use tg_utils::Expiration;
 
 /// Tg3Contract is a wrapper around Addr that provides a lot of helpers
 /// for working with this.
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, JsonSchema)]
 pub struct Tg3Contract(pub Addr);
 
 impl Tg3Contract {

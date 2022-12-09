@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::msg::Vote;
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
 pub enum Tg3QueryMsg {
     /// Returns the threshold rules that would be used for a new proposal that was
@@ -45,7 +45,7 @@ pub enum Tg3QueryMsg {
     },
 }
 
-#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, JsonSchema, Debug)]
 #[serde(rename_all = "lowercase")]
 #[repr(u8)]
 pub enum Status {
@@ -61,14 +61,14 @@ pub enum Status {
     Executed = 5,
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 pub struct VoteListResponse {
     pub votes: Vec<VoteInfo>,
 }
 
 /// Returns the vote (opinion as well as points counted) as well as
 /// the address of the voter who submitted it
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 pub struct VoteInfo {
     pub proposal_id: u64,
     pub voter: String,
@@ -76,22 +76,22 @@ pub struct VoteInfo {
     pub points: u64,
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 pub struct VoteResponse {
     pub vote: Option<VoteInfo>,
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 pub struct VoterResponse {
     pub points: Option<u64>,
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 pub struct VoterListResponse {
     pub voters: Vec<VoterDetail>,
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 pub struct VoterDetail {
     pub addr: String,
     pub points: u64,

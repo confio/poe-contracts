@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use cosmwasm_std::{BlockInfo, Timestamp};
 
 /// Duration is an amount of time, measured in seconds
-#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, JsonSchema, Debug)]
 pub struct Duration(u64);
 
 impl Duration {
@@ -25,7 +25,7 @@ impl Duration {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, JsonSchema, Debug)]
 pub struct Expiration(Timestamp);
 
 impl Expiration {

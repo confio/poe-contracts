@@ -9,7 +9,7 @@ use tg_utils::Expiration;
 /// until given point of time.
 /// If account is continuous, then tokens will be released lineary
 /// starting at pre-defined point.
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, JsonSchema)]
 pub enum VestingPlan {
     Discrete {
         release_at: Expiration,
@@ -30,7 +30,7 @@ impl VestingPlan {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, JsonSchema)]
 pub struct VestingAccount {
     pub denom: String,
     pub recipient: Addr,

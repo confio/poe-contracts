@@ -72,7 +72,7 @@ impl<'a> Slashers<'a> {
 /// let res = Response::new()
 ///     .add_submessage(tg_contract.encode_raw_msg(slash_msg).unwrap());
 /// ```
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
 pub enum SlashMsg {
     /// Adds slasher for contract if there are enough `slasher_preauths` left

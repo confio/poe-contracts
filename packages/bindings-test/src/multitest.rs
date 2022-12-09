@@ -530,7 +530,7 @@ impl TgradeApp {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, JsonSchema)]
 pub struct UpgradePlan {
     name: String,
     height: u64,

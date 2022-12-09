@@ -8,7 +8,7 @@ use tg3::Vote;
 use crate::ContractError;
 
 // we cast a ballot with our chosen vote and a given points
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 pub struct Ballot {
     pub voter: Addr,
     pub points: u64,

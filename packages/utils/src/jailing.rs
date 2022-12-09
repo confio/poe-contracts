@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::Duration;
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
 pub enum JailMsg {
     /// Jails validator. Can be executed only by the admin.
@@ -22,7 +22,7 @@ pub enum JailMsg {
     },
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
 pub enum JailingDuration {
     Duration(Duration),

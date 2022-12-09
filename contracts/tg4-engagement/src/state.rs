@@ -7,7 +7,7 @@ use cw_storage_plus::{Item, Map};
 use tg_utils::Duration;
 pub use tg_utils::{PREAUTH_SLASHING, SLASHERS};
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 pub struct Halflife {
     /// if set to None then there's no half life
     pub halflife: Option<Duration>,
@@ -37,7 +37,7 @@ pub const SHARES_SHIFT: u8 = 32;
 
 pub const HALFLIFE: Item<Halflife> = Item::new("halflife");
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 pub struct Distribution {
     /// Tokens can be distributed by this denom.
     pub denom: String,
@@ -51,7 +51,7 @@ pub struct Distribution {
     pub withdrawable_total: Uint128,
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 pub struct WithdrawAdjustment {
     /// How much points should be added/removed from calculated funds while withdrawal.
     pub shares_correction: Int128,

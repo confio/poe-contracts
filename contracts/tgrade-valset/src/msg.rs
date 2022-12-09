@@ -11,7 +11,7 @@ use crate::error::ContractError;
 use crate::state::{DistributionContract, OperatorInfo, ValidatorInfo, ValidatorSlashing};
 use cosmwasm_std::{Addr, Api, BlockInfo, Coin, Decimal, Timestamp};
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 pub struct InstantiateMsg {
     /// Address allowed to jail, meant to be a OC voting contract. If `None`, then jailing is
     /// impossible in this contract.
@@ -126,7 +126,7 @@ impl InstantiateMsg {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
 pub enum ExecuteMsg {
     /// Change the admin
@@ -215,7 +215,7 @@ pub enum ExecuteMsg {
     },
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
 pub enum QueryMsg {
     /// Returns configuration
@@ -258,7 +258,7 @@ pub enum QueryMsg {
     Admin {},
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 pub struct UnvalidatedDistributionContract {
     /// The unvalidated address of the contract to which part of the reward tokens is sent to.
     pub contract: String,
@@ -276,7 +276,7 @@ impl UnvalidatedDistributionContract {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug, Default)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug, Default)]
 #[serde(transparent)]
 pub struct UnvalidatedDistributionContracts {
     pub inner: Vec<UnvalidatedDistributionContract>,
@@ -389,7 +389,7 @@ impl ValidatorMetadata {
 }
 
 /// Maps an sdk address to a Tendermint pubkey.
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 pub struct OperatorInitInfo {
     pub operator: String,
     pub validator_pubkey: Pubkey,
@@ -403,7 +403,7 @@ impl OperatorInitInfo {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 pub struct EpochResponse {
     /// Number of seconds in one epoch. We update the Tendermint validator set only once per epoch.
     pub epoch_length: u64,
@@ -417,7 +417,7 @@ pub struct EpochResponse {
 }
 
 // data behind one operator
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 pub struct OperatorResponse {
     pub operator: String,
     pub pubkey: Pubkey,
@@ -442,13 +442,13 @@ impl OperatorResponse {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 pub struct JailingPeriod {
     pub start: Timestamp,
     pub end: JailingEnd,
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
 pub enum JailingEnd {
     Until(Expiration),
@@ -478,23 +478,23 @@ impl JailingPeriod {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 pub struct ValidatorResponse {
     /// This is unset if no validator registered
     pub validator: Option<OperatorResponse>,
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 pub struct ListValidatorResponse {
     pub validators: Vec<OperatorResponse>,
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 pub struct ListActiveValidatorsResponse {
     pub validators: Vec<ValidatorInfo>,
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 pub struct ListValidatorSlashingResponse {
     /// Operator address
     pub addr: String,
@@ -510,7 +510,7 @@ pub struct ListValidatorSlashingResponse {
 }
 
 /// Messages sent by this contract to an external contract
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
 pub enum DistributionMsg {
     /// Message sent to `distribution_contract` with funds which are part of the reward to be split
@@ -518,7 +518,7 @@ pub enum DistributionMsg {
     DistributeRewards {},
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
 pub struct RewardsInstantiateMsg {
     pub admin: Addr,
@@ -526,7 +526,7 @@ pub struct RewardsInstantiateMsg {
     pub members: Vec<Member>,
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
 pub enum RewardsDistribution {
     UpdateMembers {
@@ -536,13 +536,13 @@ pub enum RewardsDistribution {
     DistributeRewards {},
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
 pub struct InstantiateResponse {
     pub validator_group: Addr,
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
 pub struct MigrateMsg {
     pub min_points: Option<u64>,

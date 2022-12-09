@@ -11,7 +11,7 @@ pub fn claims() -> Claims<'static> {
     Claims::new("claims", "claims__release")
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 pub struct Config {
     /// denom of the token to stake
     pub denom: String,
