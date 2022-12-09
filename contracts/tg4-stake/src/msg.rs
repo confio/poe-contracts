@@ -135,6 +135,15 @@ pub struct ClaimsResponse {
     pub claims: Vec<Claim>,
 }
 
+#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[serde(rename_all = "snake_case")]
+pub struct MigrateMsg {
+    pub tokens_per_point: Option<Uint128>,
+    pub min_bond: Option<Uint128>,
+    pub unbonding_period: Option<u64>,
+    pub auto_return_limit: Option<u64>,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

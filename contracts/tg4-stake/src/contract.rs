@@ -1,8 +1,8 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    coin, coins, to_binary, Addr, BankMsg, Binary, Coin, CustomQuery, Decimal, Deps, DepsMut,
-    Empty, Env, MessageInfo, Order, StdResult, Storage, Uint128,
+    coin, coins, to_binary, Addr, BankMsg, Binary, Coin, CustomQuery, Decimal, Deps, DepsMut, Env,
+    MessageInfo, Order, StdError, StdResult, Storage, Uint128,
 };
 use std::cmp::min;
 use std::ops::Sub;
@@ -24,8 +24,8 @@ use tg_utils::{
 
 use crate::error::ContractError;
 use crate::msg::{
-    ClaimsResponse, ExecuteMsg, InstantiateMsg, PreauthResponse, QueryMsg, StakedResponse,
-    UnbondingPeriodResponse,
+    ClaimsResponse, ExecuteMsg, InstantiateMsg, MigrateMsg, PreauthResponse, QueryMsg,
+    StakedResponse, UnbondingPeriodResponse,
 };
 use crate::state::{claims, Config, CONFIG, STAKE, STAKE_VESTING};
 
@@ -709,9 +709,31 @@ fn list_members_by_points<Q: CustomQuery>(
 pub fn migrate(
     deps: DepsMut<TgradeQuery>,
     _env: Env,
-    _msg: Empty,
+    msg: MigrateMsg,
 ) -> Result<Response, ContractError> {
     ensure_from_older_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
+
+    CONFIG.update::<_, StdError>(deps.storage, |mut cfg| {
+        if let Some(tokens_per_point) = msg.tokens_per_point {
+            cfg.tokens_per_point = tokens_per_point;
+        }
+        if let Some(min_bond) = msg.min_bond {
+            let min_bond = if min_bond == Uint128::zero() {
+                Uint128::new(1)
+            } else {
+                min_bond
+            };
+            cfg.min_bond = min_bond;
+        }
+        if let Some(unbonding_period) = msg.unbonding_period {
+            cfg.unbonding_period = Duration::new(unbonding_period);
+        }
+        if let Some(auto_return_limit) = msg.auto_return_limit {
+            cfg.auto_return_limit = auto_return_limit;
+        }
+        Ok(cfg)
+    })?;
+
     Ok(Response::new())
 }
 
