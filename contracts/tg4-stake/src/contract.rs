@@ -2373,6 +2373,45 @@ mod tests {
             assert_eq!(undelegates, expected_transfers);
         }
 
+        /// Helper for asserting if expected sends and undelegates occurred in response. Panics if
+        /// any non `Bank::Send` or `TgradeMsg::Undelegate` occurred, or send / undelegates are
+        /// different than expected.
+        ///
+        /// Transfers are passed in form of pairs `(addr, amount)`, as for all tests in this module
+        /// the expected denom is fixed.
+        #[track_caller]
+        fn assert_sends_undelegates(
+            response: Response,
+            expected_sends: Vec<(&str, u128)>,
+            expected_undelegates: Vec<(&str, u128)>,
+        ) {
+            let sends = response
+                .clone()
+                .messages
+                .into_iter()
+                .filter(|msg| matches!(msg.msg, CosmosMsg::Bank(BankMsg::Send { .. })));
+            let undelegates =
+                response.clone().messages.into_iter().filter(|msg| {
+                    matches!(msg.msg, CosmosMsg::Custom(TgradeMsg::Undelegate { .. }))
+                });
+
+            assert_sends(
+                Response::new().add_submessages(sends.clone()),
+                expected_sends,
+            );
+            assert_undelegates(
+                Response::new().add_submessages(undelegates.clone()),
+                expected_undelegates,
+            );
+
+            // Assert there are no other message types
+            assert_eq!(
+                response.messages.len(),
+                sends.count() + undelegates.count(),
+                "Unexpected messages in response, expected only bank send or tgrade undelegate messages"
+            );
+        }
+
         #[test]
         fn single_claim_liquid() {
             let mut deps = mock_deps_tgrade();
@@ -2405,6 +2444,26 @@ mod tests {
 
             let resp = end_block(deps.as_mut(), env).unwrap();
             assert_undelegates(resp, vec![(USER1, 1000)]);
+        }
+
+        #[test]
+        fn single_claim_mixed() {
+            let mut deps = mock_deps_tgrade();
+            do_instantiate(deps.as_mut(), 2);
+
+            bond_liquid(deps.as_mut(), 1_000, 7_500, 4_000, 1);
+
+            bond_vesting(deps.as_mut(), 11_000, 7_500, 4_000, 2);
+            let height_delta = 3;
+
+            unbond(deps.as_mut(), 1001, 0, 0, height_delta, 0);
+            let mut env = mock_env();
+            env.block.height += height_delta;
+            env.block.time = env.block.time.plus_seconds(UNBONDING_DURATION);
+
+            let resp = end_block(deps.as_mut(), env).unwrap();
+            // liquid stakes are claimed first, then vesting ones as needed
+            assert_sends_undelegates(resp, vec![(USER1, 1000)], vec![(USER1, 1)]);
         }
 
         #[test]
@@ -2444,6 +2503,29 @@ mod tests {
         }
 
         #[test]
+        fn multiple_users_claims_mixed() {
+            let mut deps = mock_deps_tgrade();
+            do_instantiate(deps.as_mut(), 4);
+
+            bond_liquid(deps.as_mut(), 11_000, 7_000, 4_000, 1);
+            bond_vesting(deps.as_mut(), 1_000, 500, 0, 2);
+            let height_delta = 3;
+
+            unbond(deps.as_mut(), 12_000, 7_001, 0, height_delta, 0);
+            unbond(deps.as_mut(), 0, 0, 200, height_delta, 1);
+            let mut env = mock_env();
+            env.block.height += height_delta;
+            env.block.time = env.block.time.plus_seconds(UNBONDING_DURATION + 1);
+
+            let resp = end_block(deps.as_mut(), env).unwrap();
+            assert_sends_undelegates(
+                resp,
+                vec![(USER1, 11_000), (USER2, 7_000), (USER3, 200)],
+                vec![(USER1, 1_000), (USER2, 1)],
+            );
+        }
+
+        #[test]
         fn single_user_multiple_claims_liquid() {
             let mut deps = mock_deps_tgrade();
             do_instantiate(deps.as_mut(), 3);
@@ -2477,6 +2559,25 @@ mod tests {
 
             let resp = end_block(deps.as_mut(), env).unwrap();
             assert_undelegates(resp, vec![(USER1, 1500)]);
+        }
+
+        #[test]
+        fn single_user_multiple_claims_mixed() {
+            let mut deps = mock_deps_tgrade();
+            do_instantiate(deps.as_mut(), 3);
+
+            bond_vesting(deps.as_mut(), 11_000, 7_000, 4_000, 1);
+            bond_liquid(deps.as_mut(), 1_000, 500, 4_000, 2);
+            let height_delta = 3;
+
+            unbond(deps.as_mut(), 1001, 0, 0, height_delta, 0);
+            unbond(deps.as_mut(), 500, 0, 0, height_delta, 1);
+            let mut env = mock_env();
+            env.block.height += height_delta;
+            env.block.time = env.block.time.plus_seconds(UNBONDING_DURATION + 1);
+
+            let resp = end_block(deps.as_mut(), env).unwrap();
+            assert_sends_undelegates(resp, vec![(USER1, 1000)], vec![(USER1, 501)]);
         }
 
         #[test]
