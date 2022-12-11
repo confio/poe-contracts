@@ -2224,12 +2224,12 @@ mod tests {
         /// Transfers are passed in form of pairs `(addr, amount)`, as for all test in this module
         /// expected denom is fixed
         #[track_caller]
-        fn assert_transfers(response: Response, mut expected_transfers: Vec<(&str, u128)>) {
+        fn assert_sends(response: Response, mut expected_transfers: Vec<(&str, u128)>) {
             let mut sends: Vec<_> = response
                 .messages
                 .into_iter()
                 .map(|msg| match msg.msg {
-                    // Trick is used here - bank send messages are filtered out, and mapped to tripple
+                    // Trick is used here - bank send messages are filtered out, and mapped to triple
                     // `(addr, amount_sum, msg)` - `addr` and `amount_sum` would be used only to
                     // properly sort messages, then they would be discarded. As in expected messages
                     // always only one coin is expected for all send messages, taking sum for sorting
@@ -2271,8 +2271,61 @@ mod tests {
             assert_eq!(sends, expected_transfers);
         }
 
+        /// Helper for asserting if expected undelegates occurred in response. Panics if any non
+        /// `TgradeMsg::Undelegate` occurred, or undelegates are different than expected.
+        ///
+        /// Transfers are passed in form of pairs `(addr, amount)`, as for all tests in this module
+        /// the expected denom is fixed.
+        #[track_caller]
+        fn assert_undelegates(response: Response, mut expected_transfers: Vec<(&str, u128)>) {
+            let mut undelegates: Vec<_> = response
+                .messages
+                .into_iter()
+                .map(|msg| match msg.msg {
+                    // Trick is used here - undelegate messages are filtered out, and mapped to a triple
+                    // `(addr, amount, msg)` - `addr` and `amount` will be used only to properly
+                    // sort messages, then they will be discarded. As in the expected messages
+                    // always only one coin is expected for all messages, taking the amount for sorting
+                    // is good enough - in the case of multiple or invalid denoms, it'll error on
+                    // comparison.
+                    //
+                    // Possibly in the future it would be possible for another messages to occur -
+                    // in such case instead of returning err and panicking from this function, such
+                    // messages should be filtered out.
+                    CosmosMsg::Custom(TgradeMsg::Undelegate { funds, recipient }) => Ok((
+                        recipient.clone(),
+                        funds.amount,
+                        TgradeMsg::Undelegate { recipient, funds },
+                    )),
+                    msg => Err(format!(
+                        "Unexpected message on response, expected only tgrade undelegate messages: {:?}",
+                        msg
+                    )),
+                })
+                .collect::<Result<_, _>>()
+                .unwrap();
+
+            undelegates.sort_by_key(|(addr, amount, _)| (addr.clone(), *amount));
+            // Drop  addr and amount for comparison
+            let undelegates: Vec<_> = undelegates.into_iter().map(|(_, _, msg)| msg).collect();
+
+            // Tuples are sorted simply first by addresses, then by amounts
+            expected_transfers.sort_unstable();
+
+            // Build messages for comparison
+            let expected_transfers: Vec<_> = expected_transfers
+                .into_iter()
+                .map(|(addr, amount)| TgradeMsg::Undelegate {
+                    funds: coin(amount, DENOM),
+                    recipient: addr.to_owned(),
+                })
+                .collect();
+
+            assert_eq!(undelegates, expected_transfers);
+        }
+
         #[test]
-        fn single_claim() {
+        fn single_claim_liquid() {
             let mut deps = mock_deps_tgrade();
             do_instantiate(deps.as_mut(), 2);
 
@@ -2285,11 +2338,28 @@ mod tests {
             env.block.time = env.block.time.plus_seconds(UNBONDING_DURATION);
 
             let resp = end_block(deps.as_mut(), env).unwrap();
-            assert_transfers(resp, vec![(USER1, 1000)]);
+            assert_sends(resp, vec![(USER1, 1000)]);
         }
 
         #[test]
-        fn multiple_users_claims() {
+        fn single_claim_vesting() {
+            let mut deps = mock_deps_tgrade();
+            do_instantiate(deps.as_mut(), 2);
+
+            bond_vesting(deps.as_mut(), 12_000, 7_500, 4_000, 1);
+            let height_delta = 2;
+
+            unbond(deps.as_mut(), 1000, 0, 0, height_delta, 0);
+            let mut env = mock_env();
+            env.block.height += height_delta;
+            env.block.time = env.block.time.plus_seconds(UNBONDING_DURATION);
+
+            let resp = end_block(deps.as_mut(), env).unwrap();
+            assert_undelegates(resp, vec![(USER1, 1000)]);
+        }
+
+        #[test]
+        fn multiple_users_claims_liquid() {
             let mut deps = mock_deps_tgrade();
             do_instantiate(deps.as_mut(), 4);
 
@@ -2303,11 +2373,29 @@ mod tests {
             env.block.time = env.block.time.plus_seconds(UNBONDING_DURATION + 1);
 
             let resp = end_block(deps.as_mut(), env).unwrap();
-            assert_transfers(resp, vec![(USER1, 1000), (USER2, 500), (USER3, 200)]);
+            assert_sends(resp, vec![(USER1, 1000), (USER2, 500), (USER3, 200)]);
         }
 
         #[test]
-        fn single_user_multiple_claims() {
+        fn multiple_users_claims_vesting() {
+            let mut deps = mock_deps_tgrade();
+            do_instantiate(deps.as_mut(), 4);
+
+            bond_vesting(deps.as_mut(), 12_000, 7_500, 4_000, 1);
+            let height_delta = 2;
+
+            unbond(deps.as_mut(), 1000, 500, 0, height_delta, 0);
+            unbond(deps.as_mut(), 0, 0, 200, height_delta, 1);
+            let mut env = mock_env();
+            env.block.height += height_delta;
+            env.block.time = env.block.time.plus_seconds(UNBONDING_DURATION + 1);
+
+            let resp = end_block(deps.as_mut(), env).unwrap();
+            assert_undelegates(resp, vec![(USER1, 1000), (USER2, 500), (USER3, 200)]);
+        }
+
+        #[test]
+        fn single_user_multiple_claims_liquid() {
             let mut deps = mock_deps_tgrade();
             do_instantiate(deps.as_mut(), 3);
 
@@ -2321,11 +2409,29 @@ mod tests {
             env.block.time = env.block.time.plus_seconds(UNBONDING_DURATION + 1);
 
             let resp = end_block(deps.as_mut(), env).unwrap();
-            assert_transfers(resp, vec![(USER1, 1500)]);
+            assert_sends(resp, vec![(USER1, 1500)]);
         }
 
         #[test]
-        fn only_expired_claims() {
+        fn single_user_multiple_claims_vesting() {
+            let mut deps = mock_deps_tgrade();
+            do_instantiate(deps.as_mut(), 3);
+
+            bond_vesting(deps.as_mut(), 12_000, 7_500, 4_000, 1);
+            let height_delta = 2;
+
+            unbond(deps.as_mut(), 1000, 0, 0, height_delta, 0);
+            unbond(deps.as_mut(), 500, 0, 0, height_delta, 1);
+            let mut env = mock_env();
+            env.block.height += height_delta;
+            env.block.time = env.block.time.plus_seconds(UNBONDING_DURATION + 1);
+
+            let resp = end_block(deps.as_mut(), env).unwrap();
+            assert_undelegates(resp, vec![(USER1, 1500)]);
+        }
+
+        #[test]
+        fn only_expired_claims_liquid() {
             let mut deps = mock_deps_tgrade();
             do_instantiate(deps.as_mut(), 3);
 
@@ -2346,11 +2452,36 @@ mod tests {
             env.block.time = env.block.time.plus_seconds(UNBONDING_DURATION + 1);
 
             let resp = end_block(deps.as_mut(), env).unwrap();
-            assert_transfers(resp, vec![(USER1, 1500), (USER2, 600)]);
+            assert_sends(resp, vec![(USER1, 1500), (USER2, 600)]);
         }
 
         #[test]
-        fn claim_returned_once() {
+        fn only_expired_claims_vesting() {
+            let mut deps = mock_deps_tgrade();
+            do_instantiate(deps.as_mut(), 3);
+
+            bond_vesting(deps.as_mut(), 12_000, 7_500, 4_000, 1);
+            let height_delta = 2;
+
+            // Claims to be returned
+            unbond(deps.as_mut(), 1000, 0, 0, height_delta, 0);
+            unbond(deps.as_mut(), 500, 600, 0, height_delta, 1);
+
+            // Clams not yet expired
+            unbond(deps.as_mut(), 200, 300, 400, height_delta, 2);
+            unbond(deps.as_mut(), 700, 0, 0, height_delta, 3);
+            unbond(deps.as_mut(), 0, 100, 50, height_delta, 4);
+
+            let mut env = mock_env();
+            env.block.height += height_delta;
+            env.block.time = env.block.time.plus_seconds(UNBONDING_DURATION + 1);
+
+            let resp = end_block(deps.as_mut(), env).unwrap();
+            assert_undelegates(resp, vec![(USER1, 1500), (USER2, 600)]);
+        }
+
+        #[test]
+        fn claim_returned_once_liquid() {
             let mut deps = mock_deps_tgrade();
             do_instantiate(deps.as_mut(), 5);
 
@@ -2369,7 +2500,7 @@ mod tests {
             env.block.time = env.block.time.plus_seconds(UNBONDING_DURATION + 1);
 
             let resp = end_block(deps.as_mut(), env).unwrap();
-            assert_transfers(resp, vec![(USER1, 1500), (USER2, 600)]);
+            assert_sends(resp, vec![(USER1, 1500), (USER2, 600)]);
 
             // Some additional claims
             unbond(deps.as_mut(), 700, 0, 0, height_delta, 3);
@@ -2382,11 +2513,47 @@ mod tests {
             // Expected that claims at time offset 2 and 3 are returned (0 and 1 are already
             // returned, 4 is not yet expired)
             let resp = end_block(deps.as_mut(), env).unwrap();
-            assert_transfers(resp, vec![(USER1, 900), (USER2, 300), (USER3, 400)]);
+            assert_sends(resp, vec![(USER1, 900), (USER2, 300), (USER3, 400)]);
         }
 
         #[test]
-        fn up_to_limit_claims_returned() {
+        fn claim_returned_once_vesting() {
+            let mut deps = mock_deps_tgrade();
+            do_instantiate(deps.as_mut(), 5);
+
+            bond_vesting(deps.as_mut(), 12_000, 7_500, 4_000, 1);
+            let height_delta = 2;
+
+            // Claims to be returned
+            unbond(deps.as_mut(), 1000, 0, 0, height_delta, 0);
+            unbond(deps.as_mut(), 500, 600, 0, height_delta, 1);
+
+            // Clams not yet expired
+            unbond(deps.as_mut(), 200, 300, 400, height_delta, 2);
+
+            let mut env = mock_env();
+            env.block.height += height_delta;
+            env.block.time = env.block.time.plus_seconds(UNBONDING_DURATION + 1);
+
+            let resp = end_block(deps.as_mut(), env).unwrap();
+            assert_undelegates(resp, vec![(USER1, 1500), (USER2, 600)]);
+
+            // Some additional claims
+            unbond(deps.as_mut(), 700, 0, 0, height_delta, 3);
+            unbond(deps.as_mut(), 0, 100, 50, height_delta, 4);
+
+            let mut env = mock_env();
+            env.block.height += height_delta;
+            env.block.time = env.block.time.plus_seconds(UNBONDING_DURATION + 3);
+
+            // Expected that claims at time offset 2 and 3 are returned (0 and 1 are already
+            // returned, 4 is not yet expired)
+            let resp = end_block(deps.as_mut(), env).unwrap();
+            assert_undelegates(resp, vec![(USER1, 900), (USER2, 300), (USER3, 400)]);
+        }
+
+        #[test]
+        fn up_to_limit_claims_returned_liquid() {
             let mut deps = mock_deps_tgrade();
             do_instantiate(deps.as_mut(), 2);
 
@@ -2406,7 +2573,7 @@ mod tests {
             env.block.time = env.block.time.plus_seconds(UNBONDING_DURATION + 3);
 
             let resp = end_block(deps.as_mut(), env).unwrap();
-            assert_transfers(resp, vec![(USER1, 1000), (USER2, 500)]);
+            assert_sends(resp, vec![(USER1, 1000), (USER2, 500)]);
 
             // Then on next block next batch is returned (time offset 1 and 2)
             let mut env = mock_env();
@@ -2414,7 +2581,7 @@ mod tests {
             env.block.time = env.block.time.plus_seconds(UNBONDING_DURATION + 4);
 
             let resp = end_block(deps.as_mut(), env).unwrap();
-            assert_transfers(resp, vec![(USER1, 200), (USER2, 600)]);
+            assert_sends(resp, vec![(USER1, 200), (USER2, 600)]);
 
             // Some additional claims
             unbond(deps.as_mut(), 700, 0, 0, height_delta, 5);
@@ -2427,7 +2594,7 @@ mod tests {
 
             // offset 3 and 5
             let resp = end_block(deps.as_mut(), env).unwrap();
-            assert_transfers(resp, vec![(USER1, 700), (USER3, 300)]);
+            assert_sends(resp, vec![(USER1, 700), (USER3, 300)]);
 
             let mut env = mock_env();
             env.block.height += height_delta;
@@ -2435,15 +2602,88 @@ mod tests {
 
             // offset 6
             let resp = end_block(deps.as_mut(), env).unwrap();
-            assert_transfers(resp, vec![(USER2, 100), (USER3, 50)]);
+            assert_sends(resp, vec![(USER2, 100), (USER3, 50)]);
         }
 
         #[test]
-        fn unbound_with_invalid_denom_fails() {
+        fn up_to_limit_claims_returned_vesting() {
+            let mut deps = mock_deps_tgrade();
+            do_instantiate(deps.as_mut(), 2);
+
+            bond_vesting(deps.as_mut(), 12_000, 7_500, 4_000, 1);
+            let height_delta = 2;
+
+            // Claims to be returned
+            unbond(deps.as_mut(), 1000, 500, 0, height_delta, 0);
+            unbond(deps.as_mut(), 0, 600, 0, height_delta, 1);
+            unbond(deps.as_mut(), 200, 0, 0, height_delta, 2);
+            unbond(deps.as_mut(), 0, 0, 300, height_delta, 3);
+
+            // Even if all claims are already expired, only two of them (time offset 0) should be
+            // returned
+            let mut env = mock_env();
+            env.block.height += height_delta;
+            env.block.time = env.block.time.plus_seconds(UNBONDING_DURATION + 3);
+
+            let resp = end_block(deps.as_mut(), env).unwrap();
+            assert_undelegates(resp, vec![(USER1, 1000), (USER2, 500)]);
+
+            // Then on next block next batch is returned (time offset 1 and 2)
+            let mut env = mock_env();
+            env.block.height += height_delta;
+            env.block.time = env.block.time.plus_seconds(UNBONDING_DURATION + 4);
+
+            let resp = end_block(deps.as_mut(), env).unwrap();
+            assert_undelegates(resp, vec![(USER1, 200), (USER2, 600)]);
+
+            // Some additional claims
+            unbond(deps.as_mut(), 700, 0, 0, height_delta, 5);
+            unbond(deps.as_mut(), 0, 100, 50, height_delta, 6);
+
+            // Claims are returned in batches
+            let mut env = mock_env();
+            env.block.height += height_delta;
+            env.block.time = env.block.time.plus_seconds(UNBONDING_DURATION + 6);
+
+            // offset 3 and 5
+            let resp = end_block(deps.as_mut(), env).unwrap();
+            assert_undelegates(resp, vec![(USER1, 700), (USER3, 300)]);
+
+            let mut env = mock_env();
+            env.block.height += height_delta;
+            env.block.time = env.block.time.plus_seconds(UNBONDING_DURATION + 6);
+
+            // offset 6
+            let resp = end_block(deps.as_mut(), env).unwrap();
+            assert_undelegates(resp, vec![(USER2, 100), (USER3, 50)]);
+        }
+
+        #[test]
+        fn unbound_with_invalid_denom_fails_liquid() {
             let mut deps = mock_deps_tgrade();
             do_instantiate(deps.as_mut(), 2);
 
             bond_liquid(deps.as_mut(), 5_000, 0, 0, 1);
+            let height_delta = 2;
+
+            let mut env = mock_env();
+            env.block.height += height_delta;
+
+            let msg = ExecuteMsg::Unbond {
+                tokens: coin(5_000, "invalid"),
+            };
+            let info = mock_info(USER1, &[]);
+            let err = execute(deps.as_mut(), env, info, msg).unwrap_err();
+
+            assert_eq!(ContractError::InvalidDenom {}, err);
+        }
+
+        #[test]
+        fn unbound_with_invalid_denom_fails_vesting() {
+            let mut deps = mock_deps_tgrade();
+            do_instantiate(deps.as_mut(), 2);
+
+            bond_vesting(deps.as_mut(), 5_000, 0, 0, 1);
             let height_delta = 2;
 
             let mut env = mock_env();
