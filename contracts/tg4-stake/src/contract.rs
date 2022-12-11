@@ -1814,6 +1814,9 @@ mod tests {
             bond_liquid(deps.as_mut(), 12_000, 7_500, 4_000, 1);
             assert_stake_liquid(deps.as_ref(), 12_000, 7_500, 4_000);
 
+            bond_vesting(deps.as_mut(), 1_200, 750, 8_000, 2);
+            assert_stake_vesting(deps.as_ref(), 1_200, 750, 8_000);
+
             // Trying to slash nonexisting user will result in no-op
             let res = slash(deps.as_mut(), &slasher, "nonexisting", Decimal::percent(20)).unwrap();
             assert_eq!(res, Response::new());
@@ -1956,6 +1959,9 @@ mod tests {
             bond_liquid(deps.as_mut(), 12_000, 7_500, 4_000, 1);
             assert_stake_liquid(deps.as_ref(), 12_000, 7_500, 4_000);
 
+            bond_vesting(deps.as_mut(), 1_200, 750, 8_000, 2);
+            assert_stake_vesting(deps.as_ref(), 1_200, 750, 8_000);
+
             let res = slash(deps.as_mut(), USER2, USER1, Decimal::percent(20));
             assert_eq!(
                 res,
@@ -1974,6 +1980,9 @@ mod tests {
 
             bond_liquid(deps.as_mut(), 12_000, 7_500, 4_000, 1);
             assert_stake_liquid(deps.as_ref(), 12_000, 7_500, 4_000);
+
+            bond_vesting(deps.as_mut(), 1_200, 750, 8_000, 2);
+            assert_stake_vesting(deps.as_ref(), 1_200, 750, 8_000);
 
             let res = slash(deps.as_mut(), INIT_ADMIN, USER1, Decimal::percent(20));
             assert_eq!(
@@ -1996,6 +2005,9 @@ mod tests {
 
             bond_liquid(deps.as_mut(), 12_000, 7_500, 4_000, 1);
             assert_stake_liquid(deps.as_ref(), 12_000, 7_500, 4_000);
+
+            bond_vesting(deps.as_mut(), 12_000, 7_500, 8_000, 2);
+            assert_stake_vesting(deps.as_ref(), 12_000, 7_500, 8_000);
 
             let res = slash(deps.as_mut(), &slasher, USER1, Decimal::percent(20));
             assert_eq!(
