@@ -2155,8 +2155,8 @@ mod tests {
     }
 
     #[test]
-    fn ensure_bonding_edge_cases() {
-        // use min_bond 0, tokens_per_points 500
+    fn ensure_bonding_edge_cases_liquid() {
+        // use min_bond 0, tokens_per_points 100
         let mut deps = mock_deps_tgrade();
         do_instantiate(deps.as_mut(), Uint128::new(100), Uint128::zero(), 5, 0);
 
@@ -2167,6 +2167,43 @@ mod tests {
 
         // reducing to 0 token makes us None even with min_bond 0
         unbond(deps.as_mut(), 49, 1, 102, 2, 0);
+        assert_users(deps.as_ref(), Some(0), None, None, None);
+    }
+
+    #[test]
+    fn ensure_bonding_edge_cases_vesting() {
+        // use min_bond 0, tokens_per_points 100
+        let mut deps = mock_deps_tgrade();
+        do_instantiate(deps.as_mut(), Uint128::new(100), Uint128::zero(), 5, 0);
+
+        // setting 50 tokens, gives us Some(0) points
+        // even setting to 1 token
+        bond_vesting(deps.as_mut(), 50, 1, 102, 1);
+        assert_users(deps.as_ref(), Some(0), Some(0), Some(1), None);
+
+        // reducing to 0 token makes us None even with min_bond 0
+        unbond(deps.as_mut(), 49, 1, 102, 2, 0);
+        assert_users(deps.as_ref(), Some(0), None, None, None);
+    }
+
+    #[test]
+    fn ensure_bonding_edge_cases_mixed() {
+        // use min_bond 0, tokens_per_points 100
+        let mut deps = mock_deps_tgrade();
+        do_instantiate(deps.as_mut(), Uint128::new(100), Uint128::zero(), 5, 0);
+
+        // setting 25 liquid tokens, gives us Some(0) points
+        // even setting to 1 token
+        bond_liquid(deps.as_mut(), 25, 1, 102, 1);
+        assert_users(deps.as_ref(), Some(0), Some(0), Some(1), None);
+
+        // setting other 25 vesting tokens, still gives us Some(0) points
+        // also setting to plus 1 token
+        bond_vesting(deps.as_mut(), 25, 1, 102, 2);
+        assert_users(deps.as_ref(), Some(0), Some(0), Some(2), None);
+
+        // reducing to 0 token makes us None even with min_bond 0
+        unbond(deps.as_mut(), 49, 2, 204, 3, 0);
         assert_users(deps.as_ref(), Some(0), None, None, None);
     }
 
