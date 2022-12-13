@@ -27,11 +27,11 @@ library = []
 
 [dependencies]
 cosmwasm-std = "1.1.0"
-cw-utils = "0.15.0"
-cw2 = "0.15.0"
-cw4 = "0.15.0"
-cw-controllers = "0.15.0"
-cw-storage-plus = "0.15.0"
+cw-utils = "0.16.0"
+cw2 = "0.16.0"
+cw4 = "0.16.0"
+cw-controllers = "0.16.0"
+cw-storage-plus = "0.16.0"
 schemars = "0.8.1"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
 tg4 = { version = "0.15.2", path = "../../packages/tg4" }

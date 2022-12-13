@@ -21,10 +21,10 @@ library = []
 
 [dependencies]
 cosmwasm-std = "1.1.0"
-cw-controllers = "0.15.0"
-cw-storage-plus = "0.15.0"
-cw-utils = "0.15.0"
-cw2 = "0.15.0"
+cw-controllers = "0.16.0"
+cw-storage-plus = "0.16.0"
+cw-utils = "0.16.0"
+cw2 = "0.16.0"
 tg-utils = { version = "0.15.2", path = "../../packages/utils" }
 tg-bindings = { version = "0.15.2", path = "../../packages/bindings" }
 tg4 = { path = "../../packages/tg4", version = "0.15.2" }
@@ -35,6 +35,6 @@ thiserror = "1.0.21"
 [dev-dependencies]
 anyhow = "1"
 cosmwasm-schema = "1.1.0"
-cw-multi-test = "0.15.0"
+cw-multi-test = "0.16.0"
 derivative = "2"
 tg-bindings-test = { version = "0.15.2", path = "../../packages/bindings-test" }
