@@ -22,7 +22,7 @@ library = []
 [dependencies]
 cosmwasm-std = "1.1.0"
 cw-controllers = "0.16.0"
-cw-storage-plus = "0.16.0"
+cw-storage-plus = "1.0.1"
 cw-utils = "0.16.0"
 cw2 = "0.16.0"
 tg-utils = { version = "0.16.0", path = "../../packages/utils" }

@@ -32,7 +32,7 @@ thiserror = "1"
 anyhow = "1"
 cosmwasm-schema = "1.1.0"
 cw-multi-test = "0.16.2"
-cw-storage-plus = "0.16.0"
+cw-storage-plus = "1.0.1"
 tg-bindings-test = { version = "0.16.0", path = "../../packages/bindings-test" }
 tg-utils = { version = "0.16.0", path = "../../packages/utils" }
 tg-voting-contract = { version = "0.16.0", path = "../../packages/voting-contract" }

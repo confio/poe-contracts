@@ -26,7 +26,7 @@ cosmwasm-std = "1.1.0"
 cw-utils = "0.16.0"
 cw2 = "0.16.0"
 cw20 = "0.16.0"
-cw-storage-plus = "0.16.0"
+cw-storage-plus = "1.0.1"
 integer-sqrt = "0.1.5"
 rust_decimal = { version = "1.16", default-features = false, features = ["maths"] }
 rust_decimal_macros = { version = "1.16", default-features = false }
