@@ -20,7 +20,7 @@ backtraces = ["cosmwasm-std/backtraces"]
 library = []
 
 [dependencies]
-cosmwasm-std = "1.1.0"
+cosmwasm-std = "1.1.9"
 cw-utils = "1.0.1"
 cw2 = "1.0.0"
 cw-controllers = "1.0.0"
@@ -34,5 +34,5 @@ tg-bindings = { path = "../../packages/bindings", version = "0.16.0" }
 thiserror = "1.0.21"
 
 [dev-dependencies]
-cosmwasm-schema = "1.1.0"
+cosmwasm-schema = "1.1.9"
 tg-bindings-test = { path = "../../packages/bindings-test", version = "0.16.0" }

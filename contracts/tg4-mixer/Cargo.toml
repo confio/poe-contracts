@@ -22,7 +22,7 @@ backtraces = ["cosmwasm-std/backtraces"]
 library = []
 
 [dependencies]
-cosmwasm-std = "1.1.0"
+cosmwasm-std = "1.1.9"
 cw-utils = "1.0.1"
 cw2 = "1.0.0"
 cw20 = "0.16.0"
@@ -38,7 +38,7 @@ tg-utils = { path = "../../packages/utils", version = "0.16.0" }
 tg-bindings = { path = "../../packages/bindings", version = "0.16.0" }
 
 [dev-dependencies]
-cosmwasm-schema = "1.1.0"
+cosmwasm-schema = "1.1.9"
 # bench dependencies
 cosmwasm-vm = { version = "1.1.0" }
 cw-multi-test = "0.16.2"

@@ -16,7 +16,7 @@ crate-type = ["cdylib", "rlib"]
 library = []
 
 [dependencies]
-cosmwasm-std = "1.1.0"
+cosmwasm-std = "1.1.9"
 cw-utils = "1.0.1"
 cw2 = "1.0.0"
 cw-storage-plus = "1.0.1"
@@ -30,6 +30,6 @@ thiserror = "1"
 anyhow = "1"
 assert_matches = "1"
 derivative = "2"
-cosmwasm-schema = "1.1.0"
+cosmwasm-schema = "1.1.9"
 cw-multi-test = "0.16.2"
 tg-bindings-test = { version = "0.16.0", path = "../../packages/bindings-test" }
