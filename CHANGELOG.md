@@ -2,7 +2,15 @@
 
 ## [Unreleased](https://github.com/confio/poe-contracts/tree/HEAD)
 
-[Full Changelog](https://github.com/confio/poe-contracts/compare/v0.15.2...HEAD)
+[Full Changelog](https://github.com/confio/poe-contracts/compare/v0.16.0...HEAD)
+
+## [v0.16.0](https://github.com/confio/poe-contracts/tree/v0.16.0) (2022-12-16)
+
+[Full Changelog](https://github.com/confio/poe-contracts/compare/v0.15.2...v0.16.0)
+
+**Fixed bugs:**
+
+- Fix claims auto-release of vesting amounts [\#198](https://github.com/confio/poe-contracts/pull/198) ([maurolacy](https://github.com/maurolacy))
 
 ## [v0.15.2](https://github.com/confio/poe-contracts/tree/v0.15.2) (2022-12-09)
 
