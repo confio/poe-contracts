@@ -31,5 +31,5 @@ anyhow = "1"
 assert_matches = "1"
 derivative = "2"
 cosmwasm-schema = "1.1.0"
-cw-multi-test = "0.16.0"
+cw-multi-test = "0.16.2"
 tg-bindings-test = { version = "0.16.0", path = "../../packages/bindings-test" }

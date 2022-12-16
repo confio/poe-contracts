@@ -35,6 +35,6 @@ thiserror = "1.0.21"
 [dev-dependencies]
 anyhow = "1"
 cosmwasm-schema = "1.1.0"
-cw-multi-test = "0.16.0"
+cw-multi-test = "0.16.2"
 derivative = "2"
 tg-bindings-test = { version = "0.16.0", path = "../../packages/bindings-test" }

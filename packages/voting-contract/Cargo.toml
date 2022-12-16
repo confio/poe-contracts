@@ -25,7 +25,7 @@ thiserror = "1"
 [dev-dependencies]
 anyhow = "1"
 cosmwasm-schema = "1.1.0"
-cw-multi-test = "0.16.0"
+cw-multi-test = "0.16.2"
 derivative = "2"
 tg-bindings-test = { path = "../../packages/bindings-test", version = "0.16.0" }
 tg4-engagement = { path = "../../contracts/tg4-engagement", version = "0.16.0", features = ["library"] }

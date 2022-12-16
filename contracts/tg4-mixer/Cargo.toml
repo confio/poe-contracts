@@ -41,7 +41,7 @@ tg-bindings = { path = "../../packages/bindings", version = "0.16.0" }
 cosmwasm-schema = "1.1.0"
 # bench dependencies
 cosmwasm-vm = { version = "1.1.0" }
-cw-multi-test = "0.16.0"
+cw-multi-test = "0.16.2"
 tg4-engagement = { path = "../tg4-engagement", version = "0.16.0", features = ["library"] }
 tg4-stake = { path = "../tg4-stake", version = "0.16.0", features = ["library"] }
 
