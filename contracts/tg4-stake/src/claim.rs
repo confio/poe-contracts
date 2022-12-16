@@ -15,6 +15,18 @@ use tg_utils::Expiration;
 const MAX_LIMIT: u32 = 100;
 const DEFAULT_LIMIT: u32 = 30;
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct TokenReleaseInfo {
+    pub addr: Addr,
+    pub amount: Uint128,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct ReleaseData {
+    pub liquid_releases: Vec<TokenReleaseInfo>,
+    pub vesting_releases: Vec<TokenReleaseInfo>,
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, JsonSchema)]
 pub struct Claim {
     /// Address owning the claim
@@ -154,13 +166,14 @@ impl<'a> Claims<'a> {
 
     /// This iterates over all mature claims of any addresses, and removes them. Up to `limit`
     /// claims would be processed, starting from the oldest. It removes the finished claims and
-    /// returns vector of pairs: `(addr, amount)`, representing amount of tokens to be released to particular addresses
-    pub fn claim_expired(
+    /// returns a pair of vectors representing the amounts of liquid and vesting tokens
+    /// to be released to particular addresses.
+    pub(crate) fn claim_expired(
         &self,
         storage: &mut dyn Storage,
         block: &BlockInfo,
         limit: impl Into<Option<u64>>,
-    ) -> StdResult<Vec<(Addr, Uint128)>> {
+    ) -> StdResult<ReleaseData> {
         let claims = self
             .claims
             .idx
@@ -176,18 +189,40 @@ impl<'a> Claims<'a> {
         let mut claims = self.collect_claims(claims, limit.into())?;
         claims.sort_by_key(|claim| claim.addr.clone());
 
-        let releases = claims
+        let liquid_releases = claims
             .iter()
             // TODO: use `slice::group_by` in place of `Itertools::group_by` when `slice_group_by`
             // is stabilized [https://github.com/rust-lang/rust/issues/80552]
             .group_by(|claim| &claim.addr)
             .into_iter()
-            .map(|(addr, group)| (addr.clone(), group.map(|claim| claim.amount).sum()))
+            .map(|(addr, group)| TokenReleaseInfo {
+                addr: addr.clone(),
+                amount: group.map(|claim| claim.amount).sum(),
+            })
+            .collect();
+
+        let vesting_releases = claims
+            .iter()
+            // TODO: use `slice::group_by` in place of `Itertools::group_by` when `slice_group_by`
+            // is stabilized [https://github.com/rust-lang/rust/issues/80552]
+            .group_by(|claim| &claim.addr)
+            .into_iter()
+            .map(|(addr, group)| TokenReleaseInfo {
+                addr: addr.clone(),
+                amount: group
+                    .map(|claim| claim.vesting_amount.unwrap_or_default())
+                    .sum(),
+            })
             .collect();
 
         self.release_claims(storage, claims)?;
 
-        Ok(releases)
+        let release_data = ReleaseData {
+            liquid_releases,
+            vesting_releases,
+        };
+
+        Ok(release_data)
     }
 
     /// Processes claims filtering those which are to be released. Returns vector of claims to be
