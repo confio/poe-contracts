@@ -1,6 +1,6 @@
 [package]
 name = "tg4-group"
-version = "0.15.2"
+version = "0.16.0"
 authors = ["Mauro Lacy <mauro@confio.gmbh>"]
 edition = "2018"
 description = "Simple tg4 implementation of group membership controlled by admin"
@@ -26,16 +26,16 @@ backtraces = ["cosmwasm-std/backtraces"]
 library = []
 
 [dependencies]
-cosmwasm-std = "1.1.0"
-cw-utils = "0.15.0"
-cw2 = "0.15.0"
-cw4 = "0.15.0"
-cw-controllers = "0.15.0"
-cw-storage-plus = "0.15.0"
+cosmwasm-std = "1.1.9"
+cw-utils = "1.0.1"
+cw2 = "1.0.0"
+cw4 = "0.16.0"
+cw-controllers = "1.0.0"
+cw-storage-plus = "1.0.1"
 schemars = "0.8.1"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
-tg4 = { version = "0.15.2", path = "../../packages/tg4" }
+tg4 = { version = "0.16.0", path = "../../packages/tg4" }
 thiserror = { version = "1.0.23" }
 
 [dev-dependencies]
-cosmwasm-schema = "1.1.0"
+cosmwasm-schema = "1.1.9"

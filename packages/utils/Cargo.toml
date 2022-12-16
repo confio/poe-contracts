@@ -1,6 +1,6 @@
 [package]
 name = "tg-utils"
-version = "0.15.2"
+version = "0.16.0"
 authors = ["Ethan Frey <ethanfrey@users.noreply.github.com>"]
 edition = "2018"
 description = "Tgrade Utils: helpers for various contracts"
@@ -11,14 +11,14 @@ license = "Apache-2.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-cosmwasm-std = "1.1.0"
-cw-utils = "0.15.0"
-cw-controllers = "0.15.0"
-cw-storage-plus = "0.15.0"
-cw2 = "0.15.0"
+cosmwasm-std = "1.1.9"
+cw-utils = "1.0.1"
+cw-controllers = "1.0.0"
+cw-storage-plus = "1.0.1"
+cw2 = "1.0.0"
 schemars = "0.8.1"
 semver = "1"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
-tg4 = { path = "../tg4", version = "0.15.2" }
-tg-bindings = { path = "../bindings", version = "0.15.2" }
+tg4 = { path = "../tg4", version = "0.16.0" }
+tg-bindings = { path = "../bindings", version = "0.16.0" }
 thiserror = "1.0.21"

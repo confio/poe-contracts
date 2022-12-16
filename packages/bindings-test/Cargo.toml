@@ -1,6 +1,6 @@
 [package]
 name = "tg-bindings-test"
-version = "0.15.2"
+version = "0.16.0"
 authors = ["Ethan Frey <ethanfrey@users.noreply.github.com>"]
 edition = "2018"
 description = "Multitest (and other test helpers) support for Tgrade-specific contracts"
@@ -10,10 +10,10 @@ license = "Apache-2.0"
 
 [dependencies]
 anyhow = "1"
-cosmwasm-std = "1.1.0"
-cw-multi-test = "0.15.0"
-cw-storage-plus = "0.15.0"
+cosmwasm-std = "1.1.9"
+cw-multi-test = "0.16.2"
+cw-storage-plus = "1.0.1"
 schemars = "0.8"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
-tg-bindings = { version = "0.15.2", path = "../bindings" }
+tg-bindings = { version = "0.16.0", path = "../bindings" }
 thiserror = "1.0.21"

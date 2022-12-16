@@ -1,6 +1,6 @@
 [package]
 name = "tg4-stake"
-version = "0.15.2"
+version = "0.16.0"
 authors = ["Ethan Frey <ethanfrey@users.noreply.github.com>"]
 edition = "2018"
 description = "TG4 implementation of group based on staked tokens"
@@ -20,19 +20,19 @@ backtraces = ["cosmwasm-std/backtraces"]
 library = []
 
 [dependencies]
-cosmwasm-std = "1.1.0"
-cw-utils = "0.15.0"
-cw2 = "0.15.0"
-cw-controllers = "0.15.0"
-cw-storage-plus = "0.15.0"
+cosmwasm-std = "1.1.9"
+cw-utils = "1.0.1"
+cw2 = "1.0.0"
+cw-controllers = "1.0.0"
+cw-storage-plus = "1.0.1"
 itertools = "0.10"
 schemars = "0.8.1"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
-tg4 = { path = "../../packages/tg4", version = "0.15.2" }
-tg-utils = { path = "../../packages/utils", version = "0.15.2" }
-tg-bindings = { path = "../../packages/bindings", version = "0.15.2" }
+tg4 = { path = "../../packages/tg4", version = "0.16.0" }
+tg-utils = { path = "../../packages/utils", version = "0.16.0" }
+tg-bindings = { path = "../../packages/bindings", version = "0.16.0" }
 thiserror = "1.0.21"
 
 [dev-dependencies]
-cosmwasm-schema = "1.1.0"
-tg-bindings-test = { path = "../../packages/bindings-test", version = "0.15.2" }
+cosmwasm-schema = "1.1.9"
+tg-bindings-test = { path = "../../packages/bindings-test", version = "0.16.0" }
