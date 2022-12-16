@@ -535,29 +535,31 @@ fn release_expired_claims<Q: CustomQuery>(
     env: Env,
     config: Config,
 ) -> Result<Vec<SubMsg>, ContractError> {
-    let (liquid_releases, vesting_releases) =
+    let release_data =
         claims().claim_expired(deps.storage, &env.block, config.auto_return_limit)?;
 
-    let send_msgs = liquid_releases
+    let send_msgs = release_data
+        .liquid_releases
         .into_iter()
-        .filter(|(_, amount)| !amount.is_zero())
-        .map(|(addr, amount)| {
-            let amount = coins(amount.into(), config.denom.clone());
+        .filter(|release_info| !release_info.amount.is_zero())
+        .map(|release_info| {
+            let amount = coins(release_info.amount.into(), config.denom.clone());
             Ok(SubMsg::new(BankMsg::Send {
-                to_address: addr.into(),
+                to_address: release_info.addr.into(),
                 amount,
             }))
         })
         .collect::<StdResult<Vec<_>>>()?;
 
-    let undelegate_msgs = vesting_releases
+    let undelegate_msgs = release_data
+        .vesting_releases
         .into_iter()
-        .filter(|(_, amount)| !amount.is_zero())
-        .map(|(addr, amount)| {
-            let amount = coin(amount.into(), config.denom.clone());
+        .filter(|release_info| !release_info.amount.is_zero())
+        .map(|release_info| {
+            let amount = coin(release_info.amount.into(), config.denom.clone());
             Ok(SubMsg::new(TgradeMsg::Undelegate {
                 funds: amount,
-                recipient: addr.to_string(),
+                recipient: release_info.addr.to_string(),
             }))
         })
         .collect::<StdResult<Vec<_>>>()?;
