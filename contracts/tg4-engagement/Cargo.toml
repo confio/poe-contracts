@@ -21,10 +21,10 @@ library = []
 
 [dependencies]
 cosmwasm-std = "1.1.0"
-cw-controllers = "0.16.0"
+cw-controllers = "1.0.0"
 cw-storage-plus = "1.0.1"
 cw-utils = "1.0.1"
-cw2 = "0.16.0"
+cw2 = "1.0.0"
 tg-utils = { version = "0.16.0", path = "../../packages/utils" }
 tg-bindings = { version = "0.16.0", path = "../../packages/bindings" }
 tg4 = { path = "../../packages/tg4", version = "0.16.0" }
