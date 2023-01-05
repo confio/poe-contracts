@@ -15,6 +15,7 @@ fn contract_engagement() -> Box<dyn Contract<TgradeMsg, TgradeQuery>> {
         crate::contract::instantiate,
         crate::contract::query,
     )
+    .with_migrate(crate::contract::migrate)
     .with_sudo(crate::contract::sudo);
 
     Box::new(contract)
@@ -133,6 +134,7 @@ impl SuiteBuilder {
 
         Suite {
             app,
+            code_id: contract_id,
             contract,
             owner,
             denom,
@@ -145,9 +147,11 @@ impl SuiteBuilder {
 pub struct Suite {
     #[derivative(Debug = "ignore")]
     pub app: TgradeApp,
+    /// The code id of the engagement contract
+    code_id: u64,
     /// Engagement contract address
     pub contract: Addr,
-    /// Mixer contract address
+    /// Admin of engagement contract
     pub owner: Addr,
     /// Denom of tokens which might be distributed by this contract
     pub denom: String,
@@ -168,6 +172,10 @@ impl Suite {
             },
             funds,
         )
+    }
+
+    pub fn admin(&self) -> &str {
+        self.owner.as_str()
     }
 
     pub fn withdraw_funds<'s>(
@@ -339,5 +347,23 @@ impl Suite {
             },
         )?;
         Ok(resp.members)
+    }
+
+    /// Queries engagement contract for its halflife
+    pub fn halflife(&self) -> StdResult<HalflifeResponse> {
+        self.app
+            .wrap()
+            .query_wasm_smart(&self.contract, &QueryMsg::Halflife {})
+    }
+
+    /// Migrates the contract to the same version (same code id), but possibly changing
+    /// some cfg values via MigrateMsg.
+    pub fn migrate(&mut self, addr: &str, msg: &MigrateMsg) -> AnyResult<AppResponse> {
+        self.app.migrate_contract(
+            Addr::unchecked(addr),
+            self.contract.clone(),
+            msg,
+            self.code_id,
+        )
     }
 }
