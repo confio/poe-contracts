@@ -917,9 +917,14 @@ pub fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> Result<Response, Co
     ensure_from_older_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
     if let Some(duration) = msg.halflife {
         // Update half life's duration
+        // Zero duration means no / remove half life
         HALFLIFE.update(deps.storage, |hf| -> StdResult<_> {
             Ok(Halflife {
-                halflife: Some(duration),
+                halflife: if duration.seconds() > 0 {
+                    Some(duration)
+                } else {
+                    None
+                },
                 last_applied: hf.last_applied,
             })
         })?;
