@@ -948,4 +948,27 @@ mod migration {
         let cfg = suite.halflife().unwrap();
         assert_eq!(cfg.halflife_info.unwrap().halflife.seconds(), 200);
     }
+
+    #[test]
+    fn migration_can_remove_halflife() {
+        let mut suite = SuiteBuilder::new()
+            .with_halflife(Duration::new(100))
+            .build();
+        let admin = suite.admin().to_string();
+
+        let cfg = suite.halflife().unwrap();
+        assert_eq!(cfg.halflife_info.unwrap().halflife, Duration::new(100));
+
+        suite
+            .migrate(
+                &admin,
+                &MigrateMsg {
+                    halflife: Some(Duration::new(0)),
+                },
+            )
+            .unwrap();
+
+        let cfg = suite.halflife().unwrap();
+        assert!(cfg.halflife_info.is_none());
+    }
 }
