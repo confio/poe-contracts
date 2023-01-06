@@ -1,8 +1,8 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    coin, to_binary, Addr, BankMsg, Binary, Coin, CustomQuery, Decimal, Deps, DepsMut, Empty, Env,
-    Event, MessageInfo, Order, StdResult, Timestamp, Uint128,
+    coin, to_binary, Addr, BankMsg, Binary, Coin, CustomQuery, Decimal, Deps, DepsMut, Env, Event,
+    MessageInfo, Order, StdResult, Timestamp, Uint128,
 };
 use cw2::set_contract_version;
 use cw_storage_plus::Bound;
@@ -14,8 +14,8 @@ use tg4::{
 
 use crate::error::ContractError;
 use crate::msg::{
-    DelegatedResponse, ExecuteMsg, HalflifeInfo, HalflifeResponse, InstantiateMsg, PreauthResponse,
-    QueryMsg, RewardsResponse, SudoMsg,
+    DelegatedResponse, ExecuteMsg, HalflifeInfo, HalflifeResponse, InstantiateMsg, MigrateMsg,
+    PreauthResponse, QueryMsg, RewardsResponse, SudoMsg,
 };
 use crate::state::{
     Distribution, Halflife, WithdrawAdjustment, DISTRIBUTION, HALFLIFE, PREAUTH_SLASHING,
@@ -913,8 +913,26 @@ fn list_members_by_points<Q: CustomQuery>(
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn migrate(deps: DepsMut, _env: Env, _msg: Empty) -> Result<Response, ContractError> {
+pub fn migrate(
+    deps: DepsMut<TgradeQuery>,
+    _env: Env,
+    msg: MigrateMsg,
+) -> Result<Response, ContractError> {
     ensure_from_older_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
+    if let Some(duration) = msg.halflife {
+        // Update half life's duration
+        // Zero duration means no / remove half life
+        HALFLIFE.update(deps.storage, |hf| -> StdResult<_> {
+            Ok(Halflife {
+                halflife: if duration.seconds() > 0 {
+                    Some(duration)
+                } else {
+                    None
+                },
+                last_applied: hf.last_applied,
+            })
+        })?;
+    };
     Ok(Response::new())
 }
 

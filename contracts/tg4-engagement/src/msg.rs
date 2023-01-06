@@ -183,6 +183,12 @@ pub struct ListSlashersResponse {
     pub slashers: Vec<String>,
 }
 
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
+#[serde(rename_all = "snake_case")]
+pub struct MigrateMsg {
+    pub halflife: Option<Duration>,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
