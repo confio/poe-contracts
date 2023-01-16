@@ -5,10 +5,14 @@ use itertools::Itertools;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
+use crate::msg::Undelegation;
+use crate::state::CONFIG;
 use cosmwasm_std::{
-    Addr, BlockInfo, CustomQuery, Decimal, Deps, Order, StdResult, Storage, Uint128,
+    coin, Addr, BlockInfo, CustomQuery, Decimal, Deps, Order, StdResult, Storage, Uint128,
 };
 use cw_storage_plus::{Bound, Index, IndexList, IndexedMap, MultiIndex, PrefixBound};
+use tg_bindings::TgradeMsg;
+use tg_bindings::TgradeMsg::Undelegate;
 use tg_utils::Expiration;
 
 // settings for pagination
@@ -314,4 +318,23 @@ impl<'a> Claims<'a> {
             .take(limit)
             .collect()
     }
+}
+
+// Helper to repair the auto-release claims bug (#198)
+pub fn process_pending_undelegations<Q: CustomQuery>(
+    deps: Deps<Q>,
+    undelegations: &[Undelegation],
+) -> StdResult<Vec<TgradeMsg>> {
+    let cfg = CONFIG.load(deps.storage)?;
+    let msgs = undelegations
+        .iter()
+        .map(|undelegation| {
+            let amount = coin(undelegation.amount.into(), cfg.denom.clone());
+            Undelegate {
+                funds: amount,
+                recipient: undelegation.addr.clone(),
+            }
+        })
+        .collect();
+    Ok(msgs)
 }

@@ -135,6 +135,12 @@ pub struct ClaimsResponse {
     pub claims: Vec<Claim>,
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, JsonSchema)]
+pub struct Undelegation {
+    pub addr: String,
+    pub amount: Uint128,
+}
+
 #[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
 pub struct MigrateMsg {
@@ -142,6 +148,7 @@ pub struct MigrateMsg {
     pub min_bond: Option<Uint128>,
     pub unbonding_period: Option<u64>,
     pub auto_return_limit: Option<u64>,
+    pub undelegations: Option<Vec<Undelegation>>,
 }
 
 #[cfg(test)]

@@ -7,6 +7,7 @@ use cosmwasm_std::{
 use std::cmp::min;
 use std::ops::Sub;
 
+use crate::claim::process_pending_undelegations;
 use cw2::set_contract_version;
 use cw_storage_plus::Bound;
 use cw_utils::{ensure_from_older_version, maybe_addr};
@@ -756,7 +757,12 @@ pub fn migrate(
         Ok(cfg)
     })?;
 
-    Ok(Response::new())
+    if let Some(undelegations) = msg.undelegations {
+        let msgs = process_pending_undelegations(deps.as_ref(), &undelegations)?;
+        Ok(Response::new().add_messages(msgs))
+    } else {
+        Ok(Response::new())
+    }
 }
 
 #[cfg(test)]
