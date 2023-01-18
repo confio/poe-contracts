@@ -305,7 +305,7 @@ pub fn execute_distribute_rewards<Q: CustomQuery>(
         .add_attribute("action", "distribute_rewards")
         .add_attribute("sender", sender.as_str())
         .add_attribute("denom", &distribution.denom)
-        .add_attribute("amount", &amount.to_string());
+        .add_attribute("amount", amount.to_string());
 
     Ok(resp)
 }
@@ -352,7 +352,7 @@ pub fn execute_withdraw_rewards<Q: CustomQuery>(
         .add_attribute("owner", owner.as_str())
         .add_attribute("receiver", receiver.as_str())
         .add_attribute("reward", &reward.denom)
-        .add_attribute("amount", &reward.amount.to_string())
+        .add_attribute("amount", reward.amount.to_string())
         .add_submessage(SubMsg::new(BankMsg::Send {
             to_address: receiver.to_string(),
             amount: vec![reward],
@@ -449,7 +449,7 @@ pub fn execute_slash<Q: CustomQuery>(
             "Sender is not on slashers list".to_owned(),
         ));
     }
-    let addr = Addr::unchecked(&addr);
+    let addr = Addr::unchecked(addr);
     // check if address belongs to member, otherwise leave early
     if members().may_load(deps.storage, &addr)?.is_none() {
         return Ok(Response::new());
@@ -769,7 +769,7 @@ pub fn query_withdrawable_rewards<Q: CustomQuery>(
 ) -> StdResult<RewardsResponse> {
     // Not checking address, as if it is invalid it is guaranteed not to appear in maps, so
     // `withdrawable_rewards` would return error itself.
-    let owner = Addr::unchecked(&owner);
+    let owner = Addr::unchecked(owner);
     let distribution = DISTRIBUTION.load(deps.storage)?;
     let adjustment = if let Some(adj) = WITHDRAW_ADJUSTMENT.may_load(deps.storage, &owner)? {
         adj
