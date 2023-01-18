@@ -2,7 +2,16 @@
 
 ## [Unreleased](https://github.com/confio/poe-contracts/tree/HEAD)
 
-[Full Changelog](https://github.com/confio/poe-contracts/compare/v0.16.0...HEAD)
+[Full Changelog](https://github.com/confio/poe-contracts/compare/v0.17.0...HEAD)
+
+## [v0.17.0](https://github.com/confio/poe-contracts/tree/v0.17.0) (2023-01-18)
+
+[Full Changelog](https://github.com/confio/poe-contracts/compare/v0.16.0...v0.17.0)
+
+**Merged pull requests:**
+
+- Add undelegations processing to migration handler [\#201](https://github.com/confio/poe-contracts/pull/201) ([maurolacy](https://github.com/maurolacy))
+- Engagement half-life [\#200](https://github.com/confio/poe-contracts/pull/200) ([maurolacy](https://github.com/maurolacy))
 
 ## [v0.16.0](https://github.com/confio/poe-contracts/tree/v0.16.0) (2022-12-16)
 
