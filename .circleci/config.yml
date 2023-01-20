@@ -41,7 +41,7 @@ workflows:
 jobs:
   contract_tg4_engagement:
     docker:
-      - image: rust:1.60.0
+      - image: rust:1.66.0
     working_directory: ~/project/contracts/tg4-engagement
     steps:
       - checkout:
@@ -51,7 +51,7 @@ jobs:
           command: rustc --version; cargo --version; rustup --version
       - restore_cache:
           keys:
-            - cargocache-tg4-engagement-rust:1.60.0-{{ checksum "~/project/Cargo.lock" }}
+            - cargocache-tg4-engagement-rust:1.66.0-{{ checksum "~/project/Cargo.lock" }}
       - run:
           name: Unit Tests
           environment:
@@ -64,11 +64,11 @@ jobs:
           paths:
             - /usr/local/cargo/registry
             - target
-          key: cargocache-tg4-engagement-rust:1.60.0-{{ checksum "~/project/Cargo.lock" }}
+          key: cargocache-tg4-engagement-rust:1.66.0-{{ checksum "~/project/Cargo.lock" }}
 
   contract_tg4_group:
     docker:
-      - image: rust:1.60.0
+      - image: rust:1.66.0
     working_directory: ~/project/contracts/tg4-group
     steps:
       - checkout:
@@ -78,7 +78,7 @@ jobs:
           command: rustc --version; cargo --version; rustup --version
       - restore_cache:
           keys:
-            - cargocache-tg4-group-rust:1.60.0-{{ checksum "~/project/Cargo.lock" }}
+            - cargocache-tg4-group-rust:1.66.0-{{ checksum "~/project/Cargo.lock" }}
       - run:
           name: Unit Tests
           environment:
@@ -91,11 +91,11 @@ jobs:
           paths:
             - /usr/local/cargo/registry
             - target
-          key: cargocache-tg4-group-rust:1.60.0-{{ checksum "~/project/Cargo.lock" }}
+          key: cargocache-tg4-group-rust:1.66.0-{{ checksum "~/project/Cargo.lock" }}
 
   contract_tg4_mixer:
     docker:
-      - image: rust:1.60.0
+      - image: rust:1.66.0
     working_directory: ~/project/contracts/tg4-mixer
     steps:
       - checkout:
@@ -105,7 +105,7 @@ jobs:
           command: rustc --version; cargo --version; rustup --version
       - restore_cache:
           keys:
-            - cargocache-tg4-mixer-rust:1.60.0-{{ checksum "~/project/Cargo.lock" }}
+            - cargocache-tg4-mixer-rust:1.66.0-{{ checksum "~/project/Cargo.lock" }}
       - run:
           name: Unit Tests
           environment:
@@ -118,11 +118,11 @@ jobs:
           paths:
             - /usr/local/cargo/registry
             - target
-          key: cargocache-tg4-mixer-rust:1.60.0-{{ checksum "~/project/Cargo.lock" }}
+          key: cargocache-tg4-mixer-rust:1.66.0-{{ checksum "~/project/Cargo.lock" }}
 
   contract_tg4_stake:
     docker:
-      - image: rust:1.60.0
+      - image: rust:1.66.0
     working_directory: ~/project/contracts/tg4-stake
     steps:
       - checkout:
@@ -132,7 +132,7 @@ jobs:
           command: rustc --version; cargo --version; rustup --version
       - restore_cache:
           keys:
-            - cargocache-tg4-stake-rust:1.60.0-{{ checksum "~/project/Cargo.lock" }}
+            - cargocache-tg4-stake-rust:1.66.0-{{ checksum "~/project/Cargo.lock" }}
       - run:
           name: Unit Tests
           environment:
@@ -145,11 +145,11 @@ jobs:
           paths:
             - /usr/local/cargo/registry
             - target
-          key: cargocache-tg4-stake-rust:1.60.0-{{ checksum "~/project/Cargo.lock" }}
+          key: cargocache-tg4-stake-rust:1.66.0-{{ checksum "~/project/Cargo.lock" }}
 
   contract_tgrade_gov_reflect:
     docker:
-      - image: rust:1.60.0
+      - image: rust:1.66.0
     working_directory: ~/project/contracts/tgrade-gov-reflect
     steps:
       - checkout:
@@ -159,7 +159,7 @@ jobs:
           command: rustc --version; cargo --version; rustup --version
       - restore_cache:
           keys:
-            - cargocache-tgrade-gov-reflect-rust:1.60.0-{{ checksum "~/project/Cargo.lock" }}
+            - cargocache-tgrade-gov-reflect-rust:1.66.0-{{ checksum "~/project/Cargo.lock" }}
       - run:
           name: Unit Tests
           environment:
@@ -172,11 +172,11 @@ jobs:
           paths:
             - /usr/local/cargo/registry
             - target
-          key: cargocache-tgrade-gov-reflect-rust:1.60.0-{{ checksum "~/project/Cargo.lock" }}
+          key: cargocache-tgrade-gov-reflect-rust:1.66.0-{{ checksum "~/project/Cargo.lock" }}
 
   contract_tgrade_valset:
     docker:
-      - image: rust:1.60.0
+      - image: rust:1.66.0
     working_directory: ~/project/contracts/tgrade-valset
     steps:
       - checkout:
@@ -186,7 +186,7 @@ jobs:
           command: rustc --version; cargo --version; rustup --version
       - restore_cache:
           keys:
-            - cargocache-tgrade-valset-rust:1.60.0-{{ checksum "~/project/Cargo.lock" }}
+            - cargocache-tgrade-valset-rust:1.66.0-{{ checksum "~/project/Cargo.lock" }}
       - run:
           name: Unit Tests
           environment:
@@ -199,11 +199,11 @@ jobs:
           paths:
             - /usr/local/cargo/registry
             - target
-          key: cargocache-tgrade-valset-rust:1.60.0-{{ checksum "~/project/Cargo.lock" }}
+          key: cargocache-tgrade-valset-rust:1.66.0-{{ checksum "~/project/Cargo.lock" }}
 
   contract_tgrade_validator_voting:
     docker:
-      - image: rust:1.60.0
+      - image: rust:1.66.0
     working_directory: ~/project/contracts/tgrade-validator-voting
     steps:
       - checkout:
@@ -213,7 +213,7 @@ jobs:
           command: rustc --version; cargo --version; rustup --version
       - restore_cache:
           keys:
-            - cargocache-tgrade-validator-voting-rust:1.60.0-{{ checksum "~/project/Cargo.lock" }}
+            - cargocache-tgrade-validator-voting-rust:1.66.0-{{ checksum "~/project/Cargo.lock" }}
       - run:
           name: Unit Tests
           environment:
@@ -226,11 +226,11 @@ jobs:
           paths:
             - /usr/local/cargo/registry
             - target
-          key: cargocache-tgrade-validator-voting-rust:1.60.0-{{ checksum "~/project/Cargo.lock" }}
+          key: cargocache-tgrade-validator-voting-rust:1.66.0-{{ checksum "~/project/Cargo.lock" }}
 
   contract_tgrade_vesting_account:
     docker:
-      - image: rust:1.60.0
+      - image: rust:1.66.0
     working_directory: ~/project/contracts/tgrade-vesting-account
     steps:
       - checkout:
@@ -240,7 +240,7 @@ jobs:
           command: rustc --version; cargo --version; rustup --version
       - restore_cache:
           keys:
-            - cargocache-tgrade-vesting-account-rust:1.60.0-{{ checksum "~/project/Cargo.lock" }}
+            - cargocache-tgrade-vesting-account-rust:1.66.0-{{ checksum "~/project/Cargo.lock" }}
       - run:
           name: Unit Tests
           environment:
@@ -262,11 +262,11 @@ jobs:
           paths:
             - /usr/local/cargo/registry
             - target
-          key: cargocache-tgrade-vesting-account-rust:1.60.0-{{ checksum "~/project/Cargo.lock" }}
+          key: cargocache-tgrade-vesting-account-rust:1.66.0-{{ checksum "~/project/Cargo.lock" }}
 
   contract_tgrade_community_pool:
     docker:
-      - image: rust:1.60.0
+      - image: rust:1.66.0
     working_directory: ~/project/contracts/tgrade-community-pool
     steps:
       - checkout:
@@ -276,7 +276,7 @@ jobs:
           command: rustc --version; cargo --version; rustup --version
       - restore_cache:
           keys:
-            - cargocache-tgrade-validator-voting-rust:1.60.0-{{ checksum "~/project/Cargo.lock" }}
+            - cargocache-tgrade-validator-voting-rust:1.66.0-{{ checksum "~/project/Cargo.lock" }}
       - run:
           name: Unit Tests
           environment:
@@ -289,12 +289,12 @@ jobs:
           paths:
             - /usr/local/cargo/registry
             - target
-          key: cargocache-tgrade-validator-voting-rust:1.60.0-{{ checksum "~/project/Cargo.lock" }}
+          key: cargocache-tgrade-validator-voting-rust:1.66.0-{{ checksum "~/project/Cargo.lock" }}
 
 
   package_bindings:
     docker:
-      - image: rust:1.60.0
+      - image: rust:1.66.0
     working_directory: ~/project/packages/bindings
     steps:
       - checkout:
@@ -304,7 +304,7 @@ jobs:
           command: rustc --version; cargo --version; rustup --version; rustup target list --installed
       - restore_cache:
           keys:
-            - cargocache-v2-bindings:1.60.0-{{ checksum "~/project/Cargo.lock" }}
+            - cargocache-v2-bindings:1.66.0-{{ checksum "~/project/Cargo.lock" }}
       - run:
           name: Build library for native target
           command: cargo build --locked
@@ -318,11 +318,11 @@ jobs:
           paths:
             - /usr/local/cargo/registry
             - target
-          key: cargocache-v2-bindings:1.60.0-{{ checksum "~/project/Cargo.lock" }}
+          key: cargocache-v2-bindings:1.66.0-{{ checksum "~/project/Cargo.lock" }}
 
   package_bindings_test:
     docker:
-      - image: rust:1.60.0
+      - image: rust:1.66.0
     working_directory: ~/project/packages/bindings-test
     steps:
       - checkout:
@@ -332,7 +332,7 @@ jobs:
           command: rustc --version; cargo --version; rustup --version; rustup target list --installed
       - restore_cache:
           keys:
-            - cargocache-v2-bindings-test:1.60.0-{{ checksum "~/project/Cargo.lock" }}
+            - cargocache-v2-bindings-test:1.66.0-{{ checksum "~/project/Cargo.lock" }}
       - run:
           name: Build library for native target
           command: cargo build --locked
@@ -343,11 +343,11 @@ jobs:
           paths:
             - /usr/local/cargo/registry
             - target
-          key: cargocache-v2-bindings-test:1.60.0-{{ checksum "~/project/Cargo.lock" }}
+          key: cargocache-v2-bindings-test:1.66.0-{{ checksum "~/project/Cargo.lock" }}
 
   package_utils:
     docker:
-      - image: rust:1.60.0
+      - image: rust:1.66.0
     working_directory: ~/project/packages/utils
     steps:
       - checkout:
@@ -357,7 +357,7 @@ jobs:
           command: rustc --version; cargo --version; rustup --version; rustup target list --installed
       - restore_cache:
           keys:
-            - cargocache-v2-utils:1.60.0-{{ checksum "~/project/Cargo.lock" }}
+            - cargocache-v2-utils:1.66.0-{{ checksum "~/project/Cargo.lock" }}
       - run:
           name: Build library for native target
           command: cargo build --locked
@@ -368,11 +368,11 @@ jobs:
           paths:
             - /usr/local/cargo/registry
             - target
-          key: cargocache-v2-utils:1.60.0-{{ checksum "~/project/Cargo.lock" }}
+          key: cargocache-v2-utils:1.66.0-{{ checksum "~/project/Cargo.lock" }}
 
   package_tg3:
     docker:
-      - image: rust:1.60.0
+      - image: rust:1.66.0
     working_directory: ~/project/packages/tg3
     steps:
       - checkout:
@@ -382,7 +382,7 @@ jobs:
           command: rustc --version; cargo --version; rustup --version; rustup target list --installed
       - restore_cache:
           keys:
-            - cargocache-v2-tg3:1.60.0-{{ checksum "~/project/Cargo.lock" }}
+            - cargocache-v2-tg3:1.66.0-{{ checksum "~/project/Cargo.lock" }}
       - run:
           name: Build library for native target
           command: cargo build --locked
@@ -396,12 +396,12 @@ jobs:
           paths:
             - /usr/local/cargo/registry
             - target
-          key: cargocache-v2-tg3:1.60.0-{{ checksum "~/project/Cargo.lock" }}
+          key: cargocache-v2-tg3:1.66.0-{{ checksum "~/project/Cargo.lock" }}
 
 
   package_tg4:
     docker:
-      - image: rust:1.60.0
+      - image: rust:1.66.0
     working_directory: ~/project/packages/tg4
     steps:
       - checkout:
@@ -411,7 +411,7 @@ jobs:
           command: rustc --version; cargo --version; rustup --version; rustup target list --installed
       - restore_cache:
           keys:
-            - cargocache-v2-tg4:1.60.0-{{ checksum "~/project/Cargo.lock" }}
+            - cargocache-v2-tg4:1.66.0-{{ checksum "~/project/Cargo.lock" }}
       - run:
           name: Build library for native target
           command: cargo build --locked
@@ -425,11 +425,11 @@ jobs:
           paths:
             - /usr/local/cargo/registry
             - target
-          key: cargocache-v2-tg4:1.60.0-{{ checksum "~/project/Cargo.lock" }}
+          key: cargocache-v2-tg4:1.66.0-{{ checksum "~/project/Cargo.lock" }}
 
   package_voting_contract:
     docker:
-      - image: rust:1.60.0
+      - image: rust:1.66.0
     working_directory: ~/project/packages/voting-contract
     steps:
       - checkout:
@@ -439,7 +439,7 @@ jobs:
           command: rustc --version; cargo --version; rustup --version; rustup target list --installed
       - restore_cache:
           keys:
-            - cargocache-v2-tg4:1.60.0-{{ checksum "~/project/Cargo.lock" }}
+            - cargocache-v2-tg4:1.66.0-{{ checksum "~/project/Cargo.lock" }}
       - run:
           name: Build library for native target
           command: cargo build --locked
@@ -453,11 +453,11 @@ jobs:
           paths:
             - /usr/local/cargo/registry
             - target
-          key: cargocache-v2-tg4:1.60.0-{{ checksum "~/project/Cargo.lock" }}
+          key: cargocache-v2-tg4:1.66.0-{{ checksum "~/project/Cargo.lock" }}
 
   package_test_utils:
     docker:
-      - image: rust:1.60.0
+      - image: rust:1.66.0
     working_directory: ~/project/packages/test-utils
     steps:
       - checkout:
@@ -467,7 +467,7 @@ jobs:
           command: rustc --version; cargo --version; rustup --version; rustup target list --installed
       - restore_cache:
           keys:
-            - cargocache-v2-tg4:1.60.0-{{ checksum "~/project/Cargo.lock" }}
+            - cargocache-v2-tg4:1.66.0-{{ checksum "~/project/Cargo.lock" }}
       - run:
           name: Build library for native target
           command: cargo build --locked
@@ -478,11 +478,11 @@ jobs:
           paths:
             - /usr/local/cargo/registry
             - target
-          key: cargocache-v2-tg4:1.60.0-{{ checksum "~/project/Cargo.lock" }}
+          key: cargocache-v2-tg4:1.66.0-{{ checksum "~/project/Cargo.lock" }}
 
   lint:
     docker:
-      - image: rust:1.60.0
+      - image: rust:1.66.0
     steps:
       - checkout
       - run:
@@ -490,7 +490,7 @@ jobs:
           command: rustc --version; cargo --version; rustup --version; rustup target list --installed
       - restore_cache:
           keys:
-            - cargocache-v2-lint-rust:1.60.0-{{ checksum "Cargo.lock" }}
+            - cargocache-v2-lint-rust:1.66.0-{{ checksum "Cargo.lock" }}
       - run:
           name: Add rustfmt component
           command: rustup component add rustfmt
@@ -515,7 +515,7 @@ jobs:
             - target/debug/.fingerprint
             - target/debug/build
             - target/debug/deps
-          key: cargocache-v2-lint-rust:1.60.0-{{ checksum "Cargo.lock" }}
+          key: cargocache-v2-lint-rust:1.66.0-{{ checksum "Cargo.lock" }}
 
   # This runs one time on the top level to ensure all contracts compile properly into wasm.
   # We don't run the wasm build per contract build, and then reuse a lot of the same dependencies, so this speeds up CI time
@@ -523,7 +523,7 @@ jobs:
   # We also sanity-check the resultant wasm files.
   wasm-build:
     docker:
-      - image: rust:1.60.0
+      - image: rust:1.66.0
     steps:
       - checkout:
           path: ~/project
@@ -532,7 +532,7 @@ jobs:
           command: rustc --version; cargo --version; rustup --version
       - restore_cache:
           keys:
-            - cargocache-wasm-rust:1.60.0-{{ checksum "~/project/Cargo.lock" }}
+            - cargocache-wasm-rust:1.66.0-{{ checksum "~/project/Cargo.lock" }}
       - run:
           name: Add wasm32 target
           command: rustup target add wasm32-unknown-unknown
@@ -545,22 +545,17 @@ jobs:
               (cd $C && cargo build --release --target wasm32-unknown-unknown --locked)
             done
       - run:
-          name: Install check_contract
+          name: Install cosmwasm-check
           # Uses --debug for compilation speed.
-          command: cargo install --debug --features iterator --example check_contract --version 1.0.0 -- cosmwasm-vm
+          command: cargo install --debug --version 1.1.5 cosmwasm-check
       - save_cache:
           paths:
             - /usr/local/cargo/registry
             - target
-          key: cargocache-wasm-rust:1.60.0-{{ checksum "~/project/Cargo.lock" }}
+          key: cargocache-wasm-rust:1.66.0-{{ checksum "~/project/Cargo.lock" }}
       - run:
           name: Check wasm contracts
-          command: |
-            for W in ./target/wasm32-unknown-unknown/release/*.wasm
-            do
-              echo -n "Checking $(basename $W) ... "
-              check_contract --supported-features iterator,staking,stargate,tgrade $W
-            done
+          command: cosmwasm-check --supported-features iterator,staking,stargate,tgrade ./target/wasm32-unknown-unknown/release/*.wasm
 
   # This job roughly follows the instructions from https://circleci.com/blog/publishing-to-github-releases-via-circleci/
   build_and_upload_contracts:
@@ -588,7 +583,7 @@ jobs:
       - run:
           name: Build development contracts
           command: |
-            docker run --volumes-from with_code cosmwasm/workspace-optimizer:0.12.10
+            docker run --volumes-from with_code cosmwasm/workspace-optimizer:0.12.11
             docker cp with_code:/code/artifacts ./artifacts
       - run:
           name: Show data
@@ -610,7 +605,7 @@ jobs:
 
   build_and_upload_schemas:
     docker:
-      - image: rust:1.60.0
+      - image: rust:1.66.0
     working_directory: ~/project
     steps:
       - checkout:

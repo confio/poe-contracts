@@ -764,7 +764,7 @@ impl Suite {
         let amount = self
             .app
             .wrap()
-            .query_balance(&Addr::unchecked(owner), &self.denom)?
+            .query_balance(Addr::unchecked(owner), &self.denom)?
             .amount;
         Ok(amount.into())
     }

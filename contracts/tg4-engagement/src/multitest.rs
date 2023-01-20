@@ -22,7 +22,7 @@ mod funds_distribution {
         Event::new("wasm")
             .add_attribute("sender", sender)
             .add_attribute("denom", denom)
-            .add_attribute("amount", &amount.to_string())
+            .add_attribute("amount", amount.to_string())
     }
 
     #[test]
@@ -456,7 +456,7 @@ mod funds_distribution {
         let denom = suite.denom.clone();
 
         suite
-            .distribute_funds(&members[3], None, &coins(100, &denom))
+            .distribute_funds(&members[3], None, &coins(100, denom))
             .unwrap();
 
         suite
@@ -487,7 +487,7 @@ mod funds_distribution {
         let denom = suite.denom.clone();
 
         suite
-            .distribute_funds(&members[2], None, &coins(100, &denom))
+            .distribute_funds(&members[2], None, &coins(100, denom))
             .unwrap();
 
         let err = suite
@@ -535,7 +535,7 @@ mod funds_distribution {
         );
 
         suite
-            .distribute_funds(&members[2], None, &coins(100, &denom))
+            .distribute_funds(&members[2], None, &coins(100, denom))
             .unwrap();
 
         suite.delegate_withdrawal(&members[1], &members[0]).unwrap();
@@ -604,7 +604,7 @@ mod slashing {
         );
 
         suite
-            .distribute_funds(members[2], None, &coins(600, &denom))
+            .distribute_funds(members[2], None, &coins(600, denom))
             .unwrap();
 
         suite.withdraw_funds(members[0], None, None).unwrap();
@@ -649,7 +649,7 @@ mod slashing {
         );
 
         suite
-            .distribute_funds(members[2], None, &coins(600, &denom))
+            .distribute_funds(members[2], None, &coins(600, denom))
             .unwrap();
 
         suite.withdraw_funds(members[0], None, None).unwrap();
@@ -693,7 +693,7 @@ mod slashing {
         );
 
         suite
-            .distribute_funds(members[2], None, &coins(600, &denom))
+            .distribute_funds(members[2], None, &coins(600, denom))
             .unwrap();
 
         suite.withdraw_funds(members[0], None, None).unwrap();
@@ -804,7 +804,7 @@ mod slashing {
         );
 
         suite
-            .distribute_funds(members[2], None, &coins(600, &denom))
+            .distribute_funds(members[2], None, &coins(600, denom))
             .unwrap();
 
         suite.withdraw_funds(members[0], None, None).unwrap();

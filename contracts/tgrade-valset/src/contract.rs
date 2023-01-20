@@ -343,7 +343,7 @@ fn execute_jail<Q: CustomQuery>(
     let res = Response::new()
         .add_attribute("action", "jail")
         .add_attribute("operator", &operator)
-        .add_attribute("until", &until_attr);
+        .add_attribute("until", until_attr);
 
     Ok(res)
 }
@@ -355,7 +355,7 @@ fn execute_unjail<Q: CustomQuery>(
     operator: Option<String>,
 ) -> Result<Response, ContractError> {
     // It is OK to get unchecked address here - invalid address would just not occur in the JAIL
-    let operator = operator.map(|op| Addr::unchecked(&op));
+    let operator = operator.map(Addr::unchecked);
     let operator = operator.as_ref().unwrap_or(&info.sender);
 
     let is_admin = ADMIN.is_admin(deps.as_ref(), &info.sender)?;
@@ -900,7 +900,7 @@ fn calculate_validators<Q: CustomQuery>(
                     })
                 })
             })
-            .take(cfg.max_validators as usize - validators.len() as usize)
+            .take(cfg.max_validators as usize - validators.len())
             .collect::<Result<_, _>>()?;
         validators.extend_from_slice(&filtered);
 
