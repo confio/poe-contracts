@@ -1625,6 +1625,15 @@ mod tests {
         do_instantiate(deps.as_mut());
         let mut env = mock_env();
 
+        // register a hook, to check for half life side effects
+        let contract1 = String::from("hook1");
+
+        let admin_info = mock_info(INIT_ADMIN, &[]);
+        let hook_msg = ExecuteMsg::AddHook {
+            addr: contract1.clone(),
+        };
+        let _ = execute(deps.as_mut(), mock_env(), admin_info, hook_msg).unwrap();
+
         // end block just before half life time is met - do nothing
         env.block.time = env.block.time.plus_seconds(HALFLIFE - 2);
         assert_eq!(end_block(deps.as_mut(), env.clone()), Ok(Response::new()));
