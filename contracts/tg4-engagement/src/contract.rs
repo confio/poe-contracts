@@ -13,6 +13,7 @@ use tg4::{
 };
 
 use crate::error::ContractError;
+use crate::migration::migrate_config;
 use crate::msg::{
     DelegatedResponse, ExecuteMsg, HalflifeInfo, HalflifeResponse, InstantiateMsg, MigrateMsg,
     PreauthResponse, QueryMsg, RewardsResponse, SudoMsg,
@@ -928,20 +929,9 @@ pub fn migrate(
     msg: MigrateMsg,
 ) -> Result<Response, ContractError> {
     ensure_from_older_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
-    if let Some(duration) = msg.halflife {
-        // Update half life's duration
-        // Zero duration means no / remove half life
-        HALFLIFE.update(deps.storage, |hf| -> StdResult<_> {
-            Ok(Halflife {
-                halflife: if duration.seconds() > 0 {
-                    Some(duration)
-                } else {
-                    None
-                },
-                last_applied: hf.last_applied,
-            })
-        })?;
-    };
+
+    migrate_config(deps, msg)?;
+
     Ok(Response::new())
 }
 

@@ -2,6 +2,7 @@ pub mod contract;
 pub mod error;
 pub mod helpers;
 pub mod i128;
+pub mod migration;
 pub mod msg;
 #[cfg(test)]
 mod multitest;
