@@ -62,7 +62,7 @@ pub fn generate_pending_member_updates(
     for member in members_to_update {
         diffs.push(MemberDiff::new(
             member.addr.clone(),
-            Some(member.points), // FIXME: These are not the old points on the remote side
+            Some(member.points * 2), // FIXME: The parity bit is lost!
             Some(member.points),
         ));
     }
