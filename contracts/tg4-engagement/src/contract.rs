@@ -13,6 +13,7 @@ use tg4::{
 };
 
 use crate::error::ContractError;
+use crate::migration::generate_pending_member_updates;
 use crate::migration::migrate_config;
 use crate::msg::{
     DelegatedResponse, ExecuteMsg, HalflifeInfo, HalflifeResponse, InstantiateMsg, MigrateMsg,
@@ -924,15 +925,28 @@ fn list_members_by_points<Q: CustomQuery>(
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn migrate(
-    deps: DepsMut<TgradeQuery>,
-    _env: Env,
+    mut deps: DepsMut<TgradeQuery>,
+    env: Env,
     msg: MigrateMsg,
 ) -> Result<Response, ContractError> {
-    ensure_from_older_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
+    let stored_version = ensure_from_older_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
 
-    migrate_config(deps, msg)?;
+    migrate_config(deps.branch(), msg)?;
 
-    Ok(Response::new())
+    let mut resp = Response::new();
+
+    if stored_version <= "0.17.0".parse().unwrap() {
+        let diff = generate_pending_member_updates(deps.as_ref())?;
+        // Call all registered hooks
+        resp.messages = HOOKS.prepare_hooks(deps.as_ref().storage, |h| {
+            diff.clone().into_cosmos_msg(h).map(SubMsg::new)
+        })?;
+        let evt =
+            Event::new("halflife-updates").add_attribute("height", env.block.height.to_string());
+        resp = resp.add_event(evt);
+    }
+
+    Ok(resp)
 }
 
 #[cfg(test)]

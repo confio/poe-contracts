@@ -1744,6 +1744,7 @@ dependencies = [
  "cw2 1.0.0",
  "derivative",
  "schemars",
+ "semver",
  "serde",
  "tg-bindings",
  "tg-bindings-test",
