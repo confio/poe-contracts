@@ -552,14 +552,12 @@ pub fn update_members<Q: CustomQuery>(
         let add_addr = deps.api.addr_validate(&add.addr)?;
 
         let mut diff = 0;
-        let mut insert_funds = false;
         members().update(deps.storage, &add_addr, height, |old| -> StdResult<_> {
             diffs.push(MemberDiff::new(
                 add.addr,
                 old.as_ref().map(|mi| mi.points),
                 Some(add.points),
             ));
-            insert_funds = old.is_none();
             let old = old.unwrap_or_default();
             total -= old.points;
             total += add.points;
