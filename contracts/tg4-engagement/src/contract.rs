@@ -1641,11 +1641,29 @@ mod tests {
 
         // end block at half life
         env.block.time = env.block.time.plus_seconds(HALFLIFE);
-        let expected_reduction = points_reduction(USER1_POINTS) + points_reduction(USER2_POINTS);
+        let expected_reduction_user1 = points_reduction(USER1_POINTS);
+        let expected_reduction_user2 = points_reduction(USER2_POINTS);
+        let expected_reduction = expected_reduction_user1 + expected_reduction_user2;
         let evt = Event::new("halflife")
             .add_attribute("height", env.block.height.to_string())
             .add_attribute("reduction", expected_reduction.to_string());
-        let resp = Response::new().add_event(evt);
+        let msg = MemberChangedHookMsg {
+            diffs: vec![
+                MemberDiff::new(
+                    USER1,
+                    Some(USER1_POINTS),
+                    Some(USER1_POINTS - expected_reduction_user1),
+                ),
+                MemberDiff::new(
+                    USER2,
+                    Some(USER2_POINTS),
+                    Some(USER2_POINTS - expected_reduction_user2),
+                ),
+            ],
+        };
+        let resp = Response::new()
+            .add_event(evt)
+            .add_message(msg.into_cosmos_msg(contract1).unwrap());
         assert_eq!(end_block(deps.as_mut(), env.clone()), Ok(resp));
         assert_users(
             &deps,
