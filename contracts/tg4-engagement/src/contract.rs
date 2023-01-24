@@ -1627,12 +1627,17 @@ mod tests {
 
         // register a hook, to check for half life side effects
         let contract1 = String::from("hook1");
+        let contract2 = String::from("hook2");
 
         let admin_info = mock_info(INIT_ADMIN, &[]);
         let hook_msg = ExecuteMsg::AddHook {
             addr: contract1.clone(),
         };
-        let _ = execute(deps.as_mut(), mock_env(), admin_info, hook_msg).unwrap();
+        let hook_msg2 = ExecuteMsg::AddHook {
+            addr: contract2.clone(),
+        };
+        let _ = execute(deps.as_mut(), mock_env(), admin_info.clone(), hook_msg).unwrap();
+        let _ = execute(deps.as_mut(), mock_env(), admin_info, hook_msg2).unwrap();
 
         // end block just before half life time is met - do nothing
         env.block.time = env.block.time.plus_seconds(HALFLIFE - 2);
@@ -1663,7 +1668,8 @@ mod tests {
         };
         let resp = Response::new()
             .add_event(evt)
-            .add_message(msg.into_cosmos_msg(contract1).unwrap());
+            .add_message(msg.clone().into_cosmos_msg(contract1).unwrap())
+            .add_message(msg.into_cosmos_msg(contract2).unwrap());
         assert_eq!(end_block(deps.as_mut(), env.clone()), Ok(resp));
         assert_users(
             &deps,
