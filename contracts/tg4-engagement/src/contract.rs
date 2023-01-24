@@ -633,7 +633,7 @@ fn points_reduction(points: u64) -> u64 {
 }
 
 fn end_block<Q: CustomQuery>(mut deps: DepsMut<Q>, env: Env) -> Result<Response, ContractError> {
-    let resp = Response::new();
+    let mut resp = Response::new();
 
     // If duration of half life added to timestamp of last applied
     // if lesser then current timestamp, do nothing
@@ -669,8 +669,14 @@ fn end_block<Q: CustomQuery>(mut deps: DepsMut<Q>, env: Env) -> Result<Response,
         })
         .collect::<StdResult<_>>()?;
 
+    let mut diffs: Vec<MemberDiff> = vec![];
     for member in members_to_update {
         let diff = points_reduction(member.points);
+        diffs.push(MemberDiff::new(
+            member.addr.clone(),
+            Some(member.points),
+            Some(member.points - diff),
+        ));
         reduction += diff;
         let addr = Addr::unchecked(member.addr);
         members().replace(
@@ -682,6 +688,11 @@ fn end_block<Q: CustomQuery>(mut deps: DepsMut<Q>, env: Env) -> Result<Response,
         )?;
         apply_points_correction(deps.branch(), &addr, ppw, -(diff as i128))?;
     }
+    let diff = MemberChangedHookMsg { diffs };
+    // call all registered hooks
+    resp.messages = HOOKS.prepare_hooks(deps.storage, |h| {
+        diff.clone().into_cosmos_msg(h).map(SubMsg::new)
+    })?;
 
     // We need to update half life's last applied timestamp to current one
     HALFLIFE.update(deps.storage, |hf| -> StdResult<_> {
