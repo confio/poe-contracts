@@ -1,6 +1,6 @@
 use cosmwasm_std::{Deps, DepsMut, Order, StdResult};
 
-use tg4::{Member, MemberChangedHookMsg, MemberDiff, MemberInfo};
+use tg4::{MemberChangedHookMsg, MemberDiff, MemberInfo};
 use tg_bindings::TgradeQuery;
 use tg_utils::members;
 
@@ -34,7 +34,7 @@ pub fn generate_pending_member_updates(
     deps: Deps<TgradeQuery>,
 ) -> Result<MemberChangedHookMsg, ContractError> {
     // Iterate over all the members, and send an update member message to each of the registered hooks
-    let members_to_update: Vec<_> = members()
+    let diffs: Vec<_> = members()
         .range(deps.storage, None, None, Order::Ascending)
         .filter_map(|item| {
             (move || -> StdResult<Option<_>> {
@@ -42,30 +42,17 @@ pub fn generate_pending_member_updates(
                     addr,
                     MemberInfo {
                         points,
-                        start_height,
+                        start_height: _,
                     },
                 ) = item?;
                 if points <= 1 {
                     return Ok(None);
                 }
-                Ok(Some(Member {
-                    addr: addr.into(),
-                    points,
-                    start_height,
-                }))
+                Ok(Some(MemberDiff::new(addr, Some(points), Some(points))))
             })()
             .transpose()
         })
         .collect::<StdResult<_>>()?;
-
-    let mut diffs: Vec<MemberDiff> = vec![];
-    for member in members_to_update {
-        diffs.push(MemberDiff::new(
-            member.addr.clone(),
-            Some(member.points),
-            Some(member.points),
-        ));
-    }
 
     Ok(MemberChangedHookMsg { diffs })
 }
