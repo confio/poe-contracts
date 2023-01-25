@@ -2,7 +2,19 @@
 
 ## [Unreleased](https://github.com/confio/poe-contracts/tree/HEAD)
 
-[Full Changelog](https://github.com/confio/poe-contracts/compare/v0.17.0...HEAD)
+[Full Changelog](https://github.com/confio/poe-contracts/compare/v0.17.1...HEAD)
+
+## [v0.17.1](https://github.com/confio/poe-contracts/tree/v0.17.1) (2023-01-25)
+
+[Full Changelog](https://github.com/confio/poe-contracts/compare/v0.17.0...v0.17.1)
+
+**Fixed bugs:**
+
+- \[tg4-engagement\] Half-life process does not update members [\#203](https://github.com/confio/poe-contracts/issues/203)
+
+**Merged pull requests:**
+
+- Add half-life event member updates [\#204](https://github.com/confio/poe-contracts/pull/204) ([maurolacy](https://github.com/maurolacy))
 
 ## [v0.17.0](https://github.com/confio/poe-contracts/tree/v0.17.0) (2023-01-18)
 
