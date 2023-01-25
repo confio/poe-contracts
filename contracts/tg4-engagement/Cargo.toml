@@ -29,6 +29,7 @@ tg-utils = { version = "0.17.0", path = "../../packages/utils" }
 tg-bindings = { version = "0.17.0", path = "../../packages/bindings" }
 tg4 = { path = "../../packages/tg4", version = "0.17.0" }
 schemars = "0.8"
+semver = "1"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
 thiserror = "1.0.21"
 

@@ -13,6 +13,8 @@ use tg4::{
 };
 
 use crate::error::ContractError;
+use crate::migration::generate_pending_member_updates;
+use crate::migration::migrate_config;
 use crate::msg::{
     DelegatedResponse, ExecuteMsg, HalflifeInfo, HalflifeResponse, InstantiateMsg, MigrateMsg,
     PreauthResponse, QueryMsg, RewardsResponse, SudoMsg,
@@ -552,14 +554,12 @@ pub fn update_members<Q: CustomQuery>(
         let add_addr = deps.api.addr_validate(&add.addr)?;
 
         let mut diff = 0;
-        let mut insert_funds = false;
         members().update(deps.storage, &add_addr, height, |old| -> StdResult<_> {
             diffs.push(MemberDiff::new(
                 add.addr,
                 old.as_ref().map(|mi| mi.points),
                 Some(add.points),
             ));
-            insert_funds = old.is_none();
             let old = old.unwrap_or_default();
             total -= old.points;
             total += add.points;
@@ -635,7 +635,7 @@ fn points_reduction(points: u64) -> u64 {
 }
 
 fn end_block<Q: CustomQuery>(mut deps: DepsMut<Q>, env: Env) -> Result<Response, ContractError> {
-    let resp = Response::new();
+    let mut resp = Response::new();
 
     // If duration of half life added to timestamp of last applied
     // if lesser then current timestamp, do nothing
@@ -671,8 +671,14 @@ fn end_block<Q: CustomQuery>(mut deps: DepsMut<Q>, env: Env) -> Result<Response,
         })
         .collect::<StdResult<_>>()?;
 
+    let mut diffs: Vec<MemberDiff> = vec![];
     for member in members_to_update {
         let diff = points_reduction(member.points);
+        diffs.push(MemberDiff::new(
+            member.addr.clone(),
+            Some(member.points),
+            Some(member.points - diff),
+        ));
         reduction += diff;
         let addr = Addr::unchecked(member.addr);
         members().replace(
@@ -684,6 +690,11 @@ fn end_block<Q: CustomQuery>(mut deps: DepsMut<Q>, env: Env) -> Result<Response,
         )?;
         apply_points_correction(deps.branch(), &addr, ppw, -(diff as i128))?;
     }
+    let diff = MemberChangedHookMsg { diffs };
+    // call all registered hooks
+    resp.messages = HOOKS.prepare_hooks(deps.storage, |h| {
+        diff.clone().into_cosmos_msg(h).map(SubMsg::new)
+    })?;
 
     // We need to update half life's last applied timestamp to current one
     HALFLIFE.update(deps.storage, |hf| -> StdResult<_> {
@@ -914,26 +925,28 @@ fn list_members_by_points<Q: CustomQuery>(
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn migrate(
-    deps: DepsMut<TgradeQuery>,
-    _env: Env,
+    mut deps: DepsMut<TgradeQuery>,
+    env: Env,
     msg: MigrateMsg,
 ) -> Result<Response, ContractError> {
-    ensure_from_older_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
-    if let Some(duration) = msg.halflife {
-        // Update half life's duration
-        // Zero duration means no / remove half life
-        HALFLIFE.update(deps.storage, |hf| -> StdResult<_> {
-            Ok(Halflife {
-                halflife: if duration.seconds() > 0 {
-                    Some(duration)
-                } else {
-                    None
-                },
-                last_applied: hf.last_applied,
-            })
+    let stored_version = ensure_from_older_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
+
+    migrate_config(deps.branch(), msg)?;
+
+    let mut resp = Response::new();
+
+    if stored_version <= "0.17.0".parse().unwrap() {
+        let diff = generate_pending_member_updates(deps.as_ref())?;
+        // Call all registered hooks
+        resp.messages = HOOKS.prepare_hooks(deps.as_ref().storage, |h| {
+            diff.clone().into_cosmos_msg(h).map(SubMsg::new)
         })?;
-    };
-    Ok(Response::new())
+        let evt =
+            Event::new("halflife-updates").add_attribute("height", env.block.height.to_string());
+        resp = resp.add_event(evt);
+    }
+
+    Ok(resp)
 }
 
 #[cfg(test)]
@@ -1616,6 +1629,20 @@ mod tests {
         do_instantiate(deps.as_mut());
         let mut env = mock_env();
 
+        // register a hook, to check for half life side effects
+        let contract1 = String::from("hook1");
+        let contract2 = String::from("hook2");
+
+        let admin_info = mock_info(INIT_ADMIN, &[]);
+        let hook_msg = ExecuteMsg::AddHook {
+            addr: contract1.clone(),
+        };
+        let hook_msg2 = ExecuteMsg::AddHook {
+            addr: contract2.clone(),
+        };
+        let _ = execute(deps.as_mut(), mock_env(), admin_info.clone(), hook_msg).unwrap();
+        let _ = execute(deps.as_mut(), mock_env(), admin_info, hook_msg2).unwrap();
+
         // end block just before half life time is met - do nothing
         env.block.time = env.block.time.plus_seconds(HALFLIFE - 2);
         assert_eq!(end_block(deps.as_mut(), env.clone()), Ok(Response::new()));
@@ -1623,11 +1650,30 @@ mod tests {
 
         // end block at half life
         env.block.time = env.block.time.plus_seconds(HALFLIFE);
-        let expected_reduction = points_reduction(USER1_POINTS) + points_reduction(USER2_POINTS);
+        let expected_reduction_user1 = points_reduction(USER1_POINTS);
+        let expected_reduction_user2 = points_reduction(USER2_POINTS);
+        let expected_reduction = expected_reduction_user1 + expected_reduction_user2;
         let evt = Event::new("halflife")
             .add_attribute("height", env.block.height.to_string())
             .add_attribute("reduction", expected_reduction.to_string());
-        let resp = Response::new().add_event(evt);
+        let msg = MemberChangedHookMsg {
+            diffs: vec![
+                MemberDiff::new(
+                    USER1,
+                    Some(USER1_POINTS),
+                    Some(USER1_POINTS - expected_reduction_user1),
+                ),
+                MemberDiff::new(
+                    USER2,
+                    Some(USER2_POINTS),
+                    Some(USER2_POINTS - expected_reduction_user2),
+                ),
+            ],
+        };
+        let resp = Response::new()
+            .add_event(evt)
+            .add_message(msg.clone().into_cosmos_msg(contract1).unwrap())
+            .add_message(msg.into_cosmos_msg(contract2).unwrap());
         assert_eq!(end_block(deps.as_mut(), env.clone()), Ok(resp));
         assert_users(
             &deps,
@@ -1653,6 +1699,44 @@ mod tests {
         env.block.time = env.block.time.plus_seconds(HALFLIFE);
         end_block(deps.as_mut(), env).unwrap();
         assert_users(&deps, Some(1), Some(1), None, None);
+    }
+
+    #[test]
+    fn migration_workflow() {
+        let mut deps = mock_deps_tgrade();
+        do_instantiate(deps.as_mut());
+        let env = mock_env();
+
+        // register a hook, to check for half life side effects
+        let contract1 = String::from("hook1");
+
+        let admin_info = mock_info(INIT_ADMIN, &[]);
+        let hook_msg = ExecuteMsg::AddHook {
+            addr: contract1.clone(),
+        };
+        let _ = execute(deps.as_mut(), mock_env(), admin_info, hook_msg).unwrap();
+
+        assert_users(&deps, Some(USER1_POINTS), Some(USER2_POINTS), None, None);
+
+        // migration
+        let mut resp = Response::new();
+        if CONTRACT_VERSION <= "0.17.0" {
+            let evt = Event::new("halflife-updates")
+                .add_attribute("height", env.block.height.to_string());
+            let msg = MemberChangedHookMsg {
+                diffs: vec![
+                    MemberDiff::new(USER1, Some(USER1_POINTS), Some(USER1_POINTS)),
+                    MemberDiff::new(USER2, Some(USER2_POINTS), Some(USER2_POINTS)),
+                ],
+            };
+            resp = resp
+                .add_event(evt)
+                .add_message(msg.into_cosmos_msg(contract1).unwrap());
+        }
+        assert_eq!(
+            migrate(deps.as_mut(), env, MigrateMsg { halflife: None }),
+            Ok(resp)
+        );
     }
 
     mod points {
