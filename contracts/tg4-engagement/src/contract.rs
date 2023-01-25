@@ -1701,6 +1701,41 @@ mod tests {
         assert_users(&deps, Some(1), Some(1), None, None);
     }
 
+    #[test]
+    fn migration_workflow() {
+        let mut deps = mock_deps_tgrade();
+        do_instantiate(deps.as_mut());
+        let env = mock_env();
+
+        // register a hook, to check for half life side effects
+        let contract1 = String::from("hook1");
+
+        let admin_info = mock_info(INIT_ADMIN, &[]);
+        let hook_msg = ExecuteMsg::AddHook {
+            addr: contract1.clone(),
+        };
+        let _ = execute(deps.as_mut(), mock_env(), admin_info, hook_msg).unwrap();
+
+        assert_users(&deps, Some(USER1_POINTS), Some(USER2_POINTS), None, None);
+
+        // migration
+        let evt =
+            Event::new("halflife-updates").add_attribute("height", env.block.height.to_string());
+        let msg = MemberChangedHookMsg {
+            diffs: vec![
+                MemberDiff::new(USER1, Some(USER1_POINTS), Some(USER1_POINTS)),
+                MemberDiff::new(USER2, Some(USER2_POINTS), Some(USER2_POINTS)),
+            ],
+        };
+        let resp = Response::new()
+            .add_event(evt)
+            .add_message(msg.into_cosmos_msg(contract1).unwrap());
+        assert_eq!(
+            migrate(deps.as_mut(), env, MigrateMsg { halflife: None }),
+            Ok(resp)
+        );
+    }
+
     mod points {
         use super::*;
 
