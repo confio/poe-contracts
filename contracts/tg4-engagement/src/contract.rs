@@ -1719,17 +1719,20 @@ mod tests {
         assert_users(&deps, Some(USER1_POINTS), Some(USER2_POINTS), None, None);
 
         // migration
-        let evt =
-            Event::new("halflife-updates").add_attribute("height", env.block.height.to_string());
-        let msg = MemberChangedHookMsg {
-            diffs: vec![
-                MemberDiff::new(USER1, Some(USER1_POINTS), Some(USER1_POINTS)),
-                MemberDiff::new(USER2, Some(USER2_POINTS), Some(USER2_POINTS)),
-            ],
-        };
-        let resp = Response::new()
-            .add_event(evt)
-            .add_message(msg.into_cosmos_msg(contract1).unwrap());
+        let mut resp = Response::new();
+        if CONTRACT_VERSION <= "0.17.0" {
+            let evt = Event::new("halflife-updates")
+                .add_attribute("height", env.block.height.to_string());
+            let msg = MemberChangedHookMsg {
+                diffs: vec![
+                    MemberDiff::new(USER1, Some(USER1_POINTS), Some(USER1_POINTS)),
+                    MemberDiff::new(USER2, Some(USER2_POINTS), Some(USER2_POINTS)),
+                ],
+            };
+            resp = resp
+                .add_event(evt)
+                .add_message(msg.into_cosmos_msg(contract1).unwrap());
+        }
         assert_eq!(
             migrate(deps.as_mut(), env, MigrateMsg { halflife: None }),
             Ok(resp)
