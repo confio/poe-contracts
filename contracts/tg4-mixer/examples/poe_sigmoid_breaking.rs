@@ -7,7 +7,7 @@ use cosmwasm_vm::testing::{
     mock_env, mock_instance_with_options, query, MockApi, MockInstanceOptions, MockQuerier,
     MockStorage,
 };
-use cosmwasm_vm::{features_from_csv, Instance};
+use cosmwasm_vm::{capabilities_from_csv, Instance};
 
 use tg4_mixer::msg::PoEFunctionType::Sigmoid;
 use tg4_mixer::msg::QueryMsg;
@@ -16,7 +16,7 @@ fn mock_instance_on_tgrade(wasm: &[u8]) -> Instance<MockApi, MockStorage, MockQu
     mock_instance_with_options(
         wasm,
         MockInstanceOptions {
-            supported_features: features_from_csv("iterator,tgrade"),
+            available_capabilities: capabilities_from_csv("iterator,tgrade"),
             gas_limit: 100_000_000_000_000_000,
             ..Default::default()
         },
