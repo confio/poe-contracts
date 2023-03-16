@@ -23,7 +23,7 @@ crate-type = ["cdylib", "rlib"]
 backtraces = ["cosmwasm-std/backtraces"]
 # use library feature to disable all instantiate/execute/query exports
 library = []
-integration = ["bech32", "cosmwasm-vm"]
+integration = ["bech32"]
 
 [dependencies]
 cosmwasm-std = "1.1.9"
