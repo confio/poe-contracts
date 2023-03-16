@@ -5,4 +5,5 @@ pub mod msg;
 mod multitest;
 mod rewards;
 pub mod state;
-mod test_helpers;
+#[cfg(any(test, feature = "integration"))]
+pub mod test_helpers;

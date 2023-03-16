@@ -5,13 +5,12 @@
 //!
 use bech32::{ToBase32, Variant};
 
-use cosmwasm_std::{to_binary, Addr, Binary, ContractResult, Empty, Response};
+use cosmwasm_std::{to_binary, Addr, ContractResult, Empty, Response};
 use cosmwasm_vm::testing::{
     execute, mock_env, mock_info, mock_instance_with_options, MockApi, MockInstanceOptions,
     MockQuerier, MockStorage,
 };
-use cosmwasm_vm::{features_from_csv, Instance};
-use tg_bindings::Pubkey;
+use cosmwasm_vm::{capabilities_from_csv, Instance};
 
 use tgrade_valset::msg::ExecuteMsg;
 use tgrade_valset::state::ValidatorInfo;
@@ -44,7 +43,7 @@ fn mock_instance_on_tgrade(wasm: &[u8]) -> Instance<MockApi, MockStorage, MockQu
     mock_instance_with_options(
         wasm,
         MockInstanceOptions {
-            supported_features: features_from_csv("iterator,tgrade"),
+            available_capabilities: capabilities_from_csv("iterator,tgrade"),
             gas_limit: 100_000_000_000_000,
             ..Default::default()
         },
@@ -60,7 +59,7 @@ const VALIDATOR_POWER: u64 = 1;
 #[test]
 fn test_validators_storage() {
     let mut deps = mock_instance_on_tgrade(WASM);
-    assert_eq!(deps.required_features().len(), 2);
+    assert_eq!(deps.required_capabilities().len(), 2);
 
     let info = mock_info("creator", &[]);
 
