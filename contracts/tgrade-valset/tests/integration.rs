@@ -51,7 +51,7 @@ fn mock_instance_on_tgrade(wasm: &[u8]) -> Instance<MockApi, MockStorage, MockQu
 }
 
 static WASM: &[u8] =
-    include_bytes!("../../../target/wasm32-unknown-unknown/debug/tgrade_valset.wasm");
+    include_bytes!("../../../target/wasm32-unknown-unknown/release/tgrade_valset.wasm");
 
 const NUM_VALIDATORS: u32 = 956;
 const VALIDATOR_POWER: u64 = 1;
