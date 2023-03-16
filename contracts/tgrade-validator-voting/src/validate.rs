@@ -210,7 +210,9 @@ mod tests {
                     addr: contract_addr,
                 })
             } else {
-                let mut res = ContractInfoResponse::new(1, "dummy_creator");
+                let mut res = ContractInfoResponse::default();
+                res.code_id = 1;
+                res.creator = "dummy_creator".into();
                 res.admin = self.contract_admin.clone();
                 let bin = to_binary(&res).unwrap();
                 SystemResult::Ok(ContractResult::Ok(bin))
