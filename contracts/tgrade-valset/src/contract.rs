@@ -63,6 +63,7 @@ pub fn instantiate(
     // verify the message and contract address are valid
     msg.validate()?;
     let membership = Tg4Contract(deps.api.addr_validate(&msg.membership)?);
+    #[cfg(not(feature = "integration"))]
     membership
         .total_points(&deps.querier)
         .map_err(|_| ContractError::InvalidTg4Contract {})?;
@@ -195,7 +196,7 @@ pub fn execute(
         }
         ExecuteMsg::Unjail { operator } => execute_unjail(deps, env, info, operator),
         ExecuteMsg::Slash { addr, portion } => execute_slash(deps, env, info, addr, portion),
-        #[cfg(debug_assertions)]
+        #[cfg(feature = "integration")]
         ExecuteMsg::SimulateValidatorSet { validators } => {
             execute_simulate_validators(deps, info, validators)
         }
@@ -433,7 +434,7 @@ fn execute_slash<Q: CustomQuery>(
     Ok(resp)
 }
 
-#[cfg(debug_assertions)]
+#[cfg(feature = "integration")]
 fn execute_simulate_validators<Q: CustomQuery>(
     deps: DepsMut<Q>,
     _info: MessageInfo,

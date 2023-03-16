@@ -1,4 +1,4 @@
-#![cfg(test)]
+#![cfg(any(test, feature = "integration"))]
 use cosmwasm_std::{Addr, Binary};
 
 use tg_bindings::Pubkey;
