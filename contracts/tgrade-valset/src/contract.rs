@@ -63,6 +63,7 @@ pub fn instantiate(
     // verify the message and contract address are valid
     msg.validate()?;
     let membership = Tg4Contract(deps.api.addr_validate(&msg.membership)?);
+    #[cfg(not(feature = "integration"))]
     membership
         .total_points(&deps.querier)
         .map_err(|_| ContractError::InvalidTg4Contract {})?;

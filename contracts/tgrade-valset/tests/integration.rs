@@ -5,14 +5,17 @@
 //!
 use bech32::{ToBase32, Variant};
 
-use cosmwasm_std::{to_binary, Addr, ContractResult, Empty, Response};
+use cosmwasm_std::{coin, to_binary, Addr, ContractResult, Decimal, Empty, Response};
 use cosmwasm_vm::testing::{
-    execute, mock_env, mock_info, mock_instance_with_options, MockApi, MockInstanceOptions,
-    MockQuerier, MockStorage,
+    execute, instantiate, mock_env, mock_info, mock_instance_with_options, MockApi,
+    MockInstanceOptions, MockQuerier, MockStorage,
 };
 use cosmwasm_vm::{capabilities_from_csv, Instance};
+use tg_bindings::TgradeMsg;
+use tg_utils::Duration;
 
 use tgrade_valset::msg::ExecuteMsg;
+use tgrade_valset::msg::InstantiateMsg;
 use tgrade_valset::state::ValidatorInfo;
 use tgrade_valset::test_helpers::mock_pubkey;
 
@@ -50,11 +53,48 @@ fn mock_instance_on_tgrade(wasm: &[u8]) -> Instance<MockApi, MockStorage, MockQu
     )
 }
 
+pub fn mock_instantiate_msg(admin: Addr) -> InstantiateMsg {
+    InstantiateMsg {
+        admin: Some(admin.to_string()),
+        membership: "membership".into(),
+        min_points: 1,
+        max_validators: 100,
+        epoch_length: 120,
+        epoch_reward: coin(100, "utgd"),
+        initial_keys: vec![],
+        scaling: None,
+        fee_percentage: Decimal::percent(0),
+        auto_unjail: false,
+        double_sign_slash_ratio: Decimal::percent(50),
+        distribution_contracts: Default::default(),
+        validator_group_code_id: 0,
+        verify_validators: false,
+        offline_jail_duration: Duration::new(86400),
+    }
+}
+
 static WASM: &[u8] =
     include_bytes!("../../../target/wasm32-unknown-unknown/release/tgrade_valset.wasm");
 
 const NUM_VALIDATORS: u32 = 956;
 const VALIDATOR_POWER: u64 = 1;
+
+#[test]
+fn instantiate_works() {
+    let mut deps = mock_instance_with_options(
+        WASM,
+        MockInstanceOptions {
+            available_capabilities: capabilities_from_csv("iterator,tgrade"),
+            ..Default::default()
+        },
+    );
+    assert_eq!(deps.required_capabilities().len(), 2);
+
+    let info = mock_info("creator", &[]);
+
+    let instantiate_msg = mock_instantiate_msg(Addr::unchecked("owner"));
+    instantiate::<_, _, _, _, TgradeMsg>(&mut deps, mock_env(), info, instantiate_msg).unwrap();
+}
 
 #[test]
 fn test_validators_storage() {
